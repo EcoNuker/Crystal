@@ -4,7 +4,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 class logging_channels(BaseModel):
-    ...
+    
+    example: Optional[str] = None
 
 # Define the server document
 class Server(Document):
