@@ -1,49 +1,25 @@
 debug_mode = False
 
+# Guilded imports
 import guilded
 from guilded.ext import commands
 
-from colorama import Fore, Back, Style, init as coloramainit
+from colorama import init as coloramainit
 
 coloramainit(autoreset=True)
 
+# Utility imports
 import json, os, glob, logging, traceback, re, signal, platform, sys
 import logging.handlers
 from datetime import datetime
 
+# Database imports
+from beanie import init_beanie
+from documents import database, Server
+from motor.motor_asyncio import AsyncIOMotorClient
 
-class COLORS:
-    """
-    Logging colors
-    """
-
-    # Reset all styles
-    reset = Style.RESET_ALL
-    # Timestamp
-    timestamp = f"{Style.BRIGHT}{Fore.LIGHTBLACK_EX}"
-    # Normal message text
-    normal_message = Fore.WHITE
-
-    # [GUILDED]
-    guilded_logs = Fore.LIGHTYELLOW_EX
-    # [INFO]
-    info_logs = Fore.CYAN
-    # [COGS]
-    cog_logs = Fore.BLUE
-    # [COMMAND]
-    command_logs = Fore.BLUE
-    # [SUCCESS]
-    success_logs = Fore.LIGHTGREEN_EX
-    # [ERROR]
-    error_logs = Fore.RED
-    # [WARN]
-    warn_logs = "\033[38;2;255;165;0m"  # This is orange!
-
-    # Normal item names (inputted text from user usually is an item)
-    item_name = Fore.LIGHTBLUE_EX
-    # A user's name
-    user_name = Fore.LIGHTCYAN_EX
-
+from DATA.log_colors import COLORS
+from DATA.apple_normalizer import generate_apple_versions
 
 # Configure directories
 cogspath = "COGS\\"
@@ -55,6 +31,9 @@ if not os.path.exists(logs_dir):
     os.makedirs(logs_dir)
 if not os.path.exists(errors_dir):
     os.makedirs(errors_dir)
+
+# Configure database
+motor = AsyncIOMotorClient("URL HERE!!")
 
 # Configure the loggers
 # Guilded Logs -> Console
@@ -92,7 +71,7 @@ console_logger = logging.Logger(name="console")
 handler = IncrementalRotatingFileHandler(
     os.path.join(logs_dir, f"latest.txt"),
     maxBytes=10 * 1024 * 1024,  # 10mb
-    backupCount=100,  # Keep up to 100 old log files
+    backupCount=100,  # Keep up to 100 old log files, totaling 1gb of logs
 )
 console_logger.addHandler(handler)
 glogger.addHandler(handler)
@@ -115,13 +94,6 @@ class CONFIGS:
     join_leave_logs: str | None = configdata["server_join_leave"]
     error_logs_dir = errors_dir
     cogs_dir = cogspath
-
-
-async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
-    """
-    Get the prefix of a server.
-    """
-    return [CONFIGS.defaultprefix]
 
 
 def _print(*args, **kwargs):
@@ -203,15 +175,49 @@ def _tracebackprint(error: Exception):
     print(separator_line)
 
 
+async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
+    """
+    Attempts to grab the bot's prefix, first attempt goes to the database then falls back to config.
+    """
+
+    # Pull the server from the database
+    s = await Server.find_one(Server.serverID == message.server_id)
+    # s = Server.find_one(Server.serverID == message.server_id)
+
+    # If the document exists continue with the server prefix
+    if s:
+        # Handle the prefix not being set
+        if s.prefix is None:
+            return CONFIGS.defaultprefix
+
+        # Return the apple compatible prefix
+        return generate_apple_versions(s.prefix)
+
+    # If the document wasn't found then create it with default parameters
+    else:
+        # Create the server's document and provide default args
+        s = Server(serverId=message.server_id)
+
+        # Insert the document to the database and return the default
+        await s.insert()
+
+        # Return the default
+        return CONFIGS.defaultprefix
+
+
 bot = commands.Bot(
     command_prefix=getprefix,
     bot_id=CONFIGS.botid,
-    features=guilded.ClientFeatures(experimental_event_style=True),
+    features=guilded.ClientFeatures(
+        experimental_event_style=True,
+        official_markdown=True,
+    ),
     owner_ids=CONFIGS.owners,
     help_command=None,
 )
 bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
+
 # Logging
 bot.print = _print
 bot.info = _infoprint
@@ -219,10 +225,20 @@ bot.error = _errorprint
 bot.warn = _warnprint
 bot.success = _successprint
 bot.traceback = _tracebackprint
+bot._motor = motor  # Giving the bot access to the raw motor client
 
 
 @bot.event
 async def on_ready():
+
+    # Initialize beanie
+    if not bot.db:
+        # Initializing beanie in the "crystal" database
+        await init_beanie(
+            motor.crystal, document_models=database.documents, multiprocessing_mode=True
+        )
+        bot.db = database
+
     for cog in cogs:
         try:
             bot.load_extension(cog)

@@ -1,5 +1,5 @@
 {
-    "token": "gapi_tTMfVKhKadlBqSEoxDW9ABMvvwyDsppGfzImYaDKEwDOXMKNJZ3X0NYozON80kAc7Q0SpZo5D7bEIKI3SREFpw==",
+    "token": "gapi_nVWI8dv7ntbZertoDq/hzxfdr/FSD8SE35X7OzXKl+wsJ+ao8ukE87v/PvlJtziVvwu9YBK9x/4G5/K66NUOGw==",
     "bot_id": "3c55b14f-8093-4f06-a990-59c37ccd8b52",
     "bot_user_id": "daOBjZZA",
 
@@ -8,7 +8,7 @@
 
     "default_prefix": "!",
 
-    "owners": ["AnnXbPLA",  "4WG7wrP4"],
+    "owners": ["AnnXbPLA",  "4WG7wrP4", "mj7xOkBA"],
 
     "server_join_leave": "2a977e2b-9a5e-4bda-a671-d914a65d2eba"
 }
