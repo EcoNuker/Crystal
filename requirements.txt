@@ -1,2 +1,2 @@
-guilded.py
-colorama
+guilded.py==1.13.2
+colorama==0.4.6
