@@ -1,0 +1,14 @@
+{
+    "token": "YOU WISH",
+    "bot_id": "3c55b14f-8093-4f06-a990-59c37ccd8b52",
+    "bot_user_id": "daOBjZZA",
+
+    "support_server": "wRe47Qxj",
+    "support_server_invite": "https://guilded.gg/EcoNuker",
+
+    "default_prefix": "!",
+
+    "owners": ["AnnXbPLA",  "4WG7wrP4"],
+
+    "server_join_leave": "2a977e2b-9a5e-4bda-a671-d914a65d2eba"
+}
