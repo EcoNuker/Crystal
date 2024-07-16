@@ -15,7 +15,7 @@ from datetime import datetime
 
 # Database imports
 from beanie import init_beanie
-from documents import database, Server
+import documents
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from DATA.log_colors import COLORS
@@ -31,9 +31,6 @@ if not os.path.exists(logs_dir):
     os.makedirs(logs_dir)
 if not os.path.exists(errors_dir):
     os.makedirs(errors_dir)
-
-# Configure database
-motor = AsyncIOMotorClient("URL HERE!!")
 
 # Configure the loggers
 # Guilded Logs -> Console
@@ -84,6 +81,7 @@ class CONFIGS:
 
     with open(f"config.json", "r") as config:
         configdata = json.load(config)
+    database_url = configdata["database"]
     token: str = configdata["token"]
     botid: str = configdata["bot_id"]
     botuserid: str = configdata["bot_user_id"]
@@ -95,6 +93,8 @@ class CONFIGS:
     error_logs_dir = errors_dir
     cogs_dir = cogspath
 
+# Configure database
+motor = AsyncIOMotorClient(CONFIGS.database_url)
 
 def _print(*args, **kwargs):
     timestamp = f"{COLORS.timestamp}[{datetime.utcnow().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]} UTC]{COLORS.reset}"
@@ -181,8 +181,7 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
     """
 
     # Pull the server from the database
-    s = await Server.find_one(Server.serverID == message.server_id)
-    # s = Server.find_one(Server.serverID == message.server_id)
+    s = await documents.Server.find_one(documents.Server.serverID == message.server_id)
 
     # If the document exists continue with the server prefix
     if s:
@@ -192,13 +191,9 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
 
         # Return the apple compatible prefix
         return generate_apple_versions(s.prefix)
-
-    # If the document wasn't found then create it with default parameters
     else:
         # Create the server's document and provide default args
-        s = Server(serverId=message.server_id)
-
-        # Insert the document to the database and return the default
+        s = documents.Server(serverId=message.server_id)
         await s.insert()
 
         # Return the default
@@ -235,9 +230,9 @@ async def on_ready():
     if not bot.db:
         # Initializing beanie in the "crystal" database
         await init_beanie(
-            motor.crystal, document_models=database.documents, multiprocessing_mode=True
+            motor.crystal, document_models=documents.__documents__, multiprocessing_mode=True
         )
-        bot.db = database
+        bot.db = documents
 
     for cog in cogs:
         try:
