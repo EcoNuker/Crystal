@@ -3,36 +3,48 @@ import os, string, secrets, traceback
 import guilded
 from guilded.ext import commands
 
+
 class errors(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-    
+
     @commands.Cog.listener(name="on_command_error")
-    async def ANERROROCCURED(self, ctx:commands.Context, error):
+    async def ANERROROCCURED(self, ctx: commands.Context, error):
         try:
             if isinstance(error, commands.CommandNotFound):
                 return
             elif isinstance(error, commands.CommandOnCooldown):
                 embedig = guilded.Embed(
-                    title='Slow down there!',
+                    title="Slow down there!",
                     color=guilded.Color.red(),
-                    description=f'Please stop spamming this command! Allow a 1 second pause before trying again.'
+                    description=f"Please stop spamming this command! Allow a 1 second pause before trying again.",
                 )
                 return await ctx.reply(embed=embedig, private=ctx.message.private)
             elif isinstance(error, commands.MissingRequiredArgument):
                 embedig = guilded.Embed(
-                    title='Missing Arguments',
+                    title="Missing Arguments",
                     description=f'**You\'re missing required arguments!**\n\n***Error:***\n{", ".join(error.args)}',
-                    color=guilded.Color.red()
+                    color=guilded.Color.red(),
                 )
                 return await ctx.reply(embed=embedig, private=True)
             elif isinstance(error, commands.BadArgument):
-                return await ctx.reply(f'**You put invalid arguments!**\n***Arguments Wrong:***\n{", ".join(error.args)}', private=True)
+                return await ctx.reply(
+                    f'**You put invalid arguments!**\n***Arguments Wrong:***\n{", ".join(error.args)}',
+                    private=True,
+                )
             elif isinstance(error, commands.UnexpectedQuoteError):
-                return await ctx.reply(f'**Why put a quote?!?!?!**\nAt least close it next time.', private=True)
+                return await ctx.reply(
+                    f"**Why put a quote?!?!?!**\nAt least close it next time.",
+                    private=True,
+                )
             elif isinstance(error, commands.InvalidEndOfQuotedStringError):
-                return await ctx.reply(f'**Invalid End of Quoted String.**\nWhat exactly are you trying...', private=True)
-            elif hasattr(error, "original") and isinstance(error.original, guilded.Forbidden):
+                return await ctx.reply(
+                    f"**Invalid End of Quoted String.**\nWhat exactly are you trying...",
+                    private=True,
+                )
+            elif hasattr(error, "original") and isinstance(
+                error.original, guilded.Forbidden
+            ):
                 permmap = {
                     "CanUpdateServer": "Update Server",
                     "CanManageRoles": "Manage Roles",
@@ -118,51 +130,75 @@ class errors(commands.Cog):
                     "CanCreateStreams": "Add Stream",
                     "CanSendStreamMessages": "Send Messages in Streams",
                     "CanAddStreamVoice": "Add Voice in Streams",
-                    "CanUseVoiceActivityInStream": "Use Voice Activity in Streams"
+                    "CanUseVoiceActivityInStream": "Use Voice Activity in Streams",
                 }
-                allperms = [permmap[perm.strip()] for perm in error.original.raw_missing_permissions]
+                allperms = [
+                    permmap[perm.strip()]
+                    for perm in error.original.raw_missing_permissions
+                ]
                 embedigperms = guilded.Embed(
-                    title='I\'m missing permissions',
+                    title="I'm missing permissions",
                     description=f'**I don\'t have required permissions I need for this! Please make sure that channel overrides** (permissions put onto channels in the Permissions tab of Channel settings) **don\'t remove any permissions I need!**\n\n***Missing Permissions:***\n`{", ".join(allperms)}`',
-                    color=guilded.Color.red()
+                    color=guilded.Color.red(),
                 )
                 return await ctx.reply(embed=embedigperms, private=ctx.message.private)
             else:
-                def gen_cryptographically_secure_string(size:int):
-                    '''
+
+                def gen_cryptographically_secure_string(size: int):
+                    """
                     Generates a cryptographically secure string.
-                    '''
-                    letters = string.ascii_lowercase+string.ascii_uppercase+string.digits            
-                    f = ''.join(secrets.choice(letters) for i in range(size))
+                    """
+                    letters = (
+                        string.ascii_lowercase + string.ascii_uppercase + string.digits
+                    )
+                    f = "".join(secrets.choice(letters) for i in range(size))
                     return f
+
                 usedrefcodes = []
 
                 filenames = os.listdir(self.bot.CONFIGS.error_logs_dir)
 
                 for filename in filenames:
-                    if os.path.isdir(os.path.join(os.path.abspath(self.bot.CONFIGS.error_logs_dir), filename)):
+                    if os.path.isdir(
+                        os.path.join(
+                            os.path.abspath(self.bot.CONFIGS.error_logs_dir), filename
+                        )
+                    ):
                         usedrefcodes.append(filename)
 
                 randomrefcode = gen_cryptographically_secure_string(20)
 
-                while f'{randomrefcode}.txt' in usedrefcodes:
+                while f"{randomrefcode}.txt" in usedrefcodes:
                     randomrefcode = gen_cryptographically_secure_string(20)
 
                 try:
                     raise error
                 except Exception as e:
-                    tb = ''.join(traceback.format_exception(e, e, e.__traceback__))
+                    tb = "".join(traceback.format_exception(e, e, e.__traceback__))
                     self.bot.traceback(e)
-                    with open(f'{self.bot.CONFIGS.error_logs_dir}\\{randomrefcode}.txt', 'w+') as file:
+                    with open(
+                        f"{self.bot.CONFIGS.error_logs_dir}\\{randomrefcode}.txt", "w+"
+                    ) as file:
                         file.write(tb)
                         file.close()
 
-                embedig = guilded.Embed(color=guilded.Color.red(), title='Something went wrong!', description=f'Please join our support server and tell my developer!\n[Support Server]({self.bot.CONFIGS.supportserverinv})')
-                embedig.add_field(name='Error Reference Code', value=f'`{randomrefcode}`', inline=False)
-                embedig.set_footer(text='Use the reference code to report a bug! This way we\'ll know what went wrong.')
+                embedig = guilded.Embed(
+                    color=guilded.Color.red(),
+                    title="Something went wrong!",
+                    description=f"Please join our support server and tell my developer!\n[Support Server]({self.bot.CONFIGS.supportserverinv})",
+                )
+                embedig.add_field(
+                    name="Error Reference Code",
+                    value=f"`{randomrefcode}`",
+                    inline=False,
+                )
+                embedig.set_footer(
+                    text="Use the reference code to report a bug! This way we'll know what went wrong."
+                )
                 await ctx.reply(embed=embedig, private=True)
         except Exception as e:
             self.bot.traceback(e)
 
+
 def setup(bot):
-	bot.add_cog(errors(bot))
+    bot.add_cog(errors(bot))
