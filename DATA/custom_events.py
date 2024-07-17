@@ -2,7 +2,9 @@ import guilded
 import string, secrets, time
 
 
-def action_map(action: str, duration: int = None, automod: bool = False) -> str:
+def action_map(
+    action: str, duration: int = None, amount: int = None, automod: bool = False
+) -> str:
     actions = {
         "kick": "The user was kicked",
         "ban": "The user was banned",
@@ -10,6 +12,7 @@ def action_map(action: str, duration: int = None, automod: bool = False) -> str:
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
+        "purge": "{amount} messages were deleted",
     }
 
     def format_duration(seconds: int) -> str:
@@ -38,12 +41,17 @@ def action_map(action: str, duration: int = None, automod: bool = False) -> str:
     elif "{time}" in res:
         res = res.format(time="an unknown duration")
 
+    if "{amount}" in res and amount is not None:
+        res = res.format(amount=f"{amount:,}")
+    elif "{amount}" in res:
+        res = res.format(time="an unknown amount of")
+
     if automod:
         res += " and the message was deleted."
     else:
         res += "."
 
-    return res
+    return res.capitalize().strip()
 
 
 class BaseEvent:
@@ -82,7 +90,7 @@ class EventQueue:
     def clear_old_overwrites(self) -> None:
         for overwrite_type, overwrites in self.events_overwritten.copy().items():
             for overwrite, time_overwritten in overwrites.copy().items():
-                if (time.time() - time_overwritten) > 10:  # ten seconds
+                if (time.time() - time_overwritten) > 20:  # ten seconds
                     del self.events_overwritten[overwrite_type][overwrite]
 
 
@@ -110,34 +118,39 @@ class ModeratorAction(BaseEvent):
     def __init__(
         self,
         action: str,
-        member: guilded.Member,
         moderator: guilded.Member,
+        member: guilded.Member | None = None,
+        channel: guilded.ChatChannel | None = None,
         duration: int = 0,
+        amount: int = 0,
+        overwrites: dict = {},
     ) -> None:
         self.eventType = "ModeratorAction"
         self.server = moderator.server
         self.server_id = moderator.server_id
         self.member = member
+        self.channel = channel
         self.moderator = moderator
         self.action = action
-        self.overwrite = {}
+        self.overwrite = overwrites
         self.duration = duration if action.startswith("temp") else None
-        self.formatted_action = action_map(self.action, duration=duration)
-        assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
+        self.amount = amount
+        self.formatted_action = action_map(
+            self.action, duration=duration, amount=amount
+        )
+        assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
 
 
 class BotSettingChanged(BaseEvent):
     def __init__(
-        self,
-        action: str,
-        changed_by: guilded.Member,
+        self, action: str, changed_by: guilded.Member, overwrites: dict = {}
     ) -> None:
         self.eventType = "BotSettingChanged"
         self.server = changed_by.server
         self.server_id = changed_by.server_id
         self.changed_by = changed_by
         self.action = action
-        self.overwrite = {}
+        self.overwrite = overwrites
 
 
 eventqueue = EventQueue()

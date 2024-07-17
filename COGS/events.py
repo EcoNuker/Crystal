@@ -22,7 +22,10 @@ class events(commands.Cog):
             and len(message.raw_user_mentions) == 1
         ):
             me = await message.server.fetch_member(self.bot.user.id)
-            if message.content.strip() in [f"<@{me.id}>", f"@{me.nick if me.nick else me.display_name}"]:
+            if message.content.strip() in [
+                f"<@{me.id}>",
+                f"@{me.nick if me.nick else me.display_name}",
+            ]:
                 try:
                     await message.reply(
                         embed=guilded.Embed(
@@ -48,7 +51,7 @@ class events(commands.Cog):
             embedig = guilded.Embed(
                 title=f"{self.bot.user.name} joined a server!",
                 description="**{}**\n**Invited by:** `{} ({})`".format(
-                    event.server.name, event.user.name, event.user.id
+                    event.server.name, event.member.name, event.member_id
                 ),
                 color=0x363942,
             )
@@ -61,7 +64,7 @@ class events(commands.Cog):
             default_channel = await event.server.fetch_default_channel()
             embedig = guilded.Embed(
                 title=f"Thanks for using {self.bot.user.name}!",
-                description=f"I see you invited me, {event.user.mention}!\nThanks for inviting me!",
+                description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me!",
                 color=guilded.Color.green(),
             )
             embedig.set_footer(text="Hope you enjoy!")
@@ -70,7 +73,7 @@ class events(commands.Cog):
             prefix = self.bot.get_prefix(message)
             embedig = guilded.Embed(
                 title=f"Thanks for using {self.bot.user.name}!",
-                description=f"I see you invited me, {event.user.mention}!\nThanks for inviting me! The current prefix for this server is `{prefix}`.\n\nRun `{prefix}help` for help.",
+                description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me! The current prefix for this server is `{prefix}`.\n\nRun `{prefix}help` for help.",
                 color=guilded.Color.green(),
             )
             embedig.set_footer(text="Hope you enjoy!")
@@ -91,7 +94,7 @@ class events(commands.Cog):
                 title=f"{self.bot.user.name} left a server.",
                 description=f"**{event.server.name}**"
                 + "\n"
-                + f'**Removed by:** `{"None" if event.member == None else event.member.name} ({"None" if event.member == None else event.member.id})`',
+                + f'**Removed by:** `{"None" if event.member == None else event.member.name} ({event.member_id})`',
                 color=0x363942,
             )
             embedig.timestamp = datetime.datetime.now(datetime.timezone.utc)

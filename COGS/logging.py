@@ -5,7 +5,6 @@ from DATA import custom_events
 from DATA import embeds
 from humanfriendly import format_timespan
 import documents
-from datetime import timedelta, datetime, timezone
 from fuzzywuzzy import process
 
 
@@ -118,6 +117,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
 
         channels = []
         deleted = False
@@ -281,6 +283,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
         if len(server_data.logging.setChannels.keys()) >= 20:
             embed = embeds.Embeds.embed(
                 title="Maxiumum log channels met",
@@ -362,7 +367,7 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        await ctx.server.fill_lroles()
+        await ctx.server.fill_roles()
         if (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
@@ -395,6 +400,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
 
         if server_data.logging.setChannels.get(channel.id):
             event_type = server_data.logging.setChannels.get(channel.id)
@@ -471,6 +479,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -505,6 +516,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -536,6 +550,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -544,12 +561,15 @@ class Logging(commands.Cog):
         )
 
         # Add related fields
-        embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User", value=event.member.mention)
-        embed.add_field(name="User ID", value=event.member.id)
+        embed.set_thumbnail(url=event.moderator.display_avatar.url)
+        if event.member:
+            embed.add_field(name="User", value=event.member.mention)
+            embed.add_field(name="User ID", value=event.member.id)
+        if event.channel:
+            embed.add_field(name="Channel", value=event.channel.mention)
+            embed.add_field(name="Channel ID", value=event.channel.id)
         embed.add_field(name="Moderator", value=event.moderator.mention)
         embed.add_field(name="Moderator ID", value=event.moderator.id)
-        embed.add_field(name="Message ID", value=event.member.id)
         embed.add_field(name="Action Taken", value=event.formatted_action)
 
         # Push the event to the listening channels
@@ -570,6 +590,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -608,6 +631,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -624,7 +650,7 @@ class Logging(commands.Cog):
                 format_timespan(datetime.datetime.now() - event.member.created_at)
                 + " :warning: *New account!*"
                 if event.member.created_at
-                < datetime.now(timezone.utc) - timedelta(days=30)
+                < datetime.datetime.now() - datetime.timedelta(days=30)
                 else ""
             ),
         )
@@ -654,6 +680,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -700,6 +729,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -741,6 +773,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
 
         # Iterate over all updated members
         for member in event.after:
@@ -789,6 +824,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Banned",
             url=event.member.profile_url,
@@ -826,6 +864,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Unbanned",
             url=event.member.profile_url,
@@ -864,15 +905,30 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Message Deleted",
             url=event.message.share_url,
             colour=guilded.Colour.red(),
         )
-        embed.set_thumbnail(url=event.message.author.display_avatar.url)
+        embed.set_thumbnail(
+            url=(
+                event.message.author.display_avatar.url
+                if event.message.author
+                else (
+                    await self.bot.fetch_user(event.message.author_id)
+                ).display_avatar.url
+            )
+        )
         embed.add_field(name="User ID", value=event.message.author.id)
         embed.add_field(name="Message ID", value=event.message.id)
-        embed.add_field(name="Contents", value=event.message.content, inline=False)
+        embed.add_field(
+            name="Contents",
+            value=event.message.content if event.message.content else "UNKNOWN",
+            inline=False,
+        )
         if server_data.logging.messageChange:
             for channel_id in server_data.logging.messageChange:
                 await self.bot.get_partial_messageable(channel_id).send(
@@ -889,6 +945,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Updated",
             url=event.topic.share_url,
@@ -922,6 +981,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Deleted",
             url=event.topic.share_url,
@@ -955,6 +1017,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Pinned",
             url=event.topic.share_url,
@@ -985,6 +1050,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unpinned",
             url=event.topic.share_url,
@@ -1015,6 +1083,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Locked",
             url=event.topic.share_url,
@@ -1045,6 +1116,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unlocked",
             url=event.topic.share_url,
@@ -1077,6 +1151,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
             url=event.reply.share_url,
@@ -1109,6 +1186,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Deleted",
             url=event.reply.share_url,
@@ -1139,6 +1219,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Doc Updated",
             url=event.doc.share_url,
@@ -1178,6 +1261,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Doc Deleted",
             url=event.doc.share_url,
@@ -1217,6 +1303,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
             url=event.reply.share_url,
@@ -1247,6 +1336,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Deleted",
             url=event.reply.share_url,
@@ -1277,6 +1369,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Announcement Updated",
             url=event.announcement.share_url,
@@ -1316,6 +1411,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Announcement Deleted",
             url=event.announcement.share_url,
@@ -1357,6 +1455,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
             url=event.reply.share_url,
@@ -1389,6 +1490,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Deleted",
             url=event.reply.share_url,
@@ -1419,6 +1523,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Updated",
             url=event.calendar_event.share_url,
@@ -1456,6 +1563,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Deleted",
             url=event.calendar_event.share_url,
@@ -1495,6 +1605,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
             url=event.reply.share_url,
@@ -1527,6 +1640,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Deleted",
             url=event.reply.share_url,
@@ -1557,6 +1673,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"List Item Updated",
             url=event.item.share_url,
@@ -1587,6 +1706,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"List Item Deleted",
             url=event.item.share_url,
@@ -1617,6 +1739,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"List Item Completed",
             url=event.item.share_url,
@@ -1647,6 +1772,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f"List Item Uncompleted",
             url=event.item.share_url,
@@ -1677,6 +1805,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Created',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -1713,6 +1844,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Deleted',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -1749,6 +1883,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = guilded.Embed(
             title=f'Channel "{event.channel.name}" Updated',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -1880,6 +2017,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f'Category "{event.category.name}" Created',
             description=f"In group \"{event.category.group.name if event.category.group else 'None'}\"",
@@ -1914,6 +2054,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         if server_data.logging.categoryUpdate:
             embed = embeds.Embeds.embed(
                 title=f'Category "{event.category.name}" Deleted',
@@ -1938,6 +2081,9 @@ class Logging(commands.Cog):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
         embed = embeds.Embeds.embed(
             title=f'Category "{event.after.name}" Updated',
             description=f"In group \"{event.after.group.name if event.after.group else 'None'}\"",

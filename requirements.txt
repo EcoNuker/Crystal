@@ -5,3 +5,4 @@ typing
 humanfriendly
 fuzzywuzzy
 python-Levenshtein
+google-re2
