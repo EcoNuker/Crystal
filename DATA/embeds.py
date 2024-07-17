@@ -6,43 +6,63 @@ from main import bot
 
 class EmbedsData:
     def __init__(self):
-        self.invalid_user = guilded.Embed(
+        self._invalid_user = guilded.Embed(
             title="Invalid User",
             description="You didn't specify a valid user. Please try again!",
             color=guilded.Color.red(),
-        ).set_footer(
-            text=f"{bot.user.display_name} v{bot.version}",
-            # icon_url=IMAGE_BOT_LOGO,
         )
-        self.invalid_channel = guilded.Embed(
+        self._invalid_channel = guilded.Embed(
             title="Invalid Channel",
             description="You didn't specify a valid channel (do I have the `View Channel` permission for it?). Please try again!",
             color=guilded.Color.red(),
-        ).set_footer(
-            text=f"{bot.user.display_name} v{bot.version}",
-            # icon_url=IMAGE_BOT_LOGO,
         )
-        self.server_only = guilded.Embed(
+        self._server_only = guilded.Embed(
             title="Servers Only",
             description="This command can only be run in servers!",
             color=guilded.Color.red(),
-        ).set_footer(
-            text=f"{bot.user.display_name} v{bot.version}",
-            # icon_url=IMAGE_BOT_LOGO,
         )
-        self.owner_only = guilded.Embed(
+        self._owner_only = guilded.Embed(
             title="Owner Only",
             description="This command can only be run as owner!",
             color=guilded.Color.red(),
-        ).set_footer(
-            text=f"{bot.user.display_name} v{bot.version}",
-            # icon_url=IMAGE_BOT_LOGO,
         )
-        self.manage_bot_server_permissions = guilded.Embed(
+        self._manage_bot_server_permissions = guilded.Embed(
             title="You're Missing Permissions!",
             description=f"You need the `Manage Server` or `Manage Bots` permission.",
             color=guilded.Color.red(),
-        ).set_footer(
+        )
+
+    @property
+    def server_only(self):
+        return self._server_only.set_footer(
+            text=f"{bot.user.display_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    @property
+    def owner_only(self):
+        return self._owner_only.set_footer(
+            text=f"{bot.user.display_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    @property
+    def manage_bot_server_permissions(self):
+        return self._manage_bot_server_permissions.set_footer(
+            text=f"{bot.user.display_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    @property
+    def invalid_user(self):
+        return self._invalid_user.set_footer(
+            text=f"{bot.user.display_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+    
+    @property
+    def invalid_channel(self):
+        return self._invalid_channel.set_footer(
             text=f"{bot.user.display_name} v{bot.version}",
             # icon_url=IMAGE_BOT_LOGO,
         )

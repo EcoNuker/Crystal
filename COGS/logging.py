@@ -12,18 +12,28 @@ class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-        asyncio.create_task(self.custom_event_dispatcher)
+        asyncio.create_task(self.custom_event_dispatcher())
 
     async def custom_event_dispatcher(self):
         while True:
-            for eventId, data in custom_events.eventqueue.events.copy().items():
-                func_map = {
-                    "AutomodEvent": self.automod,
-                    "ModeratorAction": self.moderator_action,
-                }
-                await func_map[data["eventType"]](data["eventData"])
-                del custom_events.eventqueue.events[eventId]
-            custom_events.eventqueue.clear_old_overwrites()
+            try:
+                while True:
+                    for eventId, data in custom_events.eventqueue.events.copy().items():
+                        func_map = {
+                            "AutomodEvent": self.automod,
+                            "ModeratorAction": self.moderator_action,
+                        }
+                        await func_map[data["eventType"]](data["eventData"])
+                        del custom_events.eventqueue.events[eventId]
+                    custom_events.eventqueue.clear_old_overwrites()
+            except Exception as e:
+                self.bot.warn(
+                    f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
+                )
+                self.bot.info(
+                    f"Restarting task in {self.bot.COLORS.item_name}5{self.bot.COLORS.normal_message} seconds"
+                )
+                await asyncio.sleep(5)
 
     @commands.group(name="logs")
     async def logs(self, ctx: commands.Context):
