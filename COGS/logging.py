@@ -26,7 +26,7 @@ class Logging(commands.Cog):
                         await func_map[data["eventType"]](data["eventData"])
                         del custom_events.eventqueue.events[eventId]
                     custom_events.eventqueue.clear_old_overwrites()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.3)
             except Exception as e:
                 self.bot.warn(
                     f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
@@ -38,27 +38,28 @@ class Logging(commands.Cog):
 
     @commands.group(name="logs")
     async def logs(self, ctx: commands.Context):
-        prefix = self.bot.get_prefix(ctx.message)
-        if type(prefix) == list:
-            prefix = prefix[0]
-        embed = embeds.Embeds.embed(title=f"Logging Commands")
-        embed.add_field(
-            name="Viewing Log Types", value=f"`{prefix}logs types`", inline=False
-        )
-        embed.add_field(
-            name="Viewing Log Channels", value=f"`{prefix}logs view`", inline=False
-        )
-        embed.add_field(
-            name="Setting Log Channel",
-            value=f"`{prefix}logs set <channel> <log type>`",
-            inline=False,
-        )
-        embed.add_field(
-            name="Deleting Log Channel",
-            value=f"`{prefix}logs delete <channel>`",
-            inline=False,
-        )
-        await ctx.reply(embed=embed, private=ctx.message.private)
+        if ctx.invoked_subcommand is None:
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(title=f"Logging Commands")
+            embed.add_field(
+                name="Viewing Log Types", value=f"`{prefix}logs types`", inline=False
+            )
+            embed.add_field(
+                name="Viewing Log Channels", value=f"`{prefix}logs view`", inline=False
+            )
+            embed.add_field(
+                name="Setting Log Channel",
+                value=f"`{prefix}logs set <channel> <log type>`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Deleting Log Channel",
+                value=f"`{prefix}logs delete <channel>`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
 
     @logs.command(name="types")
     async def _types(self, ctx: commands.Context):
@@ -258,7 +259,7 @@ class Logging(commands.Cog):
         event_type = find_closest_match(event_type, unhuman_readable_map)
 
         if event_type == None:
-            prefix = self.bot.get_prefix(ctx.message)
+            prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
@@ -275,7 +276,7 @@ class Logging(commands.Cog):
             event_type = server_data.logging.setChannels.get(channel.id)
             embed = embeds.Embeds.embed(
                 title="Already a log channel",
-                description=f"{channel.mention} is already a `{human_readable_map(event_type)}` log channel.",
+                description=f"{channel.mention} is already a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.red(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -285,7 +286,7 @@ class Logging(commands.Cog):
                 await channel.send(
                     embed=embeds.Embeds.embed(
                         title="Log Channel",
-                        description=f"This is now a `{human_readable_map(event_type)}` log channel.",
+                        description=f"This is now a `{human_readable_map[event_type]}` log channel.",
                     )
                 )
             except:
@@ -329,7 +330,7 @@ class Logging(commands.Cog):
             await server_data.save()
             embed = embeds.Embeds.embed(
                 title="Set Log Channel!",
-                description=f"{channel.mention} is now a `{human_readable_map(event_type)}` log channel.",
+                description=f"{channel.mention} is now a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -428,7 +429,7 @@ class Logging(commands.Cog):
             await server_data.save()
             embed = embeds.Embeds.embed(
                 title="Sucessfully Removed Log Channel",
-                description=f"{channel.mention} is no longer a `{human_readable_map(event_type)}` log channel.",
+                description=f"{channel.mention} is no longer a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -451,6 +452,7 @@ class Logging(commands.Cog):
         )
         embed = embeds.Embeds.embed(
             title=f"Message Automodded",
+            url=event.message.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.member.display_avatar.url)
@@ -459,11 +461,13 @@ class Logging(commands.Cog):
         embed.add_field(name="Message ID", value=event.member.id)
         embed.add_field(name="Action Taken", value=event.formatted_action)
         # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
+
         if server_data.logging.automod:
             for channel_id in server_data.logging.automod:
                 await self.bot.get_partial_messageable(channel_id).send(
                     embed=embed, silent=True
                 )
+        
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 await self.bot.get_partial_messageable(channel_id).send(
@@ -478,6 +482,8 @@ class Logging(commands.Cog):
             title=f"Moderator Action Taken",
             colour=guilded.Colour.red(),
         )
+        
+        # Add related fields
         embed.set_thumbnail(url=event.member.display_avatar.url)
         embed.add_field(name="User", value=event.member.mention)
         embed.add_field(name="User ID", value=event.member.id)
@@ -485,6 +491,7 @@ class Logging(commands.Cog):
         embed.add_field(name="Moderator ID", value=event.moderator.id)
         embed.add_field(name="Message ID", value=event.member.id)
         embed.add_field(name="Action Taken", value=event.formatted_action)
+        
         if server_data.logging.moderatorAction:
             for channel_id in server_data.logging.moderatorAction:
                 await self.bot.get_partial_messageable(channel_id).send(

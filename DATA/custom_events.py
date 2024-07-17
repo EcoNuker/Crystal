@@ -50,6 +50,7 @@ class BaseEvent:
     def __init__(self) -> None:
         self.eventType: str
         self.overwrite: dict = {}
+        self.server_id: str
 
 
 class EventQueue:
@@ -94,6 +95,8 @@ class AutomodEvent(BaseEvent):
         duration: int = 0,
     ) -> None:
         self.eventType = "AutomodEvent"
+        self.server = message.server
+        self.server_id = message.server_id
         self.message = message
         self.member = member
         self.overwrite: dict = {"message_ids": [message.id]}
@@ -112,6 +115,8 @@ class ModeratorAction(BaseEvent):
         duration: int = 0,
     ) -> None:
         self.eventType = "ModeratorAction"
+        self.server = moderator.server
+        self.server_id = moderator.server_id
         self.member = member
         self.moderator = moderator
         self.action = action

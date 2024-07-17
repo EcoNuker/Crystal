@@ -1,4 +1,5 @@
-debug_mode = False
+import sys
+debug_mode = sys.argv[-1] == "-d"
 
 # Guilded imports
 import guilded
@@ -215,6 +216,7 @@ bot = commands.Bot(
     help_command=None,
 )
 bot.version = CONFIGS.version
+bot.name = "Crystal"
 bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
 
@@ -230,6 +232,7 @@ bot._motor = motor  # Giving the bot access to the raw motor client
 
 @bot.event
 async def on_ready():
+    global bot
 
     # Initialize beanie
     try:
@@ -256,7 +259,6 @@ async def on_ready():
             pass
 
     bot.success(f"Bot ready! Logged in as {COLORS.user_name}{bot.user}")
-
 
 if __name__ == "__main__":
     console_logger.info("\n")
