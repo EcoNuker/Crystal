@@ -19,10 +19,10 @@ class tasks(commands.Cog):
                         [
                             None,
                             f"Watching {server_count} server{'s' if server_count != 1 else ''}!",
-                            60,
+                            120,
                         ],
-                        [None, f"Helping you moderate servers!", 60],
-                        [None, f"https://github.com/EcoNuker/Crystal", 60],
+                        [None, f"Helping you moderate servers!", 120],
+                        [None, f"Open-source: https://github.com/EcoNuker/Crystal", 120],
                     ]
                     for status in statuses:
                         try:
