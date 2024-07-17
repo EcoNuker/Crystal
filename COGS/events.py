@@ -11,7 +11,7 @@ class events(commands.Cog):
     @commands.Cog.listener("on_command")
     async def commandwasrun(self, ctx: commands.Context):
         self.bot.print(
-            f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.user_name}{ctx.author.name}{self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name}{self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
+            f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
         )
 
     @commands.Cog.listener("on_message")
@@ -31,7 +31,7 @@ class events(commands.Cog):
                         private=message.private,
                     )
                     self.bot.print(
-                        f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.user_name}{message.author.name}{self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}@PING{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{message.server.name}{self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{message.content}"
+                        f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.user_name}{message.author.name} ({message.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}@PING{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{message.server.name} ({message.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{message.content}"
                     )
                 except:
                     pass
