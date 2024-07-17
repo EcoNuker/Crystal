@@ -494,7 +494,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -503,7 +503,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
         # Fetch the server from the database
@@ -534,7 +534,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -543,7 +543,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     async def on_moderator_action(self, event: custom_events.ModeratorAction):
         # Fetch the server from the database
@@ -580,7 +580,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -588,7 +588,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
@@ -626,7 +626,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -635,7 +635,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_member_join(self, event: guilded.MemberJoinEvent):
@@ -676,7 +676,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -685,7 +685,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -694,7 +694,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_member_remove(self, event: guilded.MemberRemoveEvent):
@@ -734,7 +734,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -743,7 +743,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -752,7 +752,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_member_update(self, event: guilded.MemberUpdateEvent):
@@ -785,7 +785,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         elif server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -794,7 +794,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
         elif server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -803,7 +803,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_bulk_member_roles_update(
@@ -890,7 +890,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
                 try:
@@ -898,7 +898,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -906,7 +906,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
@@ -939,7 +939,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -947,7 +947,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -991,7 +991,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -999,7 +999,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_update(self, event: guilded.ForumTopicUpdateEvent):
@@ -1028,7 +1028,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1036,7 +1036,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1044,7 +1044,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_delete(self, event: guilded.ForumTopicDeleteEvent):
@@ -1073,7 +1073,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1081,7 +1081,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1089,7 +1089,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_pin(self, event: guilded.ForumTopicPinEvent):
@@ -1115,7 +1115,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1123,7 +1123,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1131,7 +1131,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_unpin(self, event: guilded.ForumTopicUnpinEvent):
@@ -1157,7 +1157,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1165,7 +1165,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1173,7 +1173,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_lock(self, event: guilded.ForumTopicLockEvent):
@@ -1199,7 +1199,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1207,7 +1207,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1215,7 +1215,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_unlock(self, event: guilded.ForumTopicUnlockEvent):
@@ -1241,7 +1241,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1249,7 +1249,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1257,7 +1257,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_update(
@@ -1285,7 +1285,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1293,7 +1293,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1301,7 +1301,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_delete(
@@ -1329,7 +1329,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1337,7 +1337,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1345,7 +1345,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_doc_update(self, event: guilded.DocUpdateEvent):
@@ -1380,7 +1380,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1388,7 +1388,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1396,7 +1396,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_doc_delete(self, event: guilded.DocDeleteEvent):
@@ -1431,7 +1431,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1439,7 +1439,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1447,7 +1447,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_doc_reply_update(self, event: guilded.DocReplyUpdateEvent):
@@ -1473,7 +1473,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1481,7 +1481,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1489,7 +1489,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_doc_reply_delete(self, event: guilded.DocReplyDeleteEvent):
@@ -1515,7 +1515,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1523,7 +1523,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1531,7 +1531,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_announcement_update(self, event: guilded.AnnouncementUpdateEvent):
@@ -1566,7 +1566,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1574,7 +1574,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1582,7 +1582,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_announcement_delete(self, event: guilded.AnnouncementDeleteEvent):
@@ -1617,7 +1617,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1625,7 +1625,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1633,7 +1633,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_announcement_reply_update(
@@ -1661,7 +1661,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1669,7 +1669,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1677,7 +1677,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_announcement_reply_delete(
@@ -1705,7 +1705,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1713,7 +1713,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1721,7 +1721,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_calendar_event_update(self, event: guilded.CalendarEventUpdateEvent):
@@ -1754,7 +1754,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1762,7 +1762,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1770,7 +1770,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_calendar_event_delete(self, event: guilded.CalendarEventDeleteEvent):
@@ -1803,7 +1803,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1811,7 +1811,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1819,7 +1819,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_update(
@@ -1847,7 +1847,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1855,7 +1855,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1863,7 +1863,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_delete(
@@ -1891,7 +1891,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1899,7 +1899,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1907,7 +1907,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_list_item_update(self, event: guilded.ListItemUpdateEvent):
@@ -1933,7 +1933,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1941,7 +1941,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1949,7 +1949,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_list_item_delete(self, event: guilded.ListItemDeleteEvent):
@@ -1975,7 +1975,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1983,7 +1983,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1991,7 +1991,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_list_item_complete(self, event: guilded.ListItemCompleteEvent):
@@ -2017,7 +2017,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2025,7 +2025,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2033,7 +2033,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_list_item_uncomplete(self, event: guilded.ListItemUncompleteEvent):
@@ -2059,7 +2059,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2067,7 +2067,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2075,7 +2075,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_server_channel_create(self, event: guilded.ServerChannelCreateEvent):
@@ -2107,7 +2107,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2115,7 +2115,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2123,7 +2123,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_server_channel_delete(self, event: guilded.ServerChannelDeleteEvent):
@@ -2155,7 +2155,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2163,7 +2163,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2171,7 +2171,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()  # confusing ✨
     async def on_server_channel_update(self, event: guilded.ServerChannelUpdateEvent):
@@ -2248,7 +2248,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -2256,7 +2256,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -2264,7 +2264,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
             elif (
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
@@ -2290,7 +2290,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -2298,7 +2298,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -2306,7 +2306,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except:
-                            pass # TODO: delete channel from logging db
+                            await self.delete_log(event.server_id, channel_id)
         else:
             embed.add_field(name="Unknown Changes", value="Could not compare changes.")
         if server_data.logging.channelStateUpdate:
@@ -2316,7 +2316,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2324,7 +2324,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2332,7 +2332,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_category_create(self, event: guilded.CategoryCreateEvent):
@@ -2362,7 +2362,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2370,7 +2370,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2378,7 +2378,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_category_delete(self, event: guilded.CategoryDeleteEvent):
@@ -2408,7 +2408,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
     @commands.Cog.listener()
     async def on_category_update(self, event: guilded.CategoryUpdateEvent):
@@ -2451,7 +2451,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2459,7 +2459,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2467,7 +2467,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except:
-                    pass # TODO: delete channel from logging db
+                    await self.delete_log(event.server_id, channel_id)
 
 
 def setup(bot):
