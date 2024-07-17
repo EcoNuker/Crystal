@@ -180,10 +180,11 @@ def _tracebackprint(error: Exception):
     print(separator_line)
 
 
-async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
+async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     """
     Attempts to grab the bot's prefix, first attempt goes to the database then falls back to config.
     """
+    print("called")
 
     # Pull the server from the database
     s = await documents.Server.find_one(documents.Server.serverId == message.server_id)
@@ -237,6 +238,9 @@ async def on_ready():
         bot.db
     except:
         # Initializing beanie in the "crystal" database
+        bot.print(
+            f"{COLORS.info_logs}[INFO] {COLORS.normal_message}Connecting to database..."
+        )
         await init_beanie(
             motor.crystal,
             document_models=documents.__documents__,
