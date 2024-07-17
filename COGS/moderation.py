@@ -21,6 +21,7 @@ class Moderation(commands.Cog):
     #     if ctx.server is None:
     #         await ctx.reply(embed=Embeds.server_only, private=ctx.message.private)
     #         return
+    #     await ctx.server.fill_roles()
     #     if not ctx.author.server_permissions.kick_members:
     #         await ctx.reply(embed=Embeds.missing_permissions("Kick/Ban Members", manage_bot_server=False), private=ctx.message.private)
     #         return
@@ -77,6 +78,7 @@ class Moderation(commands.Cog):
     #     if ctx.server is None:
     #         await ctx.reply(embed=Embeds.server_only, private=ctx.message.private)
     #         return
+    #     await ctx.server.fill_roles()
     #     if not ctx.author.server_permissions.kick_members:
     #         await ctx.reply(embed=Embeds.missing_permissions("Kick/Ban Members", manage_bot_server=False), private=ctx.message.private)
     #         return

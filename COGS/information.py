@@ -75,15 +75,6 @@ class information(commands.Cog):
             private=ctx.message.private,
         )
 
-    @commands.command(name="prefix", description="Return the bot's current prefix!")
-    async def prefix(self, ctx: commands.Context):
-        prefixdata = (await self.bot.get_prefix(ctx.message))[0]
-        embedig = guilded.Embed(
-            title="Server Prefix",
-            description=f"The current prefix for this server is `{prefixdata}`.",
-        )
-        await ctx.reply(embed=embedig, private=ctx.message.private)
-
     @commands.command(
         name="ping",
         description="Check if the bot is online, as well as the latency of it!",

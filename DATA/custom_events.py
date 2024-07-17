@@ -120,9 +120,24 @@ class ModeratorAction(BaseEvent):
         self.member = member
         self.moderator = moderator
         self.action = action
+        self.overwrite = {}
         self.duration = duration if action.startswith("temp") else None
         self.formatted_action = action_map(self.action, duration=duration)
         assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
+
+
+class BotSettingChanged(BaseEvent):
+    def __init__(
+        self,
+        action: str,
+        changed_by: guilded.Member,
+    ) -> None:
+        self.eventType = "BotSettingChanged"
+        self.server = changed_by.server
+        self.server_id = changed_by.server_id
+        self.changed_by = changed_by
+        self.action = action
+        self.overwrite = {}
 
 
 eventqueue = EventQueue()

@@ -1,4 +1,5 @@
 import sys
+
 debug_mode = sys.argv[-1] == "-d"
 
 # Guilded imports
@@ -259,6 +260,7 @@ async def on_ready():
             pass
 
     bot.success(f"Bot ready! Logged in as {COLORS.user_name}{bot.user}")
+
 
 if __name__ == "__main__":
     console_logger.info("\n")
