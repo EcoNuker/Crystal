@@ -489,6 +489,7 @@ class Logging(commands.Cog):
                     await delete_log(event.server_id, channel_id)
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
+        print(event.changed_by)
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
@@ -498,7 +499,7 @@ class Logging(commands.Cog):
             await server_data.save()
 
         if event.changed_by == None:
-            event.changed_by = self.bot
+            event.changed_by = self.bot.user
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -552,10 +553,10 @@ class Logging(commands.Cog):
             embed.add_field(name="User ID", value=event.member.id)
         if event.channel:
             embed.add_field(name="Channel", value=event.channel.mention)
-            embed.add_field(name="Channel ID", value=event.channel.id)
+            embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         embed.add_field(name="Moderator", value=event.moderator.mention)
         embed.add_field(name="Moderator ID", value=event.moderator.id)
-        embed.add_field(name="Action Taken", value=event.formatted_action)
+        embed.add_field(name="Action Taken", value=event.formatted_action, inline=False)
 
         # Push the event to the listening channels
         if server_data.logging.moderatorAction:
@@ -2080,10 +2081,10 @@ class Logging(commands.Cog):
             url=(
                 event.channel.group.display_avatar.url
                 if event.channel.group
-                else event.channel.server.display_avatar.url
+                else event.channel.server.icon.url
             )
         )
-        embed.add_field(name="Channel ID", value=event.channel.id)
+        embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
@@ -2131,7 +2132,7 @@ class Logging(commands.Cog):
                 else event.channel.server.icon.url
             )
         )
-        embed.add_field(name="Channel ID", value=event.channel.id)
+        embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
@@ -2179,7 +2180,7 @@ class Logging(commands.Cog):
                 else event.channel.server.icon.url
             )
         )
-        embed.add_field(name="Channel ID", value=event.channel.id)
+        embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         if event.before:
             if event.before.name != event.after.name:
                 embed.add_field(name="Previous Name", value=event.before.name)
@@ -2222,10 +2223,12 @@ class Logging(commands.Cog):
                     url=(
                         event.channel.group.display_avatar.url
                         if event.channel.group
-                        else event.channel.server.display_avatar.url
+                        else event.channel.server.icon.url
                     )
                 )
-                embed2.add_field(name="Channel ID", value=event.channel.id)
+                embed2.add_field(
+                    name="Channel ID", value=event.channel.id, inline=False
+                )
                 if server_data.logging.channelStateUpdate:
                     for channel_id in server_data.logging.channelStateUpdate:
                         try:
@@ -2264,10 +2267,12 @@ class Logging(commands.Cog):
                     url=(
                         event.channel.group.display_avatar.url
                         if event.channel.group
-                        else event.channel.server.display_avatar.url
+                        else event.channel.server.icon.url
                     )
                 )
-                embed2.add_field(name="Channel ID", value=event.channel.id)
+                embed2.add_field(
+                    name="Channel ID", value=event.channel.id, inline=False
+                )
                 if server_data.logging.channelStateUpdate:
                     for channel_id in server_data.logging.channelStateUpdate:
                         try:
@@ -2336,7 +2341,7 @@ class Logging(commands.Cog):
             url=(
                 event.category.group.display_avatar.url
                 if event.category.group
-                else event.category.server.display_avatar.url
+                else event.category.server.icon.url
             )
         )
         embed.add_field(name="Category ID", value=event.category.id)
@@ -2383,7 +2388,7 @@ class Logging(commands.Cog):
                 url=(
                     event.category.group.display_avatar.url
                     if event.category.group
-                    else event.category.server.display_avatar.url
+                    else event.category.server.icon.url
                 )
             )
             embed.add_field(name="Category ID", value=event.category.id)
@@ -2412,7 +2417,7 @@ class Logging(commands.Cog):
             url=(
                 event.after.group.display_avatar.url
                 if event.after.group
-                else event.after.server.display_avatar.url
+                else event.after.server.icon.url
             )
         )
         embed.add_field(name="Category ID", value=event.after.id)

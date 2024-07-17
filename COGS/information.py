@@ -19,7 +19,9 @@ class information(commands.Cog):
         """
         if command:
             command = command.lower()
-        prefixdata = ctx.prefix
+        prefixdata = await self.bot.get_prefix(ctx.message)
+        if type(prefixdata) == list:
+            prefixdata = prefixdata[0]
         if command:
             if command.startswith(prefixdata):
                 command = command[len(prefixdata) : len(command)]

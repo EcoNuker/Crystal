@@ -135,10 +135,13 @@ class errors(commands.Cog):
                     "CanAddStreamVoice": "Add Voice in Streams",
                     "CanUseVoiceActivityInStream": "Use Voice Activity in Streams",
                 }
-                allperms = [
-                    permmap[perm.strip()]
-                    for perm in error.original.raw_missing_permissions
-                ]
+                if error.original.raw_missing_permissions:
+                    allperms = [
+                        permmap[perm.strip()]
+                        for perm in error.original.raw_missing_permissions
+                    ]
+                else:
+                    allperms = ["UNKNOWN"]
                 embedigperms = embeds.Embeds.embed(
                     title="I'm missing permissions",
                     description=f'**I don\'t have required permissions I need for this! Please make sure that channel overrides** (permissions put onto channels in the Permissions tab of Channel settings) **don\'t remove any permissions I need!**\n\n***Missing Permissions:***\n`{", ".join(allperms)}`',

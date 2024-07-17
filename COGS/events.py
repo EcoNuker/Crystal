@@ -29,10 +29,13 @@ class events(commands.Cog):
                 f"@{me.nick if me.nick else me.display_name}",
             ]:
                 try:
+                    prefix = await self.bot.get_prefix(message)
+                    if type(prefix) == list:
+                        prefix = prefix[0]
                     await message.reply(
                         embed=embeds.Embeds.embed(
                             title="That's Me!",
-                            description=f"Hi, {event.message.author.mention}! My prefix is `{(await (self.bot.command_prefix)(self.bot, message))[0]}`.\nPlease check `{(await (self.bot.command_prefix)(self.bot, message))[0]}help` for more info.",
+                            description=f"Hi, {event.message.author.mention}! My prefix is `{prefix}`.\nPlease check `{prefix}help` for more info.",
                         ),
                         private=message.private,
                     )
@@ -72,7 +75,9 @@ class events(commands.Cog):
             embedig.set_footer(text="Hope you enjoy!")
             embedig.timestamp = datetime.datetime.now(datetime.timezone.utc)
             message = await default_channel.send(embed=embedig)
-            prefix = self.bot.get_prefix(message)
+            prefix = await self.bot.get_prefix(message)
+            if type(prefix) == list:
+                prefix = prefix[0]
             embedig = embeds.Embeds.embed(
                 title=f"Thanks for using {self.bot.user.name}!",
                 description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me! The current prefix for this server is `{prefix}`.\n\nRun `{prefix}help` for help.",
