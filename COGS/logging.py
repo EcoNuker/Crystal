@@ -12,7 +12,7 @@ class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-        # asyncio.create_task(self.custom_event_dispatcher())
+        asyncio.create_task(self.custom_event_dispatcher())
 
     async def custom_event_dispatcher(self):
         while True:
