@@ -26,8 +26,10 @@ class Logging(commands.Cog):
                             "ModeratorAction": self.on_moderator_action,
                             "BotSettingChanged": self.on_bot_setting_change,
                         }
-                        if isinstance(data["eventData"], custom_events.CloudBaseEvent) and (not data["eventData"].event_id):
-                            eids = [] # "get list of used event ids"
+                        if isinstance(
+                            data["eventData"], custom_events.CloudBaseEvent
+                        ) and (not data["eventData"].event_id):
+                            eids = []  # "get list of used event ids"
                             eid = tools.gen_cryptographically_secure_string(20)
                             while eid in eids:
                                 eid = tools.gen_cryptographically_secure_string(20)
@@ -371,6 +373,12 @@ class Logging(commands.Cog):
                 )
                 await ctx.reply(embed=embed, private=ctx.message.private)
                 return
+            await custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"{channel.mention} was set as a `{human_readable_map[event_type]}` log channel.",
+                    ctx.author
+                )
+            )
             await self.set_log(ctx.server.id, channel.id, event_type)
             embed = embeds.Embeds.embed(
                 title="Set Log Channel!",
@@ -426,6 +434,12 @@ class Logging(commands.Cog):
 
         if server_data.logging.setChannels.get(channel.id):
             event_type = server_data.logging.setChannels.get(channel.id)
+            await custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"{channel.mention} was removed as a `{human_readable_map[event_type]}` log channel.",
+                    ctx.author
+                )
+            )
             await self.delete_log(ctx.server.id, channel.id)
             human_readable_map = {
                 "allEvents": "All Events",
@@ -445,7 +459,6 @@ class Logging(commands.Cog):
                 "listUpdate": "List Update",
                 "categoryUpdate": "Category Update",
             }
-            await server_data.save()
             embed = embeds.Embeds.embed(
                 title="Sucessfully Removed Log Channel",
                 description=f"{channel.mention} is no longer a `{human_readable_map[event_type]}` log channel.",
@@ -459,8 +472,6 @@ class Logging(commands.Cog):
                 colour=guilded.Color.red(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
-
-    # TODO: auto delete log channels (if the channel was deleted)
 
     async def on_automod(self, event: custom_events.AutomodEvent):
         # Fetch the server from the database
