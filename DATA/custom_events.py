@@ -12,7 +12,7 @@ def action_map(
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
-        "purge": "{amount} messages were deleted",
+        "purge": "{amount} messages were deleted using purge",
     }
 
     def format_duration(seconds: int) -> str:
