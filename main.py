@@ -4,6 +4,7 @@ debug_mode = False
 import guilded
 from guilded.ext import commands
 
+# Colorama imports
 from colorama import init as coloramainit
 
 coloramainit(autoreset=True)
@@ -11,7 +12,7 @@ coloramainit(autoreset=True)
 # Utility imports
 import json, os, glob, logging, traceback, re, signal, platform, sys
 import logging.handlers
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Database imports
 from beanie import init_beanie
@@ -39,7 +40,7 @@ glogger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
 gconsole_handler = logging.StreamHandler()
 gconsole_handler.setLevel(logging.DEBUG)
 gformatter = logging.Formatter(
-    f"{COLORS.timestamp}[{datetime.utcnow().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]} UTC]{COLORS.reset} {COLORS.guilded_logs}[GUILDED]{COLORS.normal_message} %(message)s"
+    f"{COLORS.timestamp}[{datetime.now(timezone.utc).strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]} UTC]{COLORS.reset} {COLORS.guilded_logs}[GUILDED]{COLORS.normal_message} %(message)s"
 )
 gconsole_handler.setFormatter(gformatter)
 glogger.addHandler(gconsole_handler)
@@ -81,7 +82,8 @@ class CONFIGS:
 
     with open(f"config.json", "r") as config:
         configdata = json.load(config)
-    database_url = configdata["database"]
+    version: str = configdata["version"]
+    database_url: str = configdata["database"]
     token: str = configdata["token"]
     botid: str = configdata["bot_id"]
     botuserid: str = configdata["bot_user_id"]
@@ -93,8 +95,10 @@ class CONFIGS:
     error_logs_dir = errors_dir
     cogs_dir = cogspath
 
+
 # Configure database
 motor = AsyncIOMotorClient(CONFIGS.database_url)
+
 
 def _print(*args, **kwargs):
     timestamp = f"{COLORS.timestamp}[{datetime.utcnow().strftime('%Y/%m/%d %H:%M:%S.%f')[:-3]} UTC]{COLORS.reset}"
@@ -210,6 +214,7 @@ bot = commands.Bot(
     owner_ids=CONFIGS.owners,
     help_command=None,
 )
+bot.version = CONFIGS.version
 bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
 
@@ -230,7 +235,9 @@ async def on_ready():
     if not bot.db:
         # Initializing beanie in the "crystal" database
         await init_beanie(
-            motor.crystal, document_models=documents.__documents__, multiprocessing_mode=True
+            motor.crystal,
+            document_models=documents.__documents__,
+            multiprocessing_mode=True,
         )
         bot.db = documents
 

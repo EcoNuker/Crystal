@@ -2,3 +2,6 @@ guilded.py==1.13.2
 colorama==0.4.6
 beanie==1.26.0
 typing
+humanfriendly
+fuzzywuzzy
+python-Levenshtein

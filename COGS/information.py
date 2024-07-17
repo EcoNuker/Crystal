@@ -31,7 +31,11 @@ class information(commands.Cog):
                     break
         else:
             for i in self.bot.commands:
-                helpcmd.append(i.qualified_name)
+                if i.qualified_name in ["load", "unload", "reload", "eval"]:
+                    if ctx.author.id in self.bot.owner_ids:
+                        helpcmd.append(i.qualified_name)
+                else:
+                    helpcmd.append(i.qualified_name)
         if command is None:
             embedig = guilded.Embed(
                 title="Command Help",
