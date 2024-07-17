@@ -232,7 +232,9 @@ bot._motor = motor  # Giving the bot access to the raw motor client
 async def on_ready():
 
     # Initialize beanie
-    if not bot.db:
+    try:
+        bot.db
+    except:
         # Initializing beanie in the "crystal" database
         await init_beanie(
             motor.crystal,
