@@ -5,11 +5,11 @@ from pydantic import BaseModel
 
 
 # Define afk config
-class afkConfig(BaseModel):
+# class afkConfig(BaseModel):
 
-    style: int = 0
+#     style: int = 0
 
-    enabled: True
+#     enabled: True
 
 
 # Define logging channels
