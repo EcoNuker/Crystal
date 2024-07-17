@@ -1,6 +1,7 @@
 import guilded
 import string, secrets, time
 
+from DATA import tools
 
 def action_map(
     action: str, duration: int = None, amount: int = None, automod: bool = False
@@ -57,9 +58,13 @@ def action_map(
 class BaseEvent:
     def __init__(self) -> None:
         self.eventType: str
-        self.overwrite: dict = {}
+        self.overwrite: dict
         self.server_id: str
+        self.timestamp: float
 
+class CloudBaseEvent(BaseEvent):
+    def __init__(self) -> None:
+        self.event_id: str | None = None
 
 class EventQueue:
     def __init__(self) -> None:
@@ -67,17 +72,9 @@ class EventQueue:
         self.events_overwritten = {"message_ids": {}}
 
     def add_event(self, eventData: BaseEvent) -> None:
-        def gen_cryptographically_secure_string(size: int):
-            """
-            Generates a cryptographically secure string.
-            """
-            letters = string.ascii_lowercase + string.ascii_uppercase + string.digits
-            f = "".join(secrets.choice(letters) for i in range(size))
-            return f
-
-        eventId = gen_cryptographically_secure_string(5)
+        eventId = tools.gen_cryptographically_secure_string(5)
         while eventId in self.events:
-            eventId = gen_cryptographically_secure_string(5)
+            eventId = tools.gen_cryptographically_secure_string(5)
         for overwrite_type, overwrites in eventData.overwrite.items():
             if overwrite_type == "message_ids":
                 for m_id in overwrites:
@@ -94,7 +91,7 @@ class EventQueue:
                     del self.events_overwritten[overwrite_type][overwrite]
 
 
-class AutomodEvent(BaseEvent):
+class AutomodEvent(CloudBaseEvent):
     def __init__(
         self,
         action: str,
@@ -102,6 +99,7 @@ class AutomodEvent(BaseEvent):
         member: guilded.Member,
         duration: int = 0,
     ) -> None:
+        self.event_id = None
         self.eventType = "AutomodEvent"
         self.server = message.server
         self.server_id = message.server_id
@@ -111,10 +109,11 @@ class AutomodEvent(BaseEvent):
         self.action = action
         self.duration = duration if action.startswith("temp") else None
         self.formatted_action = action_map(self.action, automod=True, duration=duration)
+        self.timestamp = time.time()
         assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
 
 
-class ModeratorAction(BaseEvent):
+class ModeratorAction(CloudBaseEvent):
     def __init__(
         self,
         action: str,
@@ -125,6 +124,7 @@ class ModeratorAction(BaseEvent):
         amount: int = 0,
         overwrites: dict = {},
     ) -> None:
+        self.event_id = None
         self.eventType = "ModeratorAction"
         self.server = moderator.server
         self.server_id = moderator.server_id
@@ -138,19 +138,22 @@ class ModeratorAction(BaseEvent):
         self.formatted_action = action_map(
             self.action, duration=duration, amount=amount
         )
+        self.timestamp = time.time()
         assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
 
 
-class BotSettingChanged(BaseEvent):
+class BotSettingChanged(CloudBaseEvent):
     def __init__(
         self, action: str, changed_by: guilded.Member, overwrites: dict = {}
     ) -> None:
+        self.event_id = None
         self.eventType = "BotSettingChanged"
         self.server = changed_by.server
         self.server_id = changed_by.server_id
         self.changed_by = changed_by
         self.action = action
         self.overwrite = overwrites
+        self.timestamp = time.time()
 
 
 eventqueue = EventQueue()

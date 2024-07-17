@@ -1887,7 +1887,7 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
-        embed = guilded.Embed(
+        embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Updated',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
             url=event.channel.share_url,
@@ -1933,7 +1933,7 @@ class Logging(commands.Cog):
                 event.before.archived_by_id is None
                 and event.after.archived_by_id is not None
             ):
-                embed2 = guilded.Embed(
+                embed2 = embeds.Embeds.embed(
                     title=f'Channel "{event.channel.name}" Archived',
                     description=f"By <@{event.after.archived_by_id}>",
                     url=event.channel.share_url,
@@ -1966,7 +1966,7 @@ class Logging(commands.Cog):
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
             ):
-                embed2 = guilded.Embed(
+                embed2 = embeds.Embeds.embed(
                     title=f'Channel "{event.channel.name}" Unarchived',
                     description=f"Previously archived by <@{event.before.archived_by_id}>",
                     url=event.channel.share_url,

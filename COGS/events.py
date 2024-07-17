@@ -3,6 +3,8 @@ import datetime
 import guilded
 from guilded.ext import commands
 
+from DATA import embeds
+
 
 class events(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -28,7 +30,7 @@ class events(commands.Cog):
             ]:
                 try:
                     await message.reply(
-                        embed=guilded.Embed(
+                        embed=embeds.Embeds.embed(
                             title="That's Me!",
                             description=f"Hi, {event.message.author.mention}! My prefix is `{(await (self.bot.command_prefix)(self.bot, message))[0]}`.\nPlease check `{(await (self.bot.command_prefix)(self.bot, message))[0]}help` for more info.",
                         ),
@@ -48,7 +50,7 @@ class events(commands.Cog):
         channel_id = self.bot.CONFIGS.join_leave_logs
         if channel_id:
             channel = self.bot.get_partial_messageable(channel_id)
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title=f"{self.bot.user.name} joined a server!",
                 description="**{}**\n**Invited by:** `{} ({})`".format(
                     event.server.name, event.member.name, event.member_id
@@ -62,7 +64,7 @@ class events(commands.Cog):
                 pass
         try:
             default_channel = await event.server.fetch_default_channel()
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title=f"Thanks for using {self.bot.user.name}!",
                 description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me!",
                 color=guilded.Color.green(),
@@ -71,7 +73,7 @@ class events(commands.Cog):
             embedig.timestamp = datetime.datetime.now(datetime.timezone.utc)
             message = await default_channel.send(embed=embedig)
             prefix = self.bot.get_prefix(message)
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title=f"Thanks for using {self.bot.user.name}!",
                 description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me! The current prefix for this server is `{prefix}`.\n\nRun `{prefix}help` for help.",
                 color=guilded.Color.green(),
@@ -90,7 +92,7 @@ class events(commands.Cog):
         channel_id = self.bot.CONFIGS.join_leave_logs
         if channel_id:
             channel = self.bot.get_partial_messageable(channel_id)
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title=f"{self.bot.user.name} left a server.",
                 description=f"**{event.server.name}**"
                 + "\n"

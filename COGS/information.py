@@ -1,6 +1,7 @@
 import guilded
 from guilded.ext import commands
 
+from DATA import embeds
 
 class information(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -37,7 +38,7 @@ class information(commands.Cog):
                 else:
                     helpcmd.append(i.qualified_name)
         if command is None:
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title="Command Help",
                 description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - 4}`\n**Do {prefixdata}help <command> for more info!**{inviteandsupport}",
             )
@@ -45,7 +46,7 @@ class information(commands.Cog):
         elif command:
             if not helpcmd:
                 return await ctx.reply("Command not found.", private=True)
-            embedig = guilded.Embed(
+            embedig = embeds.Embeds.embed(
                 title="Command Help",
                 description=f"Command `{helpcmd.qualified_name}`'s information.{inviteandsupport}",
             )
@@ -67,7 +68,7 @@ class information(commands.Cog):
     )
     async def invitecommandlol(self, ctx: commands.Context):
         await ctx.reply(
-            embed=guilded.Embed(
+            embed=embeds.Embeds.embed(
                 title=f"Invite {self.bot.user.name}!",
                 description=f"[Invite](https://guilded.gg/b/{self.bot.CONFIGS.botid}) || [Support Server]({self.bot.CONFIGS.supportserverinv})",
                 color=guilded.Color.green(),
@@ -80,7 +81,7 @@ class information(commands.Cog):
         description="Check if the bot is online, as well as the latency of it!",
     )
     async def pong(self, ctx: commands.Context):
-        embedig = guilded.Embed(title="🏓 Pong")
+        embedig = embeds.Embeds.embed(title="🏓 Pong")
         embedig.add_field(
             name="Bot Latency",
             value=f"`{round(self.bot.latency*1000, 3)}` ms",

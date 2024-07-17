@@ -1,8 +1,10 @@
-import os, string, secrets, traceback
+import os, traceback
 
 import guilded
 from guilded.ext import commands
 
+from DATA import embeds
+from DATA import tools
 
 class errors(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -14,14 +16,14 @@ class errors(commands.Cog):
             if isinstance(error, commands.CommandNotFound):
                 return
             elif isinstance(error, commands.CommandOnCooldown):
-                embedig = guilded.Embed(
+                embedig = embeds.Embeds.embed(
                     title="Slow down there!",
                     color=guilded.Color.red(),
                     description=f"Please stop spamming this command! Allow a 1 second pause before trying again.",
                 )
                 return await ctx.reply(embed=embedig, private=ctx.message.private)
             elif isinstance(error, commands.MissingRequiredArgument):
-                embedig = guilded.Embed(
+                embedig = embeds.Embeds.embed(
                     title="Missing Arguments",
                     description=f'**You\'re missing required arguments!**\n\n***Error:***\n{", ".join(error.args)}',
                     color=guilded.Color.red(),
@@ -136,23 +138,13 @@ class errors(commands.Cog):
                     permmap[perm.strip()]
                     for perm in error.original.raw_missing_permissions
                 ]
-                embedigperms = guilded.Embed(
+                embedigperms = embeds.Embeds.embed(
                     title="I'm missing permissions",
                     description=f'**I don\'t have required permissions I need for this! Please make sure that channel overrides** (permissions put onto channels in the Permissions tab of Channel settings) **don\'t remove any permissions I need!**\n\n***Missing Permissions:***\n`{", ".join(allperms)}`',
                     color=guilded.Color.red(),
                 )
                 return await ctx.reply(embed=embedigperms, private=ctx.message.private)
             else:
-
-                def gen_cryptographically_secure_string(size: int):
-                    """
-                    Generates a cryptographically secure string.
-                    """
-                    letters = (
-                        string.ascii_lowercase + string.ascii_uppercase + string.digits
-                    )
-                    f = "".join(secrets.choice(letters) for i in range(size))
-                    return f
 
                 usedrefcodes = []
 
@@ -166,10 +158,10 @@ class errors(commands.Cog):
                     ):
                         usedrefcodes.append(filename)
 
-                randomrefcode = gen_cryptographically_secure_string(20)
+                randomrefcode = tools.gen_cryptographically_secure_string(10)
 
                 while f"{randomrefcode}.txt" in usedrefcodes:
-                    randomrefcode = gen_cryptographically_secure_string(20)
+                    randomrefcode = tools.gen_cryptographically_secure_string(10)
 
                 try:
                     raise error
@@ -182,7 +174,7 @@ class errors(commands.Cog):
                         file.write(tb)
                         file.close()
 
-                embedig = guilded.Embed(
+                embedig = embeds.Embeds.embed(
                     color=guilded.Color.red(),
                     title="Something went wrong!",
                     description=f"Please join our support server and tell my developer!\n[Support Server]({self.bot.CONFIGS.supportserverinv})",
