@@ -59,7 +59,7 @@ class EmbedsData:
             text=f"{bot.user.display_name} v{bot.version}",
             # icon_url=IMAGE_BOT_LOGO,
         )
-    
+
     @property
     def invalid_channel(self):
         return self._invalid_channel.set_footer(
