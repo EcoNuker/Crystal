@@ -3,6 +3,7 @@ import guilded, asyncio
 from guilded.ext import commands
 from DATA import custom_events
 from DATA import embeds
+from DATA import tools
 from humanfriendly import format_timespan
 import documents
 from fuzzywuzzy import process
@@ -18,15 +19,21 @@ class Logging(commands.Cog):
         while True:
             try:
                 while True:
+                    custom_events.eventqueue.clear_old_overwrites()
                     for eventId, data in custom_events.eventqueue.events.copy().items():
                         func_map = {
                             "AutomodEvent": self.on_automod,
                             "ModeratorAction": self.on_moderator_action,
                             "BotSettingChanged": self.on_bot_setting_change,
                         }
+                        if isinstance(data["eventData"], custom_events.CloudBaseEvent) and (not data["eventData"].event_id):
+                            eids = [] # "get list of used event ids"
+                            eid = tools.gen_cryptographically_secure_string(20)
+                            while eid in eids:
+                                eid = tools.gen_cryptographically_secure_string(20)
+                            data["eventData"].event_id = eid
                         await func_map[data["eventType"]](data["eventData"])
                         del custom_events.eventqueue.events[eventId]
-                    custom_events.eventqueue.clear_old_overwrites()
                     await asyncio.sleep(0.3)
             except Exception as e:
                 self.bot.warn(
@@ -501,15 +508,21 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.automod:
             for channel_id in server_data.logging.automod:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
         # Fetch the server from the database
@@ -535,15 +548,21 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.botSettingChanges:
             for channel_id in server_data.logging.botSettingChanges:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     async def on_moderator_action(self, event: custom_events.ModeratorAction):
         # Fetch the server from the database
@@ -575,14 +594,20 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.moderatorAction:
             for channel_id in server_data.logging.moderatorAction:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
@@ -615,15 +640,21 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.messageChange:
             for channel_id in server_data.logging.messageChange:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_member_join(self, event: guilded.MemberJoinEvent):
@@ -659,21 +690,30 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.membershipChange:
             for channel_id in server_data.logging.membershipChange:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_member_remove(self, event: guilded.MemberRemoveEvent):
@@ -708,21 +748,30 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.membershipChange:
             for channel_id in server_data.logging.membershipChange:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_member_update(self, event: guilded.MemberUpdateEvent):
@@ -750,21 +799,30 @@ class Logging(commands.Cog):
         #  Push the event to the listening channels
         if server_data.logging.memberUpdate and event.before.nick != event.after.nick:
             for channel_id in server_data.logging.memberUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         elif server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
         elif server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_bulk_member_roles_update(
@@ -846,19 +904,28 @@ class Logging(commands.Cog):
             )
         if server_data.logging.membershipChange:
             for channel_id in server_data.logging.membershipChange:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
@@ -886,14 +953,20 @@ class Logging(commands.Cog):
             )
         if server_data.logging.moderatorAction:
             for channel_id in server_data.logging.moderatorAction:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -932,14 +1005,20 @@ class Logging(commands.Cog):
         )
         if server_data.logging.messageChange:
             for channel_id in server_data.logging.messageChange:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_update(self, event: guilded.ForumTopicUpdateEvent):
@@ -963,19 +1042,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Locked", value=event.topic.locked)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_delete(self, event: guilded.ForumTopicDeleteEvent):
@@ -999,19 +1087,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Locked", value=event.topic.locked)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_pin(self, event: guilded.ForumTopicPinEvent):
@@ -1032,19 +1129,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Title", value=event.topic.title, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_unpin(self, event: guilded.ForumTopicUnpinEvent):
@@ -1065,19 +1171,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Title", value=event.topic.title, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_lock(self, event: guilded.ForumTopicLockEvent):
@@ -1098,19 +1213,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Title", value=event.topic.title, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_unlock(self, event: guilded.ForumTopicUnlockEvent):
@@ -1131,19 +1255,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Title", value=event.topic.title, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_update(
@@ -1166,19 +1299,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_delete(
@@ -1201,19 +1343,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.forumUpdate:
             for channel_id in server_data.logging.forumUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_doc_update(self, event: guilded.DocUpdateEvent):
@@ -1243,19 +1394,28 @@ class Logging(commands.Cog):
         )
         if server_data.logging.documentUpdate:
             for channel_id in server_data.logging.documentUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_doc_delete(self, event: guilded.DocDeleteEvent):
@@ -1285,19 +1445,28 @@ class Logging(commands.Cog):
         )
         if server_data.logging.documentUpdate:
             for channel_id in server_data.logging.documentUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_doc_reply_update(self, event: guilded.DocReplyUpdateEvent):
@@ -1318,19 +1487,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.documentUpdate:
             for channel_id in server_data.logging.documentUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_doc_reply_delete(self, event: guilded.DocReplyDeleteEvent):
@@ -1351,19 +1529,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.documentUpdate:
             for channel_id in server_data.logging.documentUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_announcement_update(self, event: guilded.AnnouncementUpdateEvent):
@@ -1393,19 +1580,28 @@ class Logging(commands.Cog):
         )
         if server_data.logging.announcementUpdate:
             for channel_id in server_data.logging.announcementUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_announcement_delete(self, event: guilded.AnnouncementDeleteEvent):
@@ -1435,19 +1631,28 @@ class Logging(commands.Cog):
         )
         if server_data.logging.announcementUpdate:
             for channel_id in server_data.logging.announcementUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_announcement_reply_update(
@@ -1470,19 +1675,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.announcementUpdate:
             for channel_id in server_data.logging.announcementUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_announcement_reply_delete(
@@ -1505,19 +1719,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.announcementUpdate:
             for channel_id in server_data.logging.announcementUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_calendar_event_update(self, event: guilded.CalendarEventUpdateEvent):
@@ -1545,19 +1768,28 @@ class Logging(commands.Cog):
         embed.add_field(name="URL", value=event.calendar_event.url or "None")
         if server_data.logging.announcementUpdate:
             for channel_id in server_data.logging.announcementUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_calendar_event_delete(self, event: guilded.CalendarEventDeleteEvent):
@@ -1585,19 +1817,28 @@ class Logging(commands.Cog):
         embed.add_field(name="URL", value=event.calendar_event.url or "None")
         if server_data.logging.calendarUpdate:
             for channel_id in server_data.logging.calendarUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_update(
@@ -1620,19 +1861,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.calendarUpdate:
             for channel_id in server_data.logging.calendarUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_delete(
@@ -1655,19 +1905,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Contents", value=event.reply.content, inline=False)
         if server_data.logging.calendarUpdate:
             for channel_id in server_data.logging.calendarUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_list_item_update(self, event: guilded.ListItemUpdateEvent):
@@ -1688,19 +1947,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Note", value=event.item.note, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_list_item_delete(self, event: guilded.ListItemDeleteEvent):
@@ -1721,19 +1989,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Note", value=event.item.note, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_list_item_complete(self, event: guilded.ListItemCompleteEvent):
@@ -1754,19 +2031,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Note", value=event.item.note, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_list_item_uncomplete(self, event: guilded.ListItemUncompleteEvent):
@@ -1787,19 +2073,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Note", value=event.item.note, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_server_channel_create(self, event: guilded.ServerChannelCreateEvent):
@@ -1826,19 +2121,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_server_channel_delete(self, event: guilded.ServerChannelDeleteEvent):
@@ -1865,19 +2169,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()  # confusing ✨
     async def on_server_channel_update(self, event: guilded.ServerChannelUpdateEvent):
@@ -1999,19 +2312,28 @@ class Logging(commands.Cog):
             embed.add_field(name="Unknown Changes", value="Could not compare changes.")
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_category_create(self, event: guilded.CategoryCreateEvent):
@@ -2036,19 +2358,28 @@ class Logging(commands.Cog):
         embed.add_field(name="Category ID", value=event.category.id)
         if server_data.logging.categoryUpdate:
             for channel_id in server_data.logging.categoryUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_category_delete(self, event: guilded.CategoryDeleteEvent):
@@ -2073,9 +2404,12 @@ class Logging(commands.Cog):
             )
             embed.add_field(name="Category ID", value=event.category.id)
             for channel_id in server_data.logging.categoryUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
     @commands.Cog.listener()
     async def on_category_update(self, event: guilded.CategoryUpdateEvent):
@@ -2113,19 +2447,28 @@ class Logging(commands.Cog):
                 )
         if server_data.logging.categoryUpdate:
             for channel_id in server_data.logging.categoryUpdate:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
-                await self.bot.get_partial_messageable(channel_id).send(
-                    embed=embed, silent=True
-                )
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except:
+                    pass # TODO: delete channel from logging db
 
 
 def setup(bot):
