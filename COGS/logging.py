@@ -27,6 +27,7 @@ human_readable_map = {
     "categoryUpdate": "Category Update",
 }
 
+
 async def delete_log(server_id: str, channel_id: str, logged: bool = False) -> bool:
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
@@ -77,6 +78,7 @@ async def delete_log(server_id: str, channel_id: str, logged: bool = False) -> b
         return True
     return False
 
+
 async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
@@ -116,6 +118,7 @@ async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
         server_data.logging.categoryUpdate.append(channel_id)
     await server_data.save()
     return True
+
 
 class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):

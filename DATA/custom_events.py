@@ -154,12 +154,20 @@ class BotSettingChanged(CloudBaseEvent):
         """
         self.event_id = None
         self.eventType = "BotSettingChanged"
-        self.server: guilded.Server | None = changed_by.server if type(changed_by) != str else None
-        self.server_id: str = changed_by.server_id if type(changed_by) != str else changed_by
-        self.changed_by: guilded.Member | None = changed_by if type(changed_by) != str else None
+        self.server: guilded.Server | None = None
+        self.server_id: str = ""
+        self.changed_by: guilded.Member | None = None
         self.action = action
         self.overwrite = overwrites
         self.timestamp = time.time()
+
+        if changed_by is not None:
+            if isinstance(changed_by, str):
+                self.server_id = changed_by
+            elif isinstance(changed_by, guilded.Member):
+                self.server = changed_by.server
+                self.server_id = changed_by.server_id
+                self.changed_by = changed_by
 
 
 eventqueue = EventQueue()
