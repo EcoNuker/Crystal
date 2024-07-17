@@ -648,11 +648,12 @@ class Logging(commands.Cog):
             name="Account Age",
             value=(
                 format_timespan(datetime.datetime.now() - event.member.created_at)
-                + " :warning: *New account!*"
+                + "\n:warning: *New account!*"
                 if event.member.created_at
-                < datetime.datetime.now() - datetime.timedelta(days=30)
+                < (datetime.datetime.now() - datetime.timedelta(days=30))
                 else ""
             ),
+            inline=False,
         )
 
         # Push the event to the listening channels
