@@ -72,7 +72,7 @@ async def delete_log(server_id: str, channel_id: str, logged: bool = False) -> b
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
                     f"A channel (ID `{channel_id}`) was automatically removed as a `{human_readable_map[event_type]}` log channel, as I can no longer access it.",
-                    None,
+                    server_id,
                 )
             )
         return True
@@ -489,7 +489,6 @@ class Logging(commands.Cog):
                     await delete_log(event.server_id, channel_id)
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
-        print(event.changed_by)
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
