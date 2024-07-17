@@ -2262,19 +2262,28 @@ class Logging(commands.Cog):
                 embed2.add_field(name="Channel ID", value=event.channel.id)
                 if server_data.logging.channelStateUpdate:
                     for channel_id in server_data.logging.channelStateUpdate:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
             elif (
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
@@ -2295,19 +2304,28 @@ class Logging(commands.Cog):
                 embed2.add_field(name="Channel ID", value=event.channel.id)
                 if server_data.logging.channelStateUpdate:
                     for channel_id in server_data.logging.channelStateUpdate:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
-                        await self.bot.get_partial_messageable(channel_id).send(
-                            embed=embed, silent=True
-                        )
+                        try:
+                            await self.bot.get_partial_messageable(channel_id).send(
+                                embed=embed2, silent=True
+                            )
+                        except:
+                            pass # TODO: delete channel from logging db
         else:
             embed.add_field(name="Unknown Changes", value="Could not compare changes.")
         if server_data.logging.channelStateUpdate:
