@@ -373,10 +373,10 @@ class Logging(commands.Cog):
                 )
                 await ctx.reply(embed=embed, private=ctx.message.private)
                 return
-            await custom_events.eventqueue.add_event(
+            custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
                     f"{channel.mention} was set as a `{human_readable_map[event_type]}` log channel.",
-                    ctx.author
+                    ctx.author,
                 )
             )
             await self.set_log(ctx.server.id, channel.id, event_type)
@@ -434,13 +434,6 @@ class Logging(commands.Cog):
 
         if server_data.logging.setChannels.get(channel.id):
             event_type = server_data.logging.setChannels.get(channel.id)
-            await custom_events.eventqueue.add_event(
-                custom_events.BotSettingChanged(
-                    f"{channel.mention} was removed as a `{human_readable_map[event_type]}` log channel.",
-                    ctx.author
-                )
-            )
-            await self.delete_log(ctx.server.id, channel.id)
             human_readable_map = {
                 "allEvents": "All Events",
                 "allChannelEvents": "All Channel Events",
@@ -459,6 +452,13 @@ class Logging(commands.Cog):
                 "listUpdate": "List Update",
                 "categoryUpdate": "Category Update",
             }
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"{channel.mention} was removed as a `{human_readable_map[event_type]}` log channel.",
+                    ctx.author,
+                )
+            )
+            await self.delete_log(ctx.server.id, channel.id)
             embed = embeds.Embeds.embed(
                 title="Sucessfully Removed Log Channel",
                 description=f"{channel.mention} is no longer a `{human_readable_map[event_type]}` log channel.",
@@ -534,7 +534,7 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.changed_by.display_avatar.url)
         embed.add_field(name="User", value=event.changed_by.mention)
         embed.add_field(name="User ID", value=event.changed_by.id)
-        embed.add_field(name="Setting Changed", value=event.action)
+        embed.add_field(name="Setting Changed", value=event.action, inline=False)
         # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
 
         # Push the event to the listening channels
