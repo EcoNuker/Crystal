@@ -39,7 +39,7 @@ class information(commands.Cog):
         if command is None:
             embedig = guilded.Embed(
                 title="Command Help",
-                description=f"Command Count: `{len(self.bot.commands)}`\n**Do {prefixdata}help <command> for more info!**{inviteandsupport}",
+                description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - 4}`\n**Do {prefixdata}help <command> for more info!**{inviteandsupport}",
             )
             embedig.add_field(name="Commands", value=", ".join(helpcmd), inline=False)
         elif command:

@@ -12,7 +12,7 @@ class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-        asyncio.create_task(self.custom_event_dispatcher())
+        # asyncio.create_task(self.custom_event_dispatcher())
 
     async def custom_event_dispatcher(self):
         while True:
@@ -26,6 +26,7 @@ class Logging(commands.Cog):
                         await func_map[data["eventType"]](data["eventData"])
                         del custom_events.eventqueue.events[eventId]
                     custom_events.eventqueue.clear_old_overwrites()
+                    await asyncio.sleep(0.5)
             except Exception as e:
                 self.bot.warn(
                     f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"

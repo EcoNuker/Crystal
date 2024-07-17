@@ -184,8 +184,6 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     """
     Attempts to grab the bot's prefix, first attempt goes to the database then falls back to config.
     """
-    print("called")
-
     # Pull the server from the database
     s = await documents.Server.find_one(documents.Server.serverId == message.server_id)
 
