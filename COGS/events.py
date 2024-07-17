@@ -21,7 +21,8 @@ class events(commands.Cog):
             self.bot.user.id in message.raw_user_mentions
             and len(message.raw_user_mentions) == 1
         ):
-            if message.content.strip() == f"<@{self.bot.user.display_name}>":
+            me = await message.server.fetch_member(self.bot.user.id)
+            if message.content.strip() in [f"<@{me.id}>", f"@{me.nick if me.nick else me.display_name}"]:
                 try:
                     await message.reply(
                         embed=guilded.Embed(
