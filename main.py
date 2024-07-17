@@ -186,7 +186,7 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list:
     """
 
     # Pull the server from the database
-    s = await documents.Server.find_one(documents.Server.serverID == message.server_id)
+    s = await documents.Server.find_one(documents.Server.serverId == message.server_id)
 
     # If the document exists continue with the server prefix
     if s:
