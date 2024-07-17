@@ -6,6 +6,7 @@ from guilded.ext import commands
 from DATA import embeds
 from DATA import tools
 
+
 class errors(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot

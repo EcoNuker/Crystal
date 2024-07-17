@@ -6,6 +6,7 @@ import os
 import sys
 from DATA import embeds
 
+
 class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -49,7 +50,9 @@ class developer(commands.Cog):
                         )
                         await ctx.reply(embed=em, private=ctx.message.private)
                         self.bot.traceback(e)
-                em = embeds.Embeds.embed(description="**All cogs loaded.**", color=0x363942)
+                em = embeds.Embeds.embed(
+                    description="**All cogs loaded.**", color=0x363942
+                )
                 await ctx.reply(embed=em, private=ctx.message.private)
                 return
             em = embeds.Embeds.embed(description="Failed to load cog.", color=0x363942)
@@ -86,7 +89,9 @@ class developer(commands.Cog):
                         description=f"`{cog}` cog isn't loaded.", color=0x363942
                     )
                     await ctx.reply(embed=em, private=ctx.message.private)
-            em = embeds.Embeds.embed(description="**All cogs unloaded.**", color=0x363942)
+            em = embeds.Embeds.embed(
+                description="**All cogs unloaded.**", color=0x363942
+            )
             await ctx.reply(embed=em, private=ctx.message.private)
         else:
             if cog_name in self.bot.extensions:
@@ -97,10 +102,14 @@ class developer(commands.Cog):
                     )
                 except commands.ExtensionNotLoaded:
                     pass
-                em = embeds.Embeds.embed(description="**Cog unloaded.**", color=0x363942)
+                em = embeds.Embeds.embed(
+                    description="**Cog unloaded.**", color=0x363942
+                )
                 await ctx.reply(embed=em, private=ctx.message.private)
             else:
-                em = embeds.Embeds.embed(description="That cog isn't loaded.", color=0x363942)
+                em = embeds.Embeds.embed(
+                    description="That cog isn't loaded.", color=0x363942
+                )
                 await ctx.reply(embed=em, private=ctx.message.private)
 
     @commands.command(name="reload", description="Reloads a cog.")
@@ -124,7 +133,9 @@ class developer(commands.Cog):
                     )
                     await ctx.reply(embed=em, private=ctx.message.private)
                     self.bot.traceback(e)
-            em = embeds.Embeds.embed(description="**All cogs reloaded.**", color=0x363942)
+            em = embeds.Embeds.embed(
+                description="**All cogs reloaded.**", color=0x363942
+            )
             await ctx.reply(embed=em, private=ctx.message.private)
         else:
             try:
@@ -132,10 +143,14 @@ class developer(commands.Cog):
                 self.bot.print(
                     f"{self.bot.COLORS.cog_logs}[COGS] {self.bot.COLORS.normal_message}Reloaded cog {self.bot.COLORS.item_name}{cog_name}"
                 )
-                em = embeds.Embeds.embed(description="**Cog reloaded.**", color=0x363942)
+                em = embeds.Embeds.embed(
+                    description="**Cog reloaded.**", color=0x363942
+                )
                 await ctx.reply(embed=em, private=ctx.message.private)
             except Exception as e:
-                em = embeds.Embeds.embed(description="Failed to reload cog.", color=0x363942)
+                em = embeds.Embeds.embed(
+                    description="Failed to reload cog.", color=0x363942
+                )
                 await ctx.reply(embed=em, private=ctx.message.private)
                 self.bot.traceback(e)
 

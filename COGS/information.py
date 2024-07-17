@@ -3,6 +3,7 @@ from guilded.ext import commands
 
 from DATA import embeds
 
+
 class information(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot

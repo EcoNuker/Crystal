@@ -3,6 +3,7 @@ import string, secrets, time
 
 from DATA import tools
 
+
 def action_map(
     action: str, duration: int = None, amount: int = None, automod: bool = False
 ) -> str:
@@ -62,9 +63,11 @@ class BaseEvent:
         self.server_id: str
         self.timestamp: float
 
+
 class CloudBaseEvent(BaseEvent):
     def __init__(self) -> None:
         self.event_id: str | None = None
+
 
 class EventQueue:
     def __init__(self) -> None:
