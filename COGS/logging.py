@@ -44,6 +44,89 @@ class Logging(commands.Cog):
                 )
                 await asyncio.sleep(5)
 
+    async def set_log(self, server_id: str, channel_id: str, event_type: str) -> bool:
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == server_id
+        )
+        server_data.logging.setChannels[channel_id] = event_type
+        if event_type == "allEvents":
+            server_data.logging.allEvents.append(channel_id)
+        elif event_type == "allChannelEvents":
+            server_data.logging.allChannelEvents.append(channel_id)
+        elif event_type == "allMemberEvents":
+            server_data.logging.allMemberEvents.append(channel_id)
+        elif event_type == "membershipChange":
+            server_data.logging.membershipChange.append(channel_id)
+        elif event_type == "memberUpdate":
+            server_data.logging.memberUpdate.append(channel_id)
+        elif event_type == "automod":
+            server_data.logging.automod.append(channel_id)
+        elif event_type == "botSettingChanges":
+            server_data.logging.botSettingChanges.append(channel_id)
+        elif event_type == "messageChange":
+            server_data.logging.messageChange.append(channel_id)
+        elif event_type == "moderatorAction":
+            server_data.logging.moderatorAction.append(channel_id)
+        elif event_type == "channelStateUpdate":
+            server_data.logging.channelStateUpdate.append(channel_id)
+        elif event_type == "forumUpdate":
+            server_data.logging.forumUpdate.append(channel_id)
+        elif event_type == "documentUpdate":
+            server_data.logging.documentUpdate.append(channel_id)
+        elif event_type == "announcementUpdate":
+            server_data.logging.announcementUpdate.append(channel_id)
+        elif event_type == "calendarUpdate":
+            server_data.logging.calendarUpdate.append(channel_id)
+        elif event_type == "listUpdate":
+            server_data.logging.listUpdate.append(channel_id)
+        elif event_type == "categoryUpdate":
+            server_data.logging.categoryUpdate.append(channel_id)
+        await server_data.save()
+        return True
+
+    async def delete_log(self, server_id: str, channel_id: str) -> bool:
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == server_id
+        )
+        if server_data.logging.setChannels.get(channel_id):
+            event_type = server_data.logging.setChannels.get(channel_id)
+            if event_type == "allEvents":
+                server_data.logging.allEvents.remove(channel_id)
+            elif event_type == "allChannelEvents":
+                server_data.logging.allChannelEvents.remove(channel_id)
+            elif event_type == "allMemberEvents":
+                server_data.logging.allMemberEvents.remove(channel_id)
+            elif event_type == "membershipChange":
+                server_data.logging.membershipChange.remove(channel_id)
+            elif event_type == "memberUpdate":
+                server_data.logging.memberUpdate.remove(channel_id)
+            elif event_type == "automod":
+                server_data.logging.automod.remove(channel_id)
+            elif event_type == "botSettingChanges":
+                server_data.logging.botSettingChanges.remove(channel_id)
+            elif event_type == "messageChange":
+                server_data.logging.messageChange.remove(channel_id)
+            elif event_type == "moderatorAction":
+                server_data.logging.moderatorAction.remove(channel_id)
+            elif event_type == "channelStateUpdate":
+                server_data.logging.channelStateUpdate.remove(channel_id)
+            elif event_type == "forumUpdate":
+                server_data.logging.forumUpdate.remove(channel_id)
+            elif event_type == "documentUpdate":
+                server_data.logging.documentUpdate.remove(channel_id)
+            elif event_type == "announcementUpdate":
+                server_data.logging.announcementUpdate.remove(channel_id)
+            elif event_type == "calendarUpdate":
+                server_data.logging.calendarUpdate.remove(channel_id)
+            elif event_type == "listUpdate":
+                server_data.logging.listUpdate.remove(channel_id)
+            elif event_type == "categoryUpdate":
+                server_data.logging.categoryUpdate.remove(channel_id)
+            del server_data.logging.setChannels[channel_id]
+            await server_data.save()
+            return True
+        return False
+
     @commands.group(name="logs")
     async def logs(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
@@ -129,7 +212,6 @@ class Logging(commands.Cog):
             await server_data.save()
 
         channels = []
-        deleted = False
 
         human_readable_map = {
             "allEvents": "All Events",
@@ -157,43 +239,7 @@ class Logging(commands.Cog):
                     f"{channel.mention} is a `{human_readable_map[event_type]}` log channel."
                 )
             except:
-                deleted = True
-                if event_type == "allEvents":
-                    server_data.logging.allEvents.remove(channel_id)
-                elif event_type == "allChannelEvents":
-                    server_data.logging.allChannelEvents.remove(channel_id)
-                elif event_type == "allMemberEvents":
-                    server_data.logging.allMemberEvents.remove(channel_id)
-                elif event_type == "membershipChange":
-                    server_data.logging.membershipChange.remove(channel_id)
-                elif event_type == "memberUpdate":
-                    server_data.logging.memberUpdate.remove(channel_id)
-                elif event_type == "automod":
-                    server_data.logging.automod.remove(channel_id)
-                elif event_type == "botSettingChanges":
-                    server_data.logging.botSettingChanges.remove(channel_id)
-                elif event_type == "messageChange":
-                    server_data.logging.messageChange.remove(channel_id)
-                elif event_type == "moderatorAction":
-                    server_data.logging.moderatorAction.remove(channel_id)
-                elif event_type == "channelStateUpdate":
-                    server_data.logging.channelStateUpdate.remove(channel_id)
-                elif event_type == "forumUpdate":
-                    server_data.logging.forumUpdate.remove(channel_id)
-                elif event_type == "documentUpdate":
-                    server_data.logging.documentUpdate.remove(channel_id)
-                elif event_type == "announcementUpdate":
-                    server_data.logging.announcementUpdate.remove(channel_id)
-                elif event_type == "calendarUpdate":
-                    server_data.logging.calendarUpdate.remove(channel_id)
-                elif event_type == "listUpdate":
-                    server_data.logging.listUpdate.remove(channel_id)
-                elif event_type == "categoryUpdate":
-                    server_data.logging.categoryUpdate.remove(channel_id)
-                del server_data.logging.setChannels[channel_id]
-
-        if deleted:
-            await server_data.save()
+                await self.delete_log(ctx.server.id, channel_id)
 
         channels = "\n".join(channels) if channels != [] else "No log channels set."
         embed = embeds.Embeds.embed(
@@ -325,40 +371,7 @@ class Logging(commands.Cog):
                 )
                 await ctx.reply(embed=embed, private=ctx.message.private)
                 return
-            server_data.logging.setChannels[channel.id] = event_type
-            if event_type == "allEvents":
-                server_data.logging.allEvents.append(channel.id)
-            elif event_type == "allChannelEvents":
-                server_data.logging.allChannelEvents.append(channel.id)
-            elif event_type == "allMemberEvents":
-                server_data.logging.allMemberEvents.append(channel.id)
-            elif event_type == "membershipChange":
-                server_data.logging.membershipChange.append(channel.id)
-            elif event_type == "memberUpdate":
-                server_data.logging.memberUpdate.append(channel.id)
-            elif event_type == "automod":
-                server_data.logging.automod.append(channel.id)
-            elif event_type == "botSettingChanges":
-                server_data.logging.botSettingChanges.append(channel.id)
-            elif event_type == "messageChange":
-                server_data.logging.messageChange.append(channel.id)
-            elif event_type == "moderatorAction":
-                server_data.logging.moderatorAction.append(channel.id)
-            elif event_type == "channelStateUpdate":
-                server_data.logging.channelStateUpdate.append(channel.id)
-            elif event_type == "forumUpdate":
-                server_data.logging.forumUpdate.append(channel.id)
-            elif event_type == "documentUpdate":
-                server_data.logging.documentUpdate.append(channel.id)
-            elif event_type == "announcementUpdate":
-                server_data.logging.announcementUpdate.append(channel.id)
-            elif event_type == "calendarUpdate":
-                server_data.logging.calendarUpdate.append(channel.id)
-            elif event_type == "listUpdate":
-                server_data.logging.listUpdate.append(channel.id)
-            elif event_type == "categoryUpdate":
-                server_data.logging.categoryUpdate.append(channel.id)
-            await server_data.save()
+            await self.set_log(ctx.server.id, channel.id, event_type)
             embed = embeds.Embeds.embed(
                 title="Set Log Channel!",
                 description=f"{channel.mention} is now a `{human_readable_map[event_type]}` log channel.",
@@ -413,39 +426,7 @@ class Logging(commands.Cog):
 
         if server_data.logging.setChannels.get(channel.id):
             event_type = server_data.logging.setChannels.get(channel.id)
-            if event_type == "allEvents":
-                server_data.logging.allEvents.remove(channel.id)
-            elif event_type == "allChannelEvents":
-                server_data.logging.allChannelEvents.remove(channel.id)
-            elif event_type == "allMemberEvents":
-                server_data.logging.allMemberEvents.remove(channel.id)
-            elif event_type == "membershipChange":
-                server_data.logging.membershipChange.remove(channel.id)
-            elif event_type == "memberUpdate":
-                server_data.logging.memberUpdate.remove(channel.id)
-            elif event_type == "automod":
-                server_data.logging.automod.remove(channel.id)
-            elif event_type == "botSettingChanges":
-                server_data.logging.botSettingChanges.remove(channel.id)
-            elif event_type == "messageChange":
-                server_data.logging.messageChange.remove(channel.id)
-            elif event_type == "moderatorAction":
-                server_data.logging.moderatorAction.remove(channel.id)
-            elif event_type == "channelStateUpdate":
-                server_data.logging.channelStateUpdate.remove(channel.id)
-            elif event_type == "forumUpdate":
-                server_data.logging.forumUpdate.remove(channel.id)
-            elif event_type == "documentUpdate":
-                server_data.logging.documentUpdate.remove(channel.id)
-            elif event_type == "announcementUpdate":
-                server_data.logging.announcementUpdate.remove(channel.id)
-            elif event_type == "calendarUpdate":
-                server_data.logging.calendarUpdate.remove(channel.id)
-            elif event_type == "listUpdate":
-                server_data.logging.listUpdate.remove(channel.id)
-            elif event_type == "categoryUpdate":
-                server_data.logging.categoryUpdate.remove(channel.id)
-            del server_data.logging.setChannels[channel.id]
+            await self.delete_log(ctx.server.id, channel.id)
             human_readable_map = {
                 "allEvents": "All Events",
                 "allChannelEvents": "All Channel Events",
