@@ -801,7 +801,7 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
-
+        await event.server.fill_roles()
         # Iterate over all updated members
         for member in event.after:
             embed = embeds.Embeds.embed(
