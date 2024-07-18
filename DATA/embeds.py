@@ -70,6 +70,16 @@ class EmbedsData:
             # icon_url=IMAGE_BOT_LOGO,
         )
 
+    def argument_one_of(self, argument_name: str, options: List[str]):
+        return guilded.Embed(
+            title="Invalid Argument",
+            description=f"The `{argument_name}` argument must be one of `{'`, `'.join(options)}`!",
+            color=guilded.Color.red(),
+        ).set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
     def missing_permissions(self, permission: str, manage_bot_server: bool = True):
         return guilded.Embed(
             title="You're Missing Permissions!",

@@ -74,6 +74,31 @@ class loggingChannels(BaseModel):
     categoryUpdate: List[str] = list()
 
 
+class punishmentData(BaseModel):
+    """
+    - action - `str` - The actual action taken
+    - duration - `int` - In seconds, the duration of action if action is tempban or tempmute
+    """
+
+    action: str = None
+    duration: int = 0
+
+    @model_validator(mode="after")
+    def created_validator(self):
+        assert self.action in [
+            "kick",
+            "ban",
+            "mute",
+            "tempban",
+            "tempmute",
+            "warn",
+            None,
+        ]
+        if self.action == None:
+            self.action == "Unspecified"
+        return self
+
+
 class automodRule(BaseModel):
     """
     - author - `str` - ID of the author of the rule
@@ -88,21 +113,7 @@ class automodRule(BaseModel):
 
     author: str
     rule: str
-    punishment: dict = dict()
-    """ We have a punishment table xd
-    {
-        "action": "tempban",
-        "duration": 3600
-    }
-
-    {
-        "action": "warn",
-        "duration": 0, (no duration, it's a warning)
-    }
-    
-    just use our defined list lmao:
-    ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
-    """
+    punishment: punishmentData = punishmentData()
     description: Optional[str] = None
     custom_message: Optional[str] = None
     custom_reason: Optional[str] = None

@@ -181,6 +181,9 @@ class Logging(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
+        elif ctx.invoked_subcommand.name != "types":
+            # Every other subcommand requires a fill to determine permissions
+            await ctx.server.fill_roles()
 
     @logs.command(name="types")
     async def _types(self, ctx: commands.Context):
@@ -220,7 +223,6 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        await ctx.server.fill_roles()
         if (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
@@ -264,7 +266,6 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        await ctx.server.fill_roles()
         if (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
@@ -385,7 +386,6 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        await ctx.server.fill_roles()
         if (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
@@ -803,14 +803,20 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        # Hydrate the server's role cache
         await event.server.fill_roles()
+
         # Iterate over all updated members
         for member in event.after:
+            # Create the event embed
             embed = embeds.Embeds.embed(
                 title=f"{member.mention} Roles Changed",
                 url=member.profile_url,
                 colour=guilded.Colour.gilded(),
             )
+
+            # Add related fields
             embed.set_thumbnail(url=member.display_avatar.url)
             embed.add_field(name="User ID", value=member.id)
             for other in event.before:
@@ -848,28 +854,35 @@ class Logging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ban_create(self, event: guilded.BanCreateEvent):
+        # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Banned",
             url=event.member.profile_url,
             colour=guilded.Colour.red(),
         )
+
+        # Add related fields
         embed.set_thumbnail(url=event.member.display_avatar.url)
         embed.add_field(name="User ID", value=event.member.id)
         embed.add_field(name="Banned by", value=event.ban.author.mention)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
-        if event.member.created_at:
+        if event.member.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
                 value=format_timespan(
                     datetime.datetime.now() - event.member.created_at
                 ),
             )
+
+        # Push the event to the listening channels
         if server_data.logging.membershipChange:
             for channel_id in server_data.logging.membershipChange:
                 try:
@@ -878,6 +891,7 @@ class Logging(commands.Cog):
                     )
                 except:
                     await delete_log(event.server_id, channel_id)
+
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
                 try:
@@ -886,6 +900,7 @@ class Logging(commands.Cog):
                     )
                 except:
                     await delete_log(event.server_id, channel_id)
+
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -897,28 +912,35 @@ class Logging(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
+        # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Unbanned",
             url=event.member.profile_url,
             colour=guilded.Colour.gilded(),
         )
+
+        # Add related fields
         embed.set_thumbnail(url=event.member.display_avatar.url)
         embed.add_field(name="User ID", value=event.member.id)
         embed.add_field(name="Banned by", value=event.ban.author.mention)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
-        if event.member.created_at:
+        if event.member.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
                 value=format_timespan(
                     datetime.datetime.now() - event.member.created_at
                 ),
             )
+
+        # Push the event to the listening channels
         if server_data.logging.moderatorAction:
             for channel_id in server_data.logging.moderatorAction:
                 try:
@@ -927,6 +949,7 @@ class Logging(commands.Cog):
                     )
                 except:
                     await delete_log(event.server_id, channel_id)
+
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
