@@ -61,7 +61,12 @@ class Moderation(commands.Cog):
                 description=f"{amount-2} messages have been deleted!",
                 color=guilded.Color.green(),
             )
-            await ctx.send(embed=embed, delete_after=5)
+            m_id = await ctx.send(embed=embed, delete_after=5)
+            custom_events.eventqueue.add_overwrites(
+                {
+                    "message_ids": [m_id]
+                }
+            )
 
     # @commands.command(name="kick")
     # async def kick(

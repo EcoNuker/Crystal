@@ -74,14 +74,17 @@ class EventQueue:
         self.events = {}
         self.events_overwritten = {"message_ids": {}}
 
+    def add_overwrites(self, data: dict) -> None:
+        for overwrite_type, overwrites in data.items():
+            if overwrite_type == "message_ids":
+                for m_id in overwrites:
+                    self.events_overwritten["message_ids"][m_id] = time.time()
+
     def add_event(self, eventData: BaseEvent) -> None:
         eventId = tools.gen_cryptographically_secure_string(5)
         while eventId in self.events:
             eventId = tools.gen_cryptographically_secure_string(5)
-        for overwrite_type, overwrites in eventData.overwrite.items():
-            if overwrite_type == "message_ids":
-                for m_id in overwrites:
-                    self.events_overwritten["message_ids"][m_id] = time.time()
+        self.add_overwrites(eventData.overwrite)
         self.events[eventId] = {
             "eventType": eventData.eventType,
             "eventData": eventData,
