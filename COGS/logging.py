@@ -465,8 +465,9 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.member.display_avatar.url)
         embed.add_field(name="User", value=event.member.mention)
         embed.add_field(name="User ID", value=event.member.id)
-        embed.add_field(name="Message ID", value=event.member.id)
-        embed.add_field(name="Action Taken", value=event.formatted_action)
+        embed.add_field(name="Message ID", value=event.message.id)
+        embed.add_field(name="Action Taken", value=event.formatted_action, inline=False)
+        embed.add_field(name="Reason", value=event.reason, inline=False)
         # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
 
         # Push the event to the listening channels
@@ -556,6 +557,7 @@ class Logging(commands.Cog):
         embed.add_field(name="Moderator", value=event.moderator.mention)
         embed.add_field(name="Moderator ID", value=event.moderator.id)
         embed.add_field(name="Action Taken", value=event.formatted_action, inline=False)
+        embed.add_field(name="Reason", value=event.reason, inline=False)
 
         # Push the event to the listening channels
         if server_data.logging.moderatorAction:

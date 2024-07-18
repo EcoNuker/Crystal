@@ -2,6 +2,7 @@ import guilded
 from guilded.embed import EmptyEmbed
 import datetime
 from main import bot
+from typing import List
 
 
 class EmbedsData:
@@ -73,6 +74,19 @@ class EmbedsData:
         return guilded.Embed(
             title="You're Missing Permissions!",
             description=f"You need the `{permission}` permission to run that!{' Alternatively, you need the `Manage Server` or `Manage Bots` permission.' if manage_bot_server else ''}",
+            color=guilded.Color.red(),
+        ).set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    def missing_one_of_permissions(self, permissions: List[str]):
+        """
+        Put in a list of permissions such as ["Kick Members", "Ban Members", "Manage Messages"], and the bot will return a embed for error, specifying the user must have one of the permissions
+        """
+        return guilded.Embed(
+            title="You're Missing Permissions!",
+            description=f"You need one of the `{'`, `'.join(permissions)}` permissions to run that!",
             color=guilded.Color.red(),
         ).set_footer(
             text=f"{self.bot_name} v{bot.version}",

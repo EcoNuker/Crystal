@@ -103,6 +103,7 @@ class AutomodEvent(CloudBaseEvent):
         action: str,
         message: guilded.Message,
         member: guilded.Member,
+        reason: str,
         duration: int = 0,
     ) -> None:
         self.event_id = None
@@ -116,6 +117,7 @@ class AutomodEvent(CloudBaseEvent):
         self.duration = duration if action.startswith("temp") else None
         self.formatted_action = action_map(self.action, automod=True, duration=duration)
         self.timestamp = time.time()
+        self.reason = reason
         assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
 
 
@@ -128,6 +130,7 @@ class ModeratorAction(CloudBaseEvent):
         channel: guilded.ChatChannel | None = None,
         duration: int = 0,
         amount: int = 0,
+        reason: str = "Not Provided",
         overwrites: dict = {},
     ) -> None:
         self.event_id = None
@@ -144,6 +147,7 @@ class ModeratorAction(CloudBaseEvent):
         self.formatted_action = action_map(
             self.action, duration=duration, amount=amount
         )
+        self.reason = reason
         self.timestamp = time.time()
         assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
 

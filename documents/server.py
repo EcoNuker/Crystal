@@ -76,14 +76,14 @@ class loggingChannels(BaseModel):
 
 class automodRule(BaseModel):
     """
-    - author - `str` - ???
-    - rule - `str` - ???
+    - author - `str` - ID of the author of the rule
+    - rule - `str` - The actual regex rule
     - description - `Optional[str]` - The automod rule description (defaults to None)
     - punishment - `dict` - Punishment (action key), along with duration (duration key, set to 0 if punishment has no duration option)
     - enabled - `bool` - Whether the rule is enabled or not (defaults to True)
     - custom_message - `Optional[str]` - Custom message given to user
-    - custom_reason - `Optional[str]` - Custom reason
-    - created - `int` - Automatically generated when rule is made
+    - custom_reason - `Optional[str]` - Custom reason that's logged as the warning or note or whatever
+    - created - `int` - Created at timestamp in epoch seconds - Automatically generated when rule is made
     """
 
     author: str

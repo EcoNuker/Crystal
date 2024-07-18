@@ -4,127 +4,71 @@ from io import BufferedIOBase, BytesIO, IOBase
 from aiohttp import ClientSession
 from pathlib import Path
 from DATA import embeds
+from DATA import custom_events
 
-from documents import Server
+from documents import Server, automodRule
 
 
-# TODO: Finish Routes
-# TODO: Finish punishments
-class Moderation(commands.Cog):
-    def __init__(self, bot):
+class AutoModeration(commands.Cog):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     async def moderateMessage(self, message: guilded.ChatMessage, messageBefore=None):
         server_data = await Server.find_one(Server.serverId == message.server.id)
-        server_data_DB = await getServerRules(message.server.id)
+        if not server_data:
+            server_data = Server(serverId=message.server.id)
+            await server_data.save()
+        print(server_data.data.automodRules)
+        server_data_DB = server_data.data.automodRules
         if (
             not message.author.id == self.bot.user.id
-            and (await getServerSettings(message.server.id))["moderation_toggle"]
-            == True
-            and server_data_DB
+            and server_data_DB != []
             and not message.author.is_owner()
         ):
             for rule in server_data_DB:
-                if rule["enabled"] and re2.search(rule["rule"], message.content):
+                if rule.enabled and re2.search(rule.rule, message.content):
                     if rule:
                         messageToReply = (
-                            rule["custom_message"]
-                            if rule["custom_message"]
+                            rule.custom_message
+                            if rule.custom_message
                             else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
                         )
-                        reason = (
-                            rule["custom_reason"]
-                            if rule["custom_reason"]
-                            else f"This user has violated the server's automod rules. ({rule['rule']})"
+                        reason = "[Automod]" + (
+                            rule.custom_reason
+                            if rule.custom_reason
+                            else f"This user has violated the server's automod rules. ({rule.rule})"
                         )
-                        if (
-                            rule["punishment"][0] == "warn"
-                        ):  # TODO: add database warnings
+                        if rule.punishment["action"] == "warn":
                             if (
                                 messageBefore
                                 and message.content[
-                                    re2.search(rule["rule"], message.content)
-                                    .start() : re2.search(rule["rule"], message.content)
+                                    re2.search(rule.rule, message.content)
+                                    .start() : re2.search(rule.rule, message.content)
                                     .end()
                                 ]
                                 in messageBefore.content
                             ):
                                 return
                             await messageWarning(message, messageToReply)
-                            await addAuditLog(
-                                message.server.id,
-                                self.bot.user.id,
-                                "warn",
-                                reason,
-                                message.author.id,
-                                extraData={
-                                    "automation": "moderation",
-                                    "rule": rule["rule"],
-                                    "messageID": message.id,
-                                },
-                            )
-                        elif rule["punishment"][0] == "kick":
+                        elif rule.punishment["action"] == "kick":
                             await messageWarning(message, messageToReply)
-                            await addAuditLog(
-                                message.server.id,
-                                self.bot.user.id,
-                                "kick",
-                                reason,
-                                message.author.id,
-                                extraData={
-                                    "automation": "moderation",
-                                    "rule": rule["rule"],
-                                    "messageID": message.id,
-                                },
-                            )
-                            await message.delete()
                             await message.author.kick()
-                        elif rule["punishment"][0] == "ban":
+                        elif rule.punishment["action"] == "ban":
                             await messageWarning(message, messageToReply)
-                            await addAuditLog(
-                                message.server.id,
-                                self.bot.user.id,
-                                "ban",
-                                reason,
-                                message.author.id,
-                                extraData={
-                                    "automation": "moderation",
-                                    "rule": rule["rule"],
-                                    "messageID": message.id,
-                                },
-                            )
-                            await message.delete()
                             await message.author.ban(reason=reason)
-                        elif rule["punishment"][0] == "mute":  # TODO: fix mutes
+                        elif rule.punishment["action"] == "mute":  # TODO: fix mutes
                             await messageWarning(message, messageToReply)
-                            await addAuditLog(
-                                message.server.id,
-                                self.bot.user.id,
-                                "mute",
+                        # Delete message regardless of action
+                        custom_events.eventqueue.add_event(
+                            custom_events.AutomodEvent(
+                                rule.punishment["action"],
+                                message,
+                                message.author,
                                 reason,
-                                message.author.id,
-                                extraData={
-                                    "automation": "moderation",
-                                    "rule": rule["rule"],
-                                    "messageID": message.id,
-                                },
+                                rule.punishment["duration"],
                             )
-                            await message.delete()
-                        elif rule["punishment"][0] == "delete":
-                            await messageWarning(message, messageToReply)
-                            await addAuditLog(
-                                message.server.id,
-                                self.bot.user.id,
-                                "delete",
-                                reason,
-                                message.author.id,
-                                extraData={
-                                    "automation": "moderation",
-                                    "rule": rule["rule"],
-                                    "messageID": message.id,
-                                },
-                            )
-                            await message.delete()
+                        )
+                        await message.delete()
                         break
 
     @commands.Cog.listener()
@@ -136,65 +80,64 @@ class Moderation(commands.Cog):
         await self.moderateMessage(event.after, messageBefore=event.before)
 
     @commands.command(aliases=["rule"])
-    async def rules(self, ctx, *, rules=""):
+    async def rules(self, ctx: commands.Context, *, rules=""):
         arguments = rules.split(" ")
-        author = ctx.author
-        guild = ctx.guild
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        server_data = await Server.find_one(Server.serverId == ctx.server.id)
+        if not server_data:
+            server_data = Server(serverId=ctx.server.id)
+            await server_data.save()
         if arguments[0] in ["add", "create"]:
             punishment = arguments[2] if len(arguments) > 2 else "delete"
             amount = arguments[3] if len(arguments) > 3 else 1
             rules = arguments[1]
-            ruleID = generateSnowflakeFromIDType("moderation_rules")
-            if punishment in ["warn", "delete"] and not (
-                author.is_owner()
-                or author.server_permissions.administrator
-                or author.server_permissions.manage_messages
+            if punishment in ["warn"] and not (
+                ctx.author.server_permissions.manage_messages
             ):
-                embed = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to add this punishment!",
-                    color=guilded.Color.red(),
+                embed = embeds.Embeds.missing_permissions(
+                    "Manage Messages", manage_bot_server=False
                 )
-                return await ctx.reply(embed=embed)
+                return await ctx.reply(embed=embed, private=ctx.message.private)
             elif punishment in ["kick"] and not (
-                author.is_owner()
-                or author.server_permissions.administrator
-                or author.server_permissions.kick_members
-                or author.server_permissions.ban_members
+                ctx.author.server_permissions.kick_members
+                or ctx.author.server_permissions.ban_members
             ):
-                embed = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to add this punishment!",
-                    color=guilded.Color.red(),
+                embed = embeds.Embeds.missing_permissions(
+                    "Kick/Ban Members", manage_bot_server=False
                 )
-                return await ctx.reply(embed=embed)
-            elif punishment in ["ban"] and not (
-                author.is_owner()
-                or author.server_permissions.administrator
-                or author.server_permissions.ban_members
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            elif punishment in ["ban", "tempban"] and not (
+                ctx.author.server_permissions.ban_members
             ):
-                embed = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to add this punishment!",
-                    color=guilded.Color.red(),
+                embed = embeds.Embeds.missing_permissions(
+                    "Kick/Ban Members", manage_bot_server=False
                 )
-                return await ctx.reply(embed=embed)
-            elif punishment in ["mute"] and not (
-                author.is_owner()
-                or author.server_permissions.administrator
-                or author.server_permissions.manage_roles
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            elif punishment in ["mute", "tempmute"] and not (
+                ctx.author.server_permissions.manage_roles
             ):
-                embed = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to add this punishment!",
-                    color=guilded.Color.red(),
+                embed = embeds.Embeds.missing_permissions(
+                    "Manage Roles", manage_bot_server=False
                 )
-                return await ctx.reply(embed=embed)
-            db_pool = await db_connection.db_connection()
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            for i in server_data.data.automodRules:
+                if i.rule == rules:
+                    embed = embeds.Embeds.embed(
+                        title="Rule Not Added",
+                        description=f"This rule ({rules}) has not been added because it already exists.",
+                        color=guilded.Color.gilded(),
+                    )
+                    return await ctx.reply(embed=embed, private=ctx.message.private)
+            server_data.data.automodRules.append()
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 updated = await cursor.execute(
-                    """INSERT INTO rules (rule, punishment, author_id, id, server_id, enabled, deleted) SELECT %s, %s,%s, %s, %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM rules WHERE rule = %s AND server_id = %s AND deleted = false)""",
+                    "INSERT INTO rules (rule, punishment, author_id, id, server_id, enabled, deleted) SELECT %s, %s,%s, %s, %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM rules WHERE rule = %s AND server_id = %s AND deleted = false)",
                     (
                         rules,
                         json.dumps([punishment, amount]),
@@ -214,35 +157,27 @@ class Moderation(commands.Cog):
                     description=f"Rule: {rules}\nPunishment: {punishment.capitalize()}\nAmount: {amount}\nCreator: {author.mention}\n Rule ID: {ruleID}",
                     color=guilded.Color.green(),
                 )
-                await addAuditLog(
-                    guild.id,
-                    author.id,
-                    "automod_rule_add",
-                    f"User {author.name} added automod rule: {rules}",
-                    author.id,
-                    extraData={"rule": rules, "ruleID": ruleID},
+                custom_events.eventqueue.add_event(
+                    custom_events.BotSettingChanged(
+                        f"The rule {'rule name'} was created?"
+                    )
                 )
-            else:
-                embed = embeds.Embeds.embed(
-                    title="Rule Not Added",
-                    description=f"This rule ({rules}) has not been added because it already exists.",
-                    color=guilded.Color.gilded(),
-                )
-            return await ctx.reply(embed=embed)
+                # TODO!!
+            return await ctx.reply(embed=embed, private=ctx.message.private)
         elif arguments[0] in ["remove", "delete"]:
             db_pool = await db_connection.db_connection()
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 updated = await cursor.execute(
-                    """UPDATE rules SET deleted = true WHERE server_id = %s and (id = %s or rule = %s) and deleted = false RETURNING *""",
+                    "UPDATE rules SET deleted = true WHERE server_id = %s and (id = %s or rule = %s) and deleted = false RETURNING *",
                     (guild.id, arguments[1], arguments[1]),
                 )
                 updatedRules = await cursor.fetchone()
                 if updatedRules:
                     if updatedRules["punishment"][0] in ["warn", "delete"] and not (
-                        author.is_owner()
-                        or author.server_permissions.administrator
-                        or author.server_permissions.manage_messages
+                        ctx.author.is_owner()
+                        or ctx.author.server_permissions.administrator
+                        or ctx.author.server_permissions.manage_messages
                     ):
                         await conn.rollback()
                         embed = embeds.Embeds.embed(
@@ -250,12 +185,12 @@ class Moderation(commands.Cog):
                             description="You do not have permission to remove this punishment!",
                             color=guilded.Color.red(),
                         )
-                        return await ctx.reply(embed=embed)
+                        return await ctx.reply(embed=embed, private=ctx.message.private)
                     elif updatedRules["punishment"][0] in ["kick"] and not (
-                        author.is_owner()
-                        or author.server_permissions.administrator
-                        or author.server_permissions.kick_members
-                        or author.server_permissions.ban_members
+                        ctx.author.is_owner()
+                        or ctx.author.server_permissions.administrator
+                        or ctx.author.server_permissions.kick_members
+                        or ctx.author.server_permissions.ban_members
                     ):
                         await conn.rollback()
                         embed = embeds.Embeds.embed(
@@ -263,11 +198,11 @@ class Moderation(commands.Cog):
                             description="You do not have permission to remove this punishment!",
                             color=guilded.Color.red(),
                         )
-                        return await ctx.reply(embed=embed)
+                        return await ctx.reply(embed=embed, private=ctx.message.private)
                     elif updatedRules["punishment"][0] in ["ban"] and not (
-                        author.is_owner()
-                        or author.server_permissions.administrator
-                        or author.server_permissions.ban_members
+                        ctx.author.is_owner()
+                        or ctx.author.server_permissions.administrator
+                        or ctx.author.server_permissions.ban_members
                     ):
                         await conn.rollback()
                         embed = embeds.Embeds.embed(
@@ -275,11 +210,11 @@ class Moderation(commands.Cog):
                             description="You do not have permission to remove this punishment!",
                             color=guilded.Color.red(),
                         )
-                        return await ctx.reply(embed=embed)
+                        return await ctx.reply(embed=embed, private=ctx.message.private)
                     elif updatedRules["punishment"][0] in ["mute"] and not (
-                        author.is_owner()
-                        or author.server_permissions.administrator
-                        or author.server_permissions.manage_roles
+                        ctx.author.is_owner()
+                        or ctx.author.server_permissions.administrator
+                        or ctx.author.server_permissions.manage_roles
                     ):
                         await conn.rollback()
                         embed = embeds.Embeds.embed(
@@ -287,7 +222,7 @@ class Moderation(commands.Cog):
                             description="You do not have permission to remove this punishment!",
                             color=guilded.Color.red(),
                         )
-                        return await ctx.reply(embed=embed)
+                        return await ctx.reply(embed=embed, private=ctx.message.private)
                     await conn.commit()
             if updated.rowcount > 0:
                 try:
@@ -304,10 +239,10 @@ class Moderation(commands.Cog):
                 )
                 await addAuditLog(
                     guild.id,
-                    author.id,
+                    ctx.author.id,
                     "automod_rule_remove",
-                    f"User {author.name} removed automod rule: {updatedRules['rule']}",
-                    author.id,
+                    f"User {ctx.author.name} removed automod rule: {updatedRules['rule']}",
+                    ctx.author.id,
                     extraData={
                         "rule": updatedRules["rule"],
                         "ruleID": updatedRules["id"],
@@ -325,7 +260,7 @@ class Moderation(commands.Cog):
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 updated = await cursor.execute(
-                    """UPDATE rules SET deleted = true WHERE server_id = %s and deleted = false RETURNING *""",
+                    "UPDATE rules SET deleted = true WHERE server_id = %s and deleted = false RETURNING *",
                     (guild.id,),
                 )
                 updatedRules = await cursor.fetchall()
@@ -333,34 +268,20 @@ class Moderation(commands.Cog):
                 for i in updatedRules:
                     if (
                         i["punishment"][0] in ["warn", "delete"]
-                        and not (
-                            author.is_owner()
-                            or author.server_permissions.administrator
-                            or author.server_permissions.manage_messages
-                        )
+                        and not (ctx.author.server_permissions.manage_messages)
                     ) or (
                         i["punishment"][0] in ["kick"]
                         and not (
-                            author.is_owner()
-                            or author.server_permissions.administrator
-                            or author.server_permissions.kick_members
-                            or author.server_permissions.ban_members
+                            ctx.author.server_permissions.kick_members
+                            or ctx.author.server_permissions.ban_members
                         )
                         or (
                             i["punishment"][0] in ["ban"]
-                            and not (
-                                author.is_owner()
-                                or author.server_permissions.administrator
-                                or author.server_permissions.ban_members
-                            )
+                            and not (ctx.author.server_permissions.ban_members)
                         )
                         or (
                             i["punishment"][0] in ["mute"]
-                            and not (
-                                author.is_owner()
-                                or author.server_permissions.administrator
-                                or author.server_permissions.manage_roles
-                            )
+                            and not (ctx.author.server_permissions.manage_roles)
                         )
                     ):
                         await conn.rollback()
@@ -402,10 +323,10 @@ class Moderation(commands.Cog):
             if not updated.rowcount > 0:
                 await addAuditLog(
                     guild.id,
-                    author.id,
+                    ctx.author.id,
                     "automod_rule_clear",
-                    f"User {author.name} cleared automod rules.",
-                    author.id,
+                    f"User {ctx.author.name} cleared automod rules.",
+                    ctx.author.id,
                     extraData={"ruleID": [i["id"] for i in updatedRules]},
                 )
                 embed = embeds.Embeds.embed(
@@ -416,68 +337,73 @@ class Moderation(commands.Cog):
             if "embed" in locals():
                 return await ctx.send(embed=embed)
         elif arguments[0] in ["list", "get", ""]:
-            if (
-                author.is_owner()
-                or author.server_permissions.administrator
-                or author.server_permissions.manage_messages
-                or author.server_permissions.manage_roles
-                or author.server_permissions.kick_members
-                or author.server_permissions.ban_members
+            if not (
+                ctx.author.server_permissions.manage_messages
+                or ctx.author.server_permissions.manage_roles
+                or ctx.author.server_permissions.kick_members
+                or ctx.author.server_permissions.ban_members
+                or ctx.author.server_permissions.manage_bots
+                or ctx.author.server_permissions.manage_server
             ):
-                rules = await getServerRules(guild.id)
-                if not rules:
-                    em = embeds.Embeds.embed(
-                        title="Rules",
-                        description="No rules found!",
-                        color=guilded.Color.green(),
-                    )
-                    return await ctx.send(embed=em)
-                wordCount, description, creatorCache = 0, "", {}
-                for i in rules:
-                    if not i["author_id"] in creatorCache:
-                        try:
-                            creatorCache[i["author_id"]] = (
-                                await guild.fetch_member(i["author_id"])
-                            ).mention
-                        except:
-                            creator = await self.bot.fetch_user(i["author_id"])
-                            creatorCache[i["author_id"]] = (
-                                f"{creator.display_name} ({creator.id})"
-                            )
-                    ruleText = f"***Rule: {i['rule']}***\nPunishment: {i['punishment'][0].capitalize()}\nAmount: {i['punishment'][1]}\nCreator: {creatorCache[i['author_id']]}\n Rule ID: {i['id']}\nDescription: {i['description']}\nEnabled: {i['enabled']}\nCustom Message: {i['custom_message']}\nCustom Reason: {i['custom_reason']}\n\n"
-                    wordCount += len(ruleText)
-                    if wordCount > 2000:
-                        em = embeds.Embeds.embed(
-                            title="Rules",
-                            description=description,
-                            color=guilded.Color.green(),
+                embed = embeds.Embeds.missing_one_of_permissions(
+                    [
+                        "Manage Messages",
+                        "Manage Roles",
+                        "Kick/Ban Members",
+                        "Manage Bots",
+                        "Manage Server",
+                    ]
+                )
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            rules = await getServerRules(guild.id)
+            if not rules:
+                em = embeds.Embeds.embed(
+                    title="Rules",
+                    description="No rules found!",
+                    color=guilded.Color.green(),
+                )
+                return await ctx.send(embed=em)
+            wordCount, description, creatorCache = 0, "", {}
+            for i in rules:
+                if not i["author_id"] in creatorCache:
+                    try:
+                        creatorCache[i["author_id"]] = (
+                            await guild.fetch_member(i["author_id"])
+                        ).mention
+                    except:
+                        creator = await self.bot.fetch_user(i["author_id"])
+                        creatorCache[i["author_id"]] = (
+                            f"{creator.display_name} ({creator.id})"
                         )
-                        await ctx.send(embed=em)
-                        description, wordCount = ruleText, len(ruleText)
-                    else:
-                        description += ruleText
-                if wordCount > 0:
+                ruleText = f"***Rule: {i['rule']}***\nPunishment: {i['punishment'][0].capitalize()}\nAmount: {i['punishment'][1]}\nCreator: {creatorCache[i['author_id']]}\n Rule ID: {i['id']}\nDescription: {i['description']}\nEnabled: {i['enabled']}\nCustom Message: {i['custom_message']}\nCustom Reason: {i['custom_reason']}\n\n"
+                wordCount += len(ruleText)
+                if wordCount > 2000:
                     em = embeds.Embeds.embed(
                         title="Rules",
                         description=description,
                         color=guilded.Color.green(),
                     )
-                await addAuditLog(
-                    guild.id,
-                    author.id,
-                    "automod_rule_list",
-                    f"User {author.name} listed automod rules.",
-                    author.id,
-                )
-            else:
+                    await ctx.send(embed=em)
+                    description, wordCount = ruleText, len(ruleText)
+                else:
+                    description += ruleText
+            if wordCount > 0:
                 em = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to view this information!",
-                    color=guilded.Color.red(),
+                    title="Rules",
+                    description=description,
+                    color=guilded.Color.green(),
                 )
-            if em:
-                await ctx.send(embed=em)
+            await addAuditLog(
+                guild.id,
+                author.id,
+                "automod_rule_list",
+                f"User {author.name} listed automod rules.",
+                author.id,
+            )
+            await ctx.reply(embed=em, private=ctx.message.private)
 
+
+"""
     @commands.command()
     async def moderation(self, ctx, *, arguments=""):
         arguments = arguments.split(" ")
@@ -490,12 +416,12 @@ class Moderation(commands.Cog):
                     description="You do not have permission to enable moderation!",
                     color=guilded.Color.red(),
                 )
-                return await ctx.reply(embed=embed)
+                return await ctx.reply(embed=embed, private=ctx.message.private)
             db_pool = await db_connection.db_connection()
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 await cursor.execute(
-                    """UPDATE server_settings as newversion SET moderation_toggle = true FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle""",
+                    ""UPDATE server_settings as newversion SET moderation_toggle = true FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle"",
                     (guild.id,),
                 )
                 await conn.commit()
@@ -527,12 +453,12 @@ class Moderation(commands.Cog):
                     description="You do not have permission to disable moderation!",
                     color=guilded.Color.red(),
                 )
-                return await ctx.reply(embed=embed)
+                return await ctx.reply(embed=embed, private=ctx.message.private)
             db_pool = await db_connection.db_connection()
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 await cursor.execute(
-                    """UPDATE server_settings as newversion SET moderation_toggle = false FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle""",
+                    ""UPDATE server_settings as newversion SET moderation_toggle = false FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle"",
                     (guild.id,),
                 )
                 await conn.commit()
@@ -564,12 +490,12 @@ class Moderation(commands.Cog):
                     description="You do not have permission to toggle moderation!",
                     color=guilded.Color.red(),
                 )
-                return await ctx.reply(embed=embed)
+                return await ctx.reply(embed=embed, private=ctx.message.private)
             db_pool = await db_connection.db_connection()
             async with db_pool.connection() as conn:
                 cursor = conn.cursor(row_factory=dict_row)
                 await cursor.execute(
-                    """UPDATE server_settings as newversion SET moderation_toggle = NOT newversion.moderation_toggle FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle""",
+                    ""UPDATE server_settings as newversion SET moderation_toggle = NOT newversion.moderation_toggle FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle"",
                     (guild.id,),
                 )
                 await conn.commit()
@@ -610,9 +536,9 @@ class Moderation(commands.Cog):
                 or author.server_permissions.kick_members
                 or author.server_permissions.ban_members
             ):
-                serverData = await getServerSettings(guild.id)
+                server_data = await getServerSettings(guild.id)
                 description = ""
-                if serverData["moderation_toggle"]:
+                if server_data["moderation_toggle"]:
                     description += "Enabled :white_check_mark:\n"
                 else:
                     description += "Disabled :x:\n"
@@ -628,8 +554,9 @@ class Moderation(commands.Cog):
                     color=guilded.Color.red(),
                 )
             await ctx.send(embed=em)
+"""
 
 
 def setup(bot):
-    # bot.add_cog(Moderation(bot))
+    bot.add_cog(AutoModeration(bot))
     pass
