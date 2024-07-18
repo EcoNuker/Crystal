@@ -216,6 +216,7 @@ bot = commands.Bot(
     owner_ids=CONFIGS.owners,
     help_command=None,
 )
+bot.debug = debug_mode
 bot.version = CONFIGS.version
 bot.name = "Crystal"
 bot.CONFIGS = CONFIGS
