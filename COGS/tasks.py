@@ -22,7 +22,11 @@ class tasks(commands.Cog):
                             120,
                         ],
                         [None, f"Helping you moderate servers!", 120],
-                        [None, f"Open-source: https://github.com/EcoNuker/Crystal", 120],
+                        [
+                            None,
+                            f"Open-source: https://github.com/EcoNuker/Crystal",
+                            120,
+                        ],
                     ]
                     for status in statuses:
                         try:

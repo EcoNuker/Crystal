@@ -35,38 +35,59 @@ class Moderation(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
-        if not amount - 2 <= 98:
+        if not amount - 2 <= 250:
             embed = Embeds.embed(
                 title="Invalid Amount",
-                description="The amount of messages to delete must be less than 98.",
+                description="The amount of messages to delete must be less than 250.",
                 color=guilded.Color.red(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
         else:
-            messages = await ctx.channel.history(limit=amount, include_private=private)
-            d_msgs = [message.id for message in messages]
             custom_events.eventqueue.add_event(
                 custom_events.ModeratorAction(
                     "purge",
                     moderator=ctx.author,
                     channel=ctx.channel,
                     amount=amount - 2,
-                    overwrites={"message_ids": d_msgs},
                 )
             )
-            await asyncio.gather(*[message.delete() for message in messages])
+            handling_amount = amount
+            last_message = None
+            d_msgs = []
+            msgs = []
+            while handling_amount > 0:
+                limit = min(handling_amount, 100)
+                if last_message is None:
+                    messages = await ctx.channel.history(
+                        limit=limit, include_private=private
+                    )
+                else:
+                    messages = await ctx.channel.history(
+                        limit=limit,
+                        include_private=private,
+                        before=last_message.created_at,
+                    )
+                msgs.extend(messages)
+                d_msgs.extend([message.id for message in messages])
+                last_message = messages[-1] if messages else None
+                handling_amount -= limit
+            custom_events.eventqueue.add_overwrites({"message_ids": d_msgs})
+
+            async def del_message(message: guilded.ChatMessage) -> None:
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+            await asyncio.gather(*[del_message(message) for message in list(set(msgs))])
             embed = Embeds.embed(
                 title="Purge",
                 description=f"{amount-2} messages have been deleted!",
                 color=guilded.Color.green(),
             )
             m_id = await ctx.send(embed=embed, delete_after=5)
-            custom_events.eventqueue.add_overwrites(
-                {
-                    "message_ids": [m_id]
-                }
-            )
+            custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
 
     # @commands.command(name="kick")
     # async def kick(
