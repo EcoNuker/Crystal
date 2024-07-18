@@ -11,7 +11,7 @@ class Moderation(commands.Cog):
         # self.db = bot.db
 
     @commands.command(name="purge")
-    @commands.cooldown(1, 120)
+    @commands.cooldown(1, 120, commands.BucketType.channel)
     async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
         # check permissions
         if ctx.server is None:
