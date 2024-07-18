@@ -11,6 +11,7 @@ class Moderation(commands.Cog):
         # self.db = bot.db
 
     @commands.command(name="purge")
+    @commands.cooldown(1, 120)
     async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
         # check permissions
         if ctx.server is None:
@@ -20,7 +21,7 @@ class Moderation(commands.Cog):
         if not ctx.author.server_permissions.manage_messages:
             await ctx.reply(
                 embed=Embeds.missing_permissions(
-                    "Kick/Ban Members", manage_bot_server=False
+                    "Maange Messages", manage_bot_server=False
                 ),
                 private=ctx.message.private,
             )

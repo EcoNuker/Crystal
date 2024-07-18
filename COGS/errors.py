@@ -20,7 +20,7 @@ class errors(commands.Cog):
                 embedig = embeds.Embeds.embed(
                     title="Slow down there!",
                     color=guilded.Color.red(),
-                    description=f"Please stop spamming this command! Allow a 1 second pause before trying again.",
+                    description=f"Please wait `{round(error.retry_after):,}` seconds before trying again.",
                 )
                 return await ctx.reply(embed=embedig, private=ctx.message.private)
             elif isinstance(error, commands.MissingRequiredArgument):
