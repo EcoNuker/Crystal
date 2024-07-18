@@ -1,7 +1,8 @@
 # Import types
+import time
 from beanie import Document
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 # Define afk config
@@ -73,6 +74,57 @@ class loggingChannels(BaseModel):
     categoryUpdate: List[str] = list()
 
 
+class automodRule(BaseModel):
+    """
+    - author - `str` - ???
+    - rule - `str` - ???
+    - description - `Optional[str]` - The automod rule description (defaults to None)
+    - punishment - `dict` - Punishment (action key), along with duration (duration key, set to 0 if punishment has no duration option)
+    - enabled - `bool` - Whether the rule is enabled or not (defaults to True)
+    - custom_message - `Optional[str]` - Custom message given to user
+    - custom_reason - `Optional[str]` - Custom reason
+    - created - `int` - Automatically generated when rule is made
+    """
+
+    author: str
+    rule: str
+    punishment: dict = dict()
+    """ We have a punishment table xd
+    {
+        "action": "tempban",
+        "duration": 3600
+    }
+
+    {
+        "action": "warn",
+        "duration": 0, (no duration, it's a warning)
+    }
+    
+    just use our defined list lmao:
+    ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
+    """
+    description: Optional[str] = None
+    custom_message: Optional[str] = None
+    custom_reason: Optional[str] = None
+    enabled: bool = True
+    created: int = None
+
+    @model_validator(mode="after")
+    def created_validator(self):
+        if self.created is None:
+            self.created = round(time.time())
+        assert self.author and self.rule and self.punishment != {}
+        return self
+
+
+class serverData(BaseModel):
+    """
+    - automodSettings - `List[automodRule]` - The server's automod rules
+    """
+
+    automodRules: List[automodRule] = list()
+
+
 # Define the server document
 class Server(Document):
     """
@@ -80,7 +132,7 @@ class Server(Document):
     - prefix - `Optional[str]` - The server's prefix.
     - logging - `LoggingChannels` - Logging channels for events.
     - members - `dict` - Members data and punishment log. (Defaults to {})
-    - data - `dict` - Server data and configs. (Defaults to {})
+    - data - `serverData` - Server data and configs.
     """
 
     serverId: str
@@ -91,4 +143,4 @@ class Server(Document):
 
     members: dict = dict()
 
-    data: dict = dict()
+    data: serverData = serverData()

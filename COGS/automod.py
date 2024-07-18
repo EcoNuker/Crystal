@@ -5,6 +5,8 @@ from aiohttp import ClientSession
 from pathlib import Path
 from DATA import embeds
 
+from documents import Server
+
 
 # TODO: Finish Routes
 # TODO: Finish punishments
@@ -12,7 +14,8 @@ class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def moderateMessage(self, message, messageBefore=None):
+    async def moderateMessage(self, message: guilded.ChatMessage, messageBefore=None):
+        server_data = await Server.find_one(Server.serverId == message.server.id)
         server_data_DB = await getServerRules(message.server.id)
         if (
             not message.author.id == self.bot.user.id
