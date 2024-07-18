@@ -15,6 +15,8 @@ class COLORS:
 
     # [GUILDED]
     guilded_logs = Fore.LIGHTYELLOW_EX
+    # [DEBUG]
+    debug_logs = "\033[38;2;255;165;0m"
     # [INFO]
     info_logs = Fore.CYAN
     # [COGS]
