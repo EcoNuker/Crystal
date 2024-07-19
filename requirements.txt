@@ -1,8 +1,32 @@
+# guilded.py, to communicate with Guilded's API!
 guilded.py==1.13.2
+
+# Make colorful logging! TODO: completely replace this with raw ansi values
 colorama==0.4.6
+
+# Communicate with MongoDB
 beanie==1.26.0
+
+# Typehinting
 typing
+
+# Make human friendly strings
 humanfriendly
+
+# Fuzzy match inputs
 fuzzywuzzy
 python-Levenshtein
+
+# Better regex
 google-re2
+
+# Webserver/API
+uvicorn # starting the app in production environment
+fastapi # base FastAPI webserver libraryy
+Jinja2 # Jinja2 library for HTML and templates support
+#--- Additional features requirements ---#
+itsdangerous # itsdangerous is a requirement for starlette's request.session support
+python-multipart # python-multipart is a requirement for FastAPI's Form(...) type POST routes
+websockets # for websocket routes
+#--- Just in case requirement libraries ---#
+starlette # starlette should be pre-installed with fastapi

@@ -17,10 +17,11 @@ class errors(commands.Cog):
             if isinstance(error, commands.CommandNotFound):
                 return
             elif isinstance(error, commands.CommandOnCooldown):
+                rounded = round(error.retry_after)
                 embedig = embeds.Embeds.embed(
                     title="Slow down there!",
                     color=guilded.Color.red(),
-                    description=f"Please wait `{round(error.retry_after):,}` seconds before trying again.",
+                    description=f"Please wait `{rounded:,}` second{'s' if rounded != 1 else ''} before trying again.",
                 )
                 return await ctx.reply(embed=embedig, private=ctx.message.private)
             elif isinstance(error, commands.MissingRequiredArgument):

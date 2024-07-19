@@ -149,7 +149,53 @@ async def toggle_logging(
     if not logged:
         custom_events.eventqueue.add_event(
             custom_events.BotSettingChanged(
-                f"Event logging was automatically disabled.",
+                f"Logging bot messages was automatically `{'enabled' if status == True else 'disabled'}` on this server.",
+                server_id,
+                bypass_enabled=True,
+            )
+        )
+    return status
+
+
+async def toggle_setting(
+    server_id: str, setting: str, specific: bool | None = None, logged: bool = False
+) -> bool | None:
+    """
+    Returns None if no changes were made, else returns the current setting state.
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server_id
+    )
+    settings = {
+        "logBotMessageChanges": "Logging bot messages was `{STATUS}` on this server."
+    }
+    if setting == "logBotMessageChanges":
+        status = server_data.logging.logSettings.logBotMessageChanges
+    else:
+        return ValueError(f'Argument "setting" must be one of {list(settings.keys())}')
+    if specific == True:
+        if status == True:
+            return None
+        else:
+            status = True
+    elif specific == False:
+        if status == False:
+            return None
+        else:
+            status = False
+    elif specific == None:
+        status = not status
+    else:
+        raise TypeError('Argument "specific" must be of NoneType or bool.')
+    if setting == "logBotMessageChanges":
+        server_data.logging.logSettings.logBotMessageChanges = status
+    await server_data.save()
+    if not logged:
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                settings[setting].replace(
+                    "{STATUS}", "enabled" if status == True else "disabled"
+                ),
                 server_id,
                 bypass_enabled=True,
             )
@@ -195,6 +241,7 @@ class Logging(commands.Cog):
                 await asyncio.sleep(5)
 
     @commands.group(name="logs")
+    @commands.cooldown(1, 2, commands.BucketType.server)
     async def logs(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
@@ -237,6 +284,117 @@ class Logging(commands.Cog):
         elif ctx.invoked_subcommand.name != "types":
             # Every other subcommand requires a fill to determine permissions
             await ctx.server.fill_roles()
+
+    @logs.group(name="settings", aliases=["setting"])
+    async def settings(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Logging Settings",
+                description=f"A list of settings for the logging module.",
+            )
+            embed.add_field(
+                name="Log Bot Messages",
+                value=f"Whether to log bot message changes (edits or deletions).\n`{prefix}logs settings bot_messages`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @settings.group(name="bot_messages", aliases="bot_message")
+    async def bot_messages_setting(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Logging Settings - Log Bot Messages",
+                description=f"Logging bot messages is `{'on' if server_data.logging.logSettings.logBotMessageChanges == True else 'off'}` in this server.",
+            )
+            embed.add_field(
+                name="Toggle Setting",
+                value=f"Toggle the `log bot messages` setting.\n`{prefix}logs settings bot_messages toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @bot_messages_setting.command(name="toggle")
+    async def _toggle_bot_messages(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_setting(
+            ctx.server.id, "logBotMessageChanges", status, logged=True
+        )
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"Logging bot messages was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Logging bot messages was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=True,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Bot Message Logging {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"Logging bot messages is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
 
     @logs.command(name="toggle")
     async def _toggle(self, ctx: commands.Context, status: str = None):
