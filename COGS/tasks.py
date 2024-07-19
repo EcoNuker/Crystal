@@ -42,10 +42,12 @@ class tasks(commands.Cog):
                             self.bot.warn(
                                 f"An error occurred while attempting to change the bot's status: {self.bot.COLORS.item_name}{e}"
                             )
+                            self.bot.traceback(e)
             except Exception as e:
                 self.bot.warn(
                     f"An error occurred in the {self.bot.COLORS.item_name}change_status{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
                 )
+                self.bot.traceback(e)
                 self.bot.info(
                     f"Restarting task in {self.bot.COLORS.item_name}5{self.bot.COLORS.normal_message} seconds"
                 )

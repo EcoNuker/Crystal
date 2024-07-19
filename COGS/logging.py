@@ -120,43 +120,6 @@ async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
     return True
 
 
-async def toggle_logging(
-    server_id: str, specific: bool | None = None, logged: bool = False
-) -> bool | None:
-    """
-    Returns None if no changes were made, else returns the current logging enabled state.
-    """
-    server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
-    )
-    status = server_data.logging.logSettings.enabled
-    if specific == True:
-        if status == True:
-            return None
-        else:
-            status = True
-    elif specific == False:
-        if status == False:
-            return None
-        else:
-            status = False
-    elif specific == None:
-        status = not status
-    else:
-        raise TypeError('Argument "specific" must be of NoneType or bool.')
-    server_data.logging.logSettings.enabled = status
-    await server_data.save()
-    if not logged:
-        custom_events.eventqueue.add_event(
-            custom_events.BotSettingChanged(
-                f"Logging bot messages was automatically `{'enabled' if status == True else 'disabled'}` on this server.",
-                server_id,
-                bypass_enabled=True,
-            )
-        )
-    return status
-
-
 async def toggle_setting(
     server_id: str, setting: str, specific: bool | None = None, logged: bool = False
 ) -> bool | None:
@@ -167,10 +130,13 @@ async def toggle_setting(
         documents.Server.serverId == server_id
     )
     settings = {
-        "logBotMessageChanges": "Logging bot messages was `{STATUS}` on this server."
+        "enabled": [f"Logging was automatically `{'enabled' if status == True else 'disabled'}` on this server.", True],
+        "logBotMessageChanges": ["Logging bot messages was automatically `{STATUS}` on this server.", False]
     }
     if setting == "logBotMessageChanges":
         status = server_data.logging.logSettings.logBotMessageChanges
+    elif setting == "enabled":
+        status = server_data.logging.logSettings.enabled
     else:
         return ValueError(f'Argument "setting" must be one of {list(settings.keys())}')
     if specific == True:
@@ -189,15 +155,17 @@ async def toggle_setting(
         raise TypeError('Argument "specific" must be of NoneType or bool.')
     if setting == "logBotMessageChanges":
         server_data.logging.logSettings.logBotMessageChanges = status
+    elif setting == "enabled":
+        server_data.logging.logSettings.enabled = status
     await server_data.save()
     if not logged:
         custom_events.eventqueue.add_event(
             custom_events.BotSettingChanged(
-                settings[setting].replace(
+                settings[setting][0].replace(
                     "{STATUS}", "enabled" if status == True else "disabled"
                 ),
                 server_id,
-                bypass_enabled=True,
+                bypass_enabled=settings[setting][1],
             )
         )
     return status
@@ -448,7 +416,7 @@ class Logging(commands.Cog):
             ostatus = status
             status = False
 
-        new_status = await toggle_logging(ctx.server.id, status, logged=True)
+        new_status = await toggle_setting(ctx.server.id, "enabled", status, logged=True)
 
         if new_status == None:
             return await ctx.reply(
