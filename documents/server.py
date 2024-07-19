@@ -13,6 +13,18 @@ from pydantic import BaseModel, model_validator
 #     enabled: True
 
 
+class automoderatorSettings(BaseModel):
+    """
+    - enabled - `bool` - Whether automod is enabled. Defaults to True
+    - moderateBots - `bool` - Whether to moderate bot messages. Defaults to False
+    - moderateOwner - `bool` - Whether to moderate the server owner. Defaults to False.
+    """
+
+    enabled: bool = True
+    moderateBots: bool = False
+    moderateOwner: bool = False
+
+
 class loggingSettings(BaseModel):
     """
     - enabled - `bool` - Whether logging is enabled. Defaults to True
@@ -144,12 +156,12 @@ class automodRule(BaseModel):
 class serverData(BaseModel):
     """
     - automodRules - `List[automodRule]` - The server's automod rules
-    - automodEnabled - `bool` - Whether the server's automod is enabled
+    - automodSettings - `automoderatorSettings` - Whether the server's automod is enabled
     """
 
     automodRules: List[automodRule] = list()
 
-    automodEnabled: bool = True
+    automodSettings: automoderatorSettings = automoderatorSettings()
 
 
 # Define the server document

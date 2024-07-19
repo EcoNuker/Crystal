@@ -130,8 +130,11 @@ async def toggle_setting(
         documents.Server.serverId == server_id
     )
     settings = {
-        "enabled": [f"Logging was automatically `{'enabled' if status == True else 'disabled'}` on this server.", True],
-        "logBotMessageChanges": ["Logging bot messages was automatically `{STATUS}` on this server.", False]
+        "enabled": ["Logging was automatically `{STATUS}` on this server.", True],
+        "logBotMessageChanges": [
+            "Logging bot messages was automatically `{STATUS}` on this server.",
+            False,
+        ],
     }
     if setting == "logBotMessageChanges":
         status = server_data.logging.logSettings.logBotMessageChanges
@@ -226,7 +229,9 @@ class Logging(commands.Cog):
                 description=f"The logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
             )
             embed.add_field(
-                name="Viewing Log Types", value=f"View all the possible types of log channels you can set.\n`{prefix}logs types`", inline=False
+                name="Viewing Log Types",
+                value=f"View all the possible types of log channels you can set.\n`{prefix}logs types`",
+                inline=False,
             )
             embed.add_field(
                 name="Viewing Log Channels",
@@ -281,7 +286,7 @@ class Logging(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
-    @settings.group(name="bot_messages", aliases="bot_message")
+    @settings.group(name="bot_messages", aliases=["bot_message"])
     async def bot_messages_setting(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
@@ -363,7 +368,7 @@ class Logging(commands.Cog):
                 custom_events.BotSettingChanged(
                     f"Logging bot messages was `{'enabled' if new_status == True else 'disabled'}` on this server.",
                     ctx.author,
-                    bypass_enabled=True,
+                    bypass_enabled=False,
                 )
             )
             return await ctx.reply(
@@ -869,8 +874,10 @@ class Logging(commands.Cog):
             pass
         else:
             return
-        
-        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.getch_user(event.after.author_id)).bot:
+
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (
+            await self.bot.getch_user(event.after.author_id)
+        ).bot:
             return
 
         # Create the event embed
@@ -1294,10 +1301,12 @@ class Logging(commands.Cog):
             pass
         else:
             return
-        
-        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.getch_user(event.message.author_id)).bot:
+
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (
+            await self.bot.getch_user(event.message.author_id)
+        ).bot:
             return
-        
+
         embed = embeds.Embeds.embed(
             title=f"Message Deleted",
             url=event.message.share_url,

@@ -6,7 +6,70 @@ from pathlib import Path
 from DATA import embeds
 from DATA import custom_events
 
+import documents
 from documents import Server, automodRule
+
+
+async def toggle_setting(
+    server_id: str, setting: str, specific: bool | None = None, logged: bool = False
+) -> bool | None:
+    """
+    Returns None if no changes were made, else returns the current setting state.
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server_id
+    )
+    settings = {
+        "enabled": ["Automod was automatically `{STATUS}` on this server.", False],
+        "moderateBots": [
+            "Auto-moderating bots was automatically `{STATUS}` on this server.",
+            False,
+        ],
+        "moderateOwner": [
+            "Auto-moderating the server owner was automatically `{STATUS}` on this server.",
+            False,
+        ],
+    }
+    if setting == "moderateBots":
+        status = server_data.data.automodSettings.moderateBots
+    elif setting == "enabled":
+        status = server_data.data.automodSettings.enabled
+    elif setting == "moderateOwner":
+        status = server_data.data.automodSettings.moderateOwner
+    else:
+        return ValueError(f'Argument "setting" must be one of {list(settings.keys())}')
+    if specific == True:
+        if status == True:
+            return None
+        else:
+            status = True
+    elif specific == False:
+        if status == False:
+            return None
+        else:
+            status = False
+    elif specific == None:
+        status = not status
+    else:
+        raise TypeError('Argument "specific" must be of NoneType or bool.')
+    if setting == "moderateBots":
+        server_data.data.automodSettings.moderateBots = status
+    elif setting == "enabled":
+        server_data.data.automodSettings.enabled = status
+    elif setting == "moderateOwner":
+        server_data.data.automodSettings.moderateOwner = status
+    await server_data.save()
+    if not logged:
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                settings[setting][0].replace(
+                    "{STATUS}", "enabled" if status == True else "disabled"
+                ),
+                server_id,
+                bypass_enabled=settings[setting][1],
+            )
+        )
+    return status
 
 
 class AutoModeration(commands.Cog):
@@ -53,13 +116,17 @@ class AutoModeration(commands.Cog):
                         await messageWarning(message, messageToReply)
                     elif rule.punishment.action == "kick":
                         await messageWarning(message, messageToReply)
-                        await message.author.kick()
+                        # await message.author.kick()
                     elif rule.punishment.action == "ban":
                         await messageWarning(message, messageToReply)
-                        await message.author.ban(reason=reason)
+                        # await message.author.ban(reason=reason)
                     elif rule.punishment.action == "mute":  # TODO: fix mutes
                         await messageWarning(message, messageToReply)
                     # Delete message regardless of action
+                    try:
+                        await message.delete()
+                    except:
+                        pass
                     custom_events.eventqueue.add_event(
                         custom_events.AutomodEvent(
                             rule.punishment.action,
@@ -69,7 +136,6 @@ class AutoModeration(commands.Cog):
                             rule.punishment.duration,
                         )
                     )
-                    await message.delete()
                     break
 
     @commands.Cog.listener()
@@ -81,13 +147,326 @@ class AutoModeration(commands.Cog):
         await self.moderateMessage(event.after, messageBefore=event.before)
 
     @commands.group("automod")
+    @commands.cooldown(1, 2, commands.BucketType.server)
     async def automod(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
-            # automod help menu
-            embed = embeds.Embeds.embed()
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Commands",
+                description=f"The automod in this server is `{'on' if server_data.data.automodSettings.enabled == True else 'off'}`.",
+            )
+            embed.add_field(
+                name="Automod Rules",
+                value=f"View all the automod rules commands.\n`{prefix}automod rules`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Automod Settings",
+                value=f"View automod settings and modify them.\n`{prefix}automod settings`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @automod.group(name="settings", aliases=["setting"])
+    async def settings(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Settings",
+                description=f"The list of settings for the automod module.\nThe automod in this server is `{'on' if server_data.data.automodSettings.enabled == True else 'off'}`.",
+            )
+            embed.add_field(
+                name="Toggle Automod",
+                value=f"Whether or not automod is enabled in this server.\n`{prefix}automod settings toggle [status | optional]`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Moderate Bots",
+                value=f"Whether to moderate bot messages.\n`{prefix}automod settings moderate_bots`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Moderate the Owner",
+                value=f"Whether to moderate the server owner's messages.\n`{prefix}automod settings moderate_owner`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @settings.group(name="moderate_owner", aliases=[])
+    async def moderate_owner_settings(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Settings - Moderate the Owner",
+                description=f"Auto-moderating the owner's messages is `{'on' if server_data.data.automodSettings.moderateOwner == True else 'off'}` in this server.",
+            )
+            embed.add_field(
+                name="Toggle Setting",
+                value=f"Toggle the `moderate server owner` setting.\n`{prefix}automod settings bot_messages toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @moderate_owner_settings.command(name="toggle")
+    async def _toggle_moderate_owner(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_setting(
+            ctx.server.id, "moderateOwner", status, logged=True
+        )
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"Auto-moderating the server owner was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Auto-moderating the server owner was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=False,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Moderating the Owner {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"Auto-moderating the server owner is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
+
+    @settings.group(name="moderate_bots", aliases=["moderate_bot"])
+    async def moderate_bots_setting(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Settings - Moderate Bot Messages",
+                description=f"Auto-moderating bot messages is `{'on' if server_data.data.automodSettings.moderateBots == True else 'off'}` in this server.",
+            )
+            embed.add_field(
+                name="Toggle Setting",
+                value=f"Toggle the `moderate bot messages` setting.\n`{prefix}automod settings bot_messages toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @moderate_bots_setting.command(name="toggle")
+    async def _toggle_moderate_bots(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_setting(
+            ctx.server.id, "moderateBots", status, logged=True
+        )
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"Auto-moderating bots was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Auto-moderating bot was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=False,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Moderating Bots {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"Auto-moderating bots is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
+
+    @settings.command(name="toggle")
+    async def _toggle(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_setting(ctx.server.id, "enabled", status, logged=True)
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"The automod in this server was already `{ostatus}`.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Automod was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=True,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Automod {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"The automod in this server is now `{'on' if new_status == True else 'off'}`.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
 
     @automod.group(aliases=["rule"])
-    async def rules(self, ctx: commands.Context, *, rules=""):
+    async def rules(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             # rules help menu
             embed = embeds.Embeds.embed()
@@ -209,7 +588,11 @@ class AutoModeration(commands.Cog):
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
     @rules.command("remove", aliases=["delete"])
-    async def _delete(self, ctx: commands.Context):
+    async def _delete(
+        self,
+        ctx: commands.Context,
+        rule: str,
+    ):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -237,15 +620,25 @@ class AutoModeration(commands.Cog):
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
             await server_data.save()
-        if updatedRules:
-            if updatedRules.punishment.action in ["warn"] and not (
+        newline = "\n"
+        ruleToDelete = None
+        indexOfRule = None
+
+        for i, r in enumerate(server_data.data.automodRules):
+            if r.rule == rule:
+                ruleToDelete = r
+                indexOfRule = i
+                break
+
+        if ruleToDelete:
+            if ruleToDelete.punishment.action in ["warn"] and not (
                 ctx.author.server_permissions.manage_messages
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Messages", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            elif updatedRules.punishment.action in ["kick"] and not (
+            elif ruleToDelete.punishment.action in ["kick"] and not (
                 ctx.author.server_permissions.kick_members
                 or ctx.author.server_permissions.ban_members
             ):
@@ -253,49 +646,60 @@ class AutoModeration(commands.Cog):
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            elif updatedRules.punishment.action in ["ban"] and not (
+            elif ruleToDelete.punishment.action in ["ban"] and not (
                 ctx.author.server_permissions.ban_members
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            elif updatedRules.punishment.action in ["mute"] and not (
+            elif ruleToDelete.punishment.action in ["mute"] and not (
                 ctx.author.server_permissions.manage_roles
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Roles", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            await conn.commit()
             try:
-                creator = (await ctx.server.fetch_member(updatedRules.author)).mention
+                creator = (await ctx.server.fetch_member(ruleToDelete.author)).mention
             except:
-                creator = await self.bot.getch_user(updatedRules.author)
+                creator = await self.bot.getch_user(ruleToDelete.author)
                 creator = f"{creator.display_name} ({creator.id})"
+            if server_data.data.automodRules[indexOfRule].rule == rule:
+                del server_data.data.automodRules[indexOfRule]
+            else:  # Something changed.
+                indexOfRule = None
+                for i, r in enumerate(server_data.data.automodRules.copy()):
+                    if r.rule == rule:
+                        del server_data.data.automodRules[i]
+                        indexOfRule == i
+                        break
+                if indexOfRule == None:
+                    embed = embeds.Embeds.embed(
+                        title="Rule Not Found",
+                        description=f"This rule (`{rule}`) has not been removed because it does not exist.",
+                        color=guilded.Color.red(),
+                    )
+                    return await ctx.reply(embed=embed, private=ctx.message.private)
+            await server_data.save()
             embed = embeds.Embeds.embed(
                 title="Rule Removed",
-                description=f"Rule: {updatedRules['rule']}\nPunishment: {updatedRules.punishment.action.capitalize()}\nAmount: {updatedRules['punishment'][1]}\nCreator: {creator}\n Rule ID: {updatedRules['id']}\nDescription: {updatedRules.description}",
+                description=f"Rule: {ruleToDelete.rule}\nPunishment: {ruleToDelete.punishment.action.capitalize()}{newline + 'Duration: ' + str(ruleToDelete.punishment.duration) if ruleToDelete.punishment.duration != 0 else ''}\nCreator: {creator}\nDescription: {ruleToDelete.description}",
                 color=guilded.Color.green(),
             )
-            await addAuditLog(
-                ctx.server.id,
-                ctx.author.id,
-                "automod_rule_remove",
-                f"User {ctx.author.name} removed automod rule: {updatedRules['rule']}",
-                ctx.author.id,
-                extraData={
-                    "rule": updatedRules["rule"],
-                    "ruleID": updatedRules["id"],
-                },
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"The automod rule `{rule}` was deleted.", ctx.author
+                )
             )
+            return await ctx.reply(embed=embed, private=ctx.message.private)
         else:
             embed = embeds.Embeds.embed(
                 title="Rule Not Found",
-                description=f"This rule ({arguments[1]}) has not been removed because it does not exist.",
-                color=guilded.Color.gilded(),
+                description=f"This rule (`{rule}`) has not been removed because it does not exist.",
+                color=guilded.Color.red(),
             )
-        return await ctx.reply(embed=embed, private=ctx.message.private)
+            return await ctx.reply(embed=embed, private=ctx.message.private)
 
     @rules.command("clear")
     async def _clear(self, ctx: commands.Context):
@@ -470,155 +874,6 @@ class AutoModeration(commands.Cog):
                 color=guilded.Color.green(),
             )
         await ctx.reply(embed=em, private=ctx.message.private)
-
-    @commands.command()  # TODO: move to automod command group as toggle command with subcommand on/off to specify
-    async def moderation(self, ctx: commands.Context, *, arguments=""):
-        if ctx.server is None:
-            await ctx.reply(
-                embed=embeds.Embeds.server_only, private=ctx.message.private
-            )
-            return
-        arguments = arguments.split(" ")
-        if arguments[0] in ["enable", "on"]:
-            if not (
-                ctx.author.server_permissions.manage_bots
-                or ctx.author.server_permissions.manage_server
-            ):
-                embed = embeds.Embeds.manage_bot_server_permissions
-                return await ctx.reply(embed=embed, private=ctx.message.private)
-            db_pool = await db_connection.db_connection()
-            async with db_pool.connection() as conn:
-                cursor = conn.cursor(row_factory=dict_row)
-                await cursor.execute(
-                    "UPDATE server_settings as newversion SET moderation_toggle = true FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle",
-                    (ctx.server.id,),
-                )
-                await conn.commit()
-                previousValue = (await cursor.fetchone())["moderation_toggle"]
-            if previousValue == True:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation is already enabled!",
-                    color=guilded.Color.gilded(),
-                )
-            else:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation has been enabled!",
-                    color=guilded.Color.green(),
-                )
-                await addAuditLog(
-                    ctx.server.id,
-                    ctx.author.id,
-                    "moderation_enable",
-                    f"User {ctx.author.name} has enabled moderation.",
-                    ctx.author.id,
-                )
-                await ctx.reply(embed=embed, private=ctx.message.private)
-        elif arguments[0] in ["disable", "off"]:
-            if not (
-                ctx.author.server_permissions.manage_bots
-                or ctx.author.server_permissions.manage_server
-            ):
-                embed = embeds.Embeds.manage_bot_server_permissions
-                return await ctx.reply(embed=embed, private=ctx.message.private)
-            db_pool = await db_connection.db_connection()
-            async with db_pool.connection() as conn:
-                cursor = conn.cursor(row_factory=dict_row)
-                await cursor.execute(
-                    "UPDATE server_settings as newversion SET moderation_toggle = false FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle",
-                    (ctx.server.id,),
-                )
-                await conn.commit()
-                previousValue = (await cursor.fetchone())["moderation_toggle"]
-            if previousValue == False:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation is already disabled!",
-                    color=guilded.Color.gilded(),
-                )
-            else:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation has been disabled!",
-                    color=guilded.Color.green(),
-                )
-                await addAuditLog(
-                    ctx.server.id,
-                    ctx.author.id,
-                    "moderation_disable",
-                    f"User {ctx.author.name} has disabled moderation.",
-                    ctx.author.id,
-                )
-            await ctx.reply(embed=embed, private=ctx.message.private)
-        elif arguments[0] in ["toggle"]:
-            if not (
-                ctx.author.server_permissions.manage_bots
-                or ctx.author.server_permissions.manage_server
-            ):
-                embed = embeds.Embeds.manage_bot_server_permissions
-                return await ctx.reply(embed=embed, private=ctx.message.private)
-            db_pool = await db_connection.db_connection()
-            async with db_pool.connection() as conn:
-                cursor = conn.cursor(row_factory=dict_row)
-                await cursor.execute(
-                    "UPDATE server_settings as newversion SET moderation_toggle = NOT newversion.moderation_toggle FROM server_settings AS oldversion WHERE newversion.server_id = %s RETURNING oldversion.moderation_toggle",
-                    (ctx.server.id,),
-                )
-                await conn.commit()
-                previousValue = (await cursor.fetchone())["moderation_toggle"]
-            if previousValue == False:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation has been enabled!",
-                    color=guilded.Color.green(),
-                )
-                await addAuditLog(
-                    ctx.server.id,
-                    ctx.author.id,
-                    "moderation_enable",
-                    f"User {ctx.author.name} has enabled moderation.",
-                    ctx.author.id,
-                )
-            else:
-                embed = embeds.Embeds.embed(
-                    title="Moderation",
-                    description="Moderation has been disabled!",
-                    color=guilded.Color.green(),
-                )
-                await addAuditLog(
-                    ctx.server.id,
-                    ctx.ctx.author.id,
-                    "moderation_disable",
-                    f"User {ctx.ctx.author.name} has disabled moderation.",
-                    ctx.ctx.author.id,
-                )
-            await ctx.reply(embed=embed, private=ctx.message.private)
-        elif arguments[0] in ["status", "info", ""]:
-            if (
-                ctx.author.server_permissions.manage_messages
-                or ctx.author.server_permissions.manage_roles
-                or ctx.author.server_permissions.kick_members
-                or ctx.author.server_permissions.ban_members
-            ):
-                server_data = await getServerSettings(ctx.server.id)
-                description = ""
-                if server_data["moderation_toggle"]:
-                    description += "Enabled :white_check_mark:\n"
-                else:
-                    description += "Disabled :x:\n"
-                em = embeds.Embeds.embed(
-                    title="Moderation",
-                    description=description,
-                    color=guilded.Color.green(),
-                )
-            else:
-                em = embeds.Embeds.embed(
-                    title="Permission Denied",
-                    description="You do not have permission to view this information!",
-                    color=guilded.Color.red(),
-                )
-            await ctx.reply(embed=em, private=ctx.message.private)
 
 
 def setup(bot):
