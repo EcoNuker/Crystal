@@ -574,40 +574,45 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
-        # Create the event embed
-        embed = embeds.Embeds.embed(
-            title=f"Message Automodded",
-            url=event.message.share_url,
-            colour=guilded.Colour.red(),
-        )
+        if server_data.logging.logSettings.enabled:
 
-        # Add related fields
-        embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User", value=event.member.mention)
-        embed.add_field(name="User ID", value=event.member.id)
-        embed.add_field(name="Message ID", value=event.message.id)
-        embed.add_field(name="Action Taken", value=event.formatted_action, inline=False)
-        embed.add_field(name="Reason", value=event.reason, inline=False)
-        # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
+            # Create the event embed
+            embed = embeds.Embeds.embed(
+                title=f"Message Automodded",
+                url=event.message.share_url,
+                colour=guilded.Colour.red(),
+            )
 
-        # Push the event to the listening channels
-        if server_data.logging.automod:
-            for channel_id in server_data.logging.automod:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
+            # Add related fields
+            embed.set_thumbnail(url=event.member.display_avatar.url)
+            embed.add_field(name="User", value=event.member.mention)
+            embed.add_field(name="User ID", value=event.member.id)
+            embed.add_field(name="Message ID", value=event.message.id)
+            embed.add_field(
+                name="Action Taken", value=event.formatted_action, inline=False
+            )
+            embed.add_field(name="Reason", value=event.reason, inline=False)
+            # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
 
-        if server_data.logging.allEvents:
-            for channel_id in server_data.logging.allEvents:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
+            # Push the event to the listening channels
+            if server_data.logging.automod:
+                for channel_id in server_data.logging.automod:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+
+            if server_data.logging.allEvents:
+                for channel_id in server_data.logging.allEvents:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+        # TODO: cloud event log
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
         # Fetch the server from the database
@@ -621,35 +626,38 @@ class Logging(commands.Cog):
         if event.changed_by == None:
             event.changed_by = self.bot.user
 
-        # Create the event embed
-        embed = embeds.Embeds.embed(
-            title=f"Bot Setting Changed",
-        )
+        if server_data.logging.logSettings.enabled:
 
-        # Add related fields
-        embed.set_thumbnail(url=event.changed_by.display_avatar.url)
-        embed.add_field(name="User", value=event.changed_by.mention)
-        embed.add_field(name="User ID", value=event.changed_by.id)
-        embed.add_field(name="Setting Changed", value=event.action, inline=False)
+            # Create the event embed
+            embed = embeds.Embeds.embed(
+                title=f"Bot Setting Changed",
+            )
 
-        # Push the event to the listening channels
-        if server_data.logging.botSettingChanges:
-            for channel_id in server_data.logging.botSettingChanges:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
+            # Add related fields
+            embed.set_thumbnail(url=event.changed_by.display_avatar.url)
+            embed.add_field(name="User", value=event.changed_by.mention)
+            embed.add_field(name="User ID", value=event.changed_by.id)
+            embed.add_field(name="Setting Changed", value=event.action, inline=False)
 
-        if server_data.logging.allEvents:
-            for channel_id in server_data.logging.allEvents:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
+            # Push the event to the listening channels
+            if server_data.logging.botSettingChanges:
+                for channel_id in server_data.logging.botSettingChanges:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+
+            if server_data.logging.allEvents:
+                for channel_id in server_data.logging.allEvents:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+        # TODO: cloud event log
 
     async def on_moderator_action(self, event: custom_events.ModeratorAction):
         # Fetch the server from the database
@@ -660,42 +668,47 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
-        # Create the event embed
-        embed = embeds.Embeds.embed(
-            title=f"Moderator Action Taken",
-            colour=guilded.Colour.red(),
-        )
+        if server_data.logging.logSettings.enabled:
 
-        # Add related fields
-        embed.set_thumbnail(url=event.moderator.display_avatar.url)
-        if event.member:
-            embed.add_field(name="User", value=event.member.mention)
-            embed.add_field(name="User ID", value=event.member.id)
-        if event.channel:
-            embed.add_field(name="Channel", value=event.channel.mention)
-            embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
-        embed.add_field(name="Moderator", value=event.moderator.mention)
-        embed.add_field(name="Moderator ID", value=event.moderator.id)
-        embed.add_field(name="Action Taken", value=event.formatted_action, inline=False)
-        embed.add_field(name="Reason", value=event.reason, inline=False)
+            # Create the event embed
+            embed = embeds.Embeds.embed(
+                title=f"Moderator Action Taken",
+                colour=guilded.Colour.red(),
+            )
 
-        # Push the event to the listening channels
-        if server_data.logging.moderatorAction:
-            for channel_id in server_data.logging.moderatorAction:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
-        if server_data.logging.allEvents:
-            for channel_id in server_data.logging.allEvents:
-                try:
-                    await self.bot.get_partial_messageable(channel_id).send(
-                        embed=embed, silent=True
-                    )
-                except:
-                    await delete_log(event.server_id, channel_id)
+            # Add related fields
+            embed.set_thumbnail(url=event.moderator.display_avatar.url)
+            if event.member:
+                embed.add_field(name="User", value=event.member.mention)
+                embed.add_field(name="User ID", value=event.member.id)
+            if event.channel:
+                embed.add_field(name="Channel", value=event.channel.mention)
+                embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
+            embed.add_field(name="Moderator", value=event.moderator.mention)
+            embed.add_field(name="Moderator ID", value=event.moderator.id)
+            embed.add_field(
+                name="Action Taken", value=event.formatted_action, inline=False
+            )
+            embed.add_field(name="Reason", value=event.reason, inline=False)
+
+            # Push the event to the listening channels
+            if server_data.logging.moderatorAction:
+                for channel_id in server_data.logging.moderatorAction:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+            if server_data.logging.allEvents:
+                for channel_id in server_data.logging.allEvents:
+                    try:
+                        await self.bot.get_partial_messageable(channel_id).send(
+                            embed=embed, silent=True
+                        )
+                    except:
+                        await delete_log(event.server_id, channel_id)
+        # TODO: cloud event log
 
     @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
@@ -706,6 +719,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -753,6 +771,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -813,6 +836,11 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
+
         # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Left",
@@ -871,6 +899,11 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
+
         # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.after.mention} Nickname Changed",
@@ -923,6 +956,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
 
         # Hydrate the server's role cache
         await event.server.fill_roles()
@@ -982,6 +1020,11 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
+
         # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Banned",
@@ -1040,6 +1083,11 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
+
         # Create the event embed
         embed = embeds.Embeds.embed(
             title=f"{event.member.mention} Unbanned",
@@ -1093,6 +1141,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Message Deleted",
             url=event.message.share_url,
@@ -1139,6 +1192,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Updated",
             url=event.topic.share_url,
@@ -1184,6 +1242,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Deleted",
             url=event.topic.share_url,
@@ -1229,6 +1292,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Pinned",
             url=event.topic.share_url,
@@ -1271,6 +1339,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unpinned",
             url=event.topic.share_url,
@@ -1313,6 +1386,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Locked",
             url=event.topic.share_url,
@@ -1355,6 +1433,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unlocked",
             url=event.topic.share_url,
@@ -1399,6 +1482,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
             url=event.reply.share_url,
@@ -1443,6 +1531,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Deleted",
             url=event.reply.share_url,
@@ -1485,6 +1578,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Doc Updated",
             url=event.doc.share_url,
@@ -1536,6 +1634,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Doc Deleted",
             url=event.doc.share_url,
@@ -1587,6 +1690,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
             url=event.reply.share_url,
@@ -1629,6 +1737,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Deleted",
             url=event.reply.share_url,
@@ -1671,6 +1784,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Announcement Updated",
             url=event.announcement.share_url,
@@ -1722,6 +1840,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Announcement Deleted",
             url=event.announcement.share_url,
@@ -1775,6 +1898,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
             url=event.reply.share_url,
@@ -1819,6 +1947,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Deleted",
             url=event.reply.share_url,
@@ -1861,6 +1994,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Updated",
             url=event.calendar_event.share_url,
@@ -1910,6 +2048,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Deleted",
             url=event.calendar_event.share_url,
@@ -1961,6 +2104,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
             url=event.reply.share_url,
@@ -2005,6 +2153,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Deleted",
             url=event.reply.share_url,
@@ -2047,6 +2200,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"List Item Updated",
             url=event.item.share_url,
@@ -2089,6 +2247,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"List Item Deleted",
             url=event.item.share_url,
@@ -2131,6 +2294,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"List Item Completed",
             url=event.item.share_url,
@@ -2173,6 +2341,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f"List Item Uncompleted",
             url=event.item.share_url,
@@ -2215,6 +2388,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Created',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -2263,6 +2441,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Deleted',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -2311,6 +2494,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f'Channel "{event.channel.name}" Updated',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
@@ -2478,6 +2666,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f'Category "{event.category.name}" Created',
             description=f"In group \"{event.category.group.name if event.category.group else 'None'}\"",
@@ -2524,6 +2717,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         if server_data.logging.categoryUpdate:
             embed = embeds.Embeds.embed(
                 title=f'Category "{event.category.name}" Deleted',
@@ -2554,6 +2752,11 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
+
+        if server_data.logging.logSettings.enabled:
+            pass
+        else:
+            return
         embed = embeds.Embeds.embed(
             title=f'Category "{event.after.name}" Updated',
             description=f"In group \"{event.after.group.name if event.after.group else 'None'}\"",
