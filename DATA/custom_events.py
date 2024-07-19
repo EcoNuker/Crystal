@@ -59,16 +59,17 @@ def action_map(
 class BaseEvent:
     def __init__(self) -> None:
         self.eventType: str
-        self.overwrite: dict
+        self.overwrite: dict = {}
         self.server_id: str
         self.timestamp: float
-        self.extra_data: dict
+        self.extra_data: dict = {}
 
 
 class CloudBaseEvent(BaseEvent):
     def __init__(self) -> None:
         self.event_id: str | None = None
         self.cloud_data: dict
+        self.bypass_enabled: bool = False
 
 
 class EventQueue:
@@ -108,9 +109,8 @@ class AutomodEvent(CloudBaseEvent):
         reason: str,
         duration: int = 0,
     ) -> None:
-        self.extra_data = {}
+        super().__init__()
         self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
-        self.event_id = None
         self.eventType = "AutomodEvent"
         self.server = message.server
         self.server_id = message.server_id
@@ -137,9 +137,8 @@ class ModeratorAction(CloudBaseEvent):
         reason: str = "Not Provided",
         overwrites: dict = {},
     ) -> None:
-        self.extra_data = {}
+        super().__init__()
         self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
-        self.event_id = None
         self.eventType = "ModeratorAction"
         self.server = moderator.server
         self.server_id = moderator.server_id
@@ -160,14 +159,18 @@ class ModeratorAction(CloudBaseEvent):
 
 class BotSettingChanged(CloudBaseEvent):
     def __init__(
-        self, action: str, changed_by: guilded.Member | str, overwrites: dict = {}
+        self,
+        action: str,
+        changed_by: guilded.Member | str,
+        overwrites: dict = {},
+        bypass_enabled: bool = False,
     ) -> None:
         """
         Parameter "changed_by" can be the server ID, to specify the bot changed the setting automatically by itself.
         """
-        self.extra_data = {}
+        super().__init__()
+        self.bypass_enabled = bypass_enabled
         self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
-        self.event_id = None
         self.eventType = "BotSettingChanged"
         self.server: guilded.Server | None = None
         self.server_id: str = ""

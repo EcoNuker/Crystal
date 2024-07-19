@@ -151,6 +151,7 @@ async def toggle_logging(
             custom_events.BotSettingChanged(
                 f"Event logging was automatically disabled.",
                 server_id,
+                bypass_enabled=True,
             )
         )
     return status
@@ -294,6 +295,7 @@ class Logging(commands.Cog):
                 custom_events.BotSettingChanged(
                     f"All logging was `{'enabled' if new_status == True else 'disabled'}` on this server.",
                     ctx.author,
+                    bypass_enabled=True,
                 )
             )
             return await ctx.reply(
@@ -574,7 +576,9 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
-        if server_data.logging.logSettings.enabled:
+        if server_data.logging.logSettings.enabled or (
+            event.bypass_enabled and (server_data.logging.logSettings.enabled == False)
+        ):
 
             # Create the event embed
             embed = embeds.Embeds.embed(
@@ -626,7 +630,9 @@ class Logging(commands.Cog):
         if event.changed_by == None:
             event.changed_by = self.bot.user
 
-        if server_data.logging.logSettings.enabled:
+        if server_data.logging.logSettings.enabled or (
+            event.bypass_enabled and (server_data.logging.logSettings.enabled == False)
+        ):
 
             # Create the event embed
             embed = embeds.Embeds.embed(
@@ -668,7 +674,9 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
-        if server_data.logging.logSettings.enabled:
+        if server_data.logging.logSettings.enabled or (
+            event.bypass_enabled and (server_data.logging.logSettings.enabled == False)
+        ):
 
             # Create the event embed
             embed = embeds.Embeds.embed(
