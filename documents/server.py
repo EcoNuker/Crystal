@@ -13,9 +13,20 @@ from pydantic import BaseModel, model_validator
 #     enabled: True
 
 
+class loggingSettings(BaseModel):
+    """
+    - enabled - `bool` - Whether logging is enabled. Defaults to True
+    - logBotMessageChanges - `bool` - Whether to log message changes (deletions/edits) from bots. Defaults to False
+    """
+
+    enabled: bool = True
+    logBotMessageChanges: bool = False
+
+
 # Define logging channels
 class loggingChannels(BaseModel):
     """
+    - logSettings - `loggingSettings` - Server logging settings
     - setChannels - `dict` - Every logging channel. Prevents a logging channel from being set multiple times. (key (channel id): eventType)
 
     - allEvents - `list[str]` - All events
@@ -38,6 +49,8 @@ class loggingChannels(BaseModel):
     - listUpdate - `list[str]` - List was updated
     - categoryUpdate - `list[str]` - Category was updated
     """
+
+    logSettings: loggingSettings = loggingSettings()
 
     setChannels: dict = {}
 
@@ -130,10 +143,13 @@ class automodRule(BaseModel):
 
 class serverData(BaseModel):
     """
-    - automodSettings - `List[automodRule]` - The server's automod rules
+    - automodRules - `List[automodRule]` - The server's automod rules
+    - automodEnabled - `bool` - Whether the server's automod is enabled
     """
 
     automodRules: List[automodRule] = list()
+
+    automodEnabled: bool = True
 
 
 # Define the server document

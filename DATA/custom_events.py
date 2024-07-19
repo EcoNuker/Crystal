@@ -62,11 +62,13 @@ class BaseEvent:
         self.overwrite: dict
         self.server_id: str
         self.timestamp: float
+        self.extra_data: dict
 
 
 class CloudBaseEvent(BaseEvent):
     def __init__(self) -> None:
         self.event_id: str | None = None
+        self.cloud_data: dict
 
 
 class EventQueue:
@@ -106,6 +108,8 @@ class AutomodEvent(CloudBaseEvent):
         reason: str,
         duration: int = 0,
     ) -> None:
+        self.extra_data = {}
+        self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
         self.event_id = None
         self.eventType = "AutomodEvent"
         self.server = message.server
@@ -133,6 +137,8 @@ class ModeratorAction(CloudBaseEvent):
         reason: str = "Not Provided",
         overwrites: dict = {},
     ) -> None:
+        self.extra_data = {}
+        self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
         self.event_id = None
         self.eventType = "ModeratorAction"
         self.server = moderator.server
@@ -159,6 +165,8 @@ class BotSettingChanged(CloudBaseEvent):
         """
         Parameter "changed_by" can be the server ID, to specify the bot changed the setting automatically by itself.
         """
+        self.extra_data = {}
+        self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
         self.event_id = None
         self.eventType = "BotSettingChanged"
         self.server: guilded.Server | None = None

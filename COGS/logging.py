@@ -120,6 +120,41 @@ async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
     return True
 
 
+async def toggle_logging(
+    server_id: str, specific: bool | None = None, logged: bool = False
+) -> bool | None:
+    """
+    Returns None if no changes were made, else returns the current logging enabled state.
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server_id
+    )
+    status = server_data.logging.logSettings.enabled
+    if specific == True:
+        if status == True:
+            return None
+        else:
+            status = True
+    elif specific == False:
+        if status == False:
+            return None
+        else:
+            status = False
+    elif specific == None:
+        status = not status
+    else:
+        raise TypeError('Argument "specific" must be of NoneType or bool.')
+    await server_data.save()
+    if not logged:
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                f"Event logging was automatically disabled.",
+                server_id,
+            )
+        )
+    return status
+
+
 class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -140,7 +175,7 @@ class Logging(commands.Cog):
                         if isinstance(
                             data["eventData"], custom_events.CloudBaseEvent
                         ) and (not data["eventData"].event_id):
-                            eids = []  # "get list of used event ids"
+                            eids = []  # TODO: "get list of used event ids"
                             eid = tools.gen_cryptographically_secure_string(20)
                             while eid in eids:
                                 eid = tools.gen_cryptographically_secure_string(20)
@@ -160,30 +195,113 @@ class Logging(commands.Cog):
     @commands.group(name="logs")
     async def logs(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
                 prefix = prefix[0]
-            embed = embeds.Embeds.embed(title=f"Logging Commands")
+            embed = embeds.Embeds.embed(
+                title=f"Logging Commands",
+                description=f"The logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
+            )
             embed.add_field(
                 name="Viewing Log Types", value=f"`{prefix}logs types`", inline=False
             )
             embed.add_field(
-                name="Viewing Log Channels", value=f"`{prefix}logs view`", inline=False
+                name="Viewing Log Channels",
+                value=f"View all the possible types of log channels you can set.\n`{prefix}logs view`",
+                inline=False,
             )
             embed.add_field(
                 name="Setting Log Channel",
-                value=f"`{prefix}logs set <channel> <log type>`",
+                value=f"Set a logging channel!\n`{prefix}logs set <channel> <log type>`",
                 inline=False,
             )
             embed.add_field(
                 name="Deleting Log Channel",
-                value=f"`{prefix}logs delete <channel>`",
+                value=f"Delete a existing logging channel!\n`{prefix}logs delete <channel>`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Toggle Logging",
+                value=f"Toggle all logging in the server.\n`{prefix}logs toggle [status | optional]`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
         elif ctx.invoked_subcommand.name != "types":
             # Every other subcommand requires a fill to determine permissions
             await ctx.server.fill_roles()
+
+    @logs.command(name="toggle")
+    async def _toggle(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_logging(ctx.server.id, status, logged=True)
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"The logging in this server was already `{ostatus}`.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"All logging was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Logging {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"The logging in this server is now `{'on' if new_status == True else 'off'}`.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
 
     @logs.command(name="types")
     async def _types(self, ctx: commands.Context):
@@ -2322,7 +2440,9 @@ class Logging(commands.Cog):
                         except:
                             await delete_log(event.server_id, channel_id)
         else:
-            embed.add_field(name="Unknown Changes", value="Could not compare changes.")
+            embed.add_field(
+                name="Unknown Changes", value="Could not compare changes.", inline=False
+            )
         if server_data.logging.channelStateUpdate:
             for channel_id in server_data.logging.channelStateUpdate:
                 try:
