@@ -271,7 +271,7 @@ class AutoModeration(commands.Cog):
             try:
                 creator = (await ctx.server.fetch_member(updatedRules.author)).mention
             except:
-                creator = await self.bot.fetch_user(updatedRules.author)
+                creator = await self.bot.getch_user(updatedRules.author)
                 creator = f"{creator.display_name} ({creator.id})"
             embed = embeds.Embeds.embed(
                 title="Rule Removed",
@@ -447,7 +447,7 @@ class AutoModeration(commands.Cog):
                         await ctx.server.fetch_member(i.author)
                     ).mention
                 except:
-                    creator = await self.bot.fetch_user(i.author)
+                    creator = await self.bot.getch_user(i.author)
                     creatorCache[i.author] = f"{creator.display_name} ({creator.id})"
             # TODO: human readable duration
             newline = "\n"

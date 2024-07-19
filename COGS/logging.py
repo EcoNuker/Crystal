@@ -902,7 +902,7 @@ class Logging(commands.Cog):
         else:
             return
         
-        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.fetch_user(event.after.author_id)).bot:
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.getch_user(event.after.author_id)).bot:
             return
 
         # Create the event embed
@@ -1327,7 +1327,7 @@ class Logging(commands.Cog):
         else:
             return
         
-        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.fetch_user(event.message.author_id)).bot:
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.getch_user(event.message.author_id)).bot:
             return
         
         embed = embeds.Embeds.embed(
@@ -1340,7 +1340,7 @@ class Logging(commands.Cog):
                 event.message.author.display_avatar.url
                 if event.message.author
                 else (
-                    await self.bot.fetch_user(event.message.author_id)
+                    await self.bot.getch_user(event.message.author_id)
                 ).display_avatar.url
             )
         )
