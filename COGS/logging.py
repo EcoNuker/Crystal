@@ -901,6 +901,9 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.fetch_user(event.after.author_id)).bot:
+            return
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -1323,6 +1326,10 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        
+        if (not server_data.logging.logSettings.logBotMessageChanges) and (await self.bot.fetch_user(event.message.author_id)).bot:
+            return
+        
         embed = embeds.Embeds.embed(
             title=f"Message Deleted",
             url=event.message.share_url,
@@ -2986,5 +2993,5 @@ class Logging(commands.Cog):
                     await delete_log(event.server_id, channel_id)
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     bot.add_cog(Logging(bot))
