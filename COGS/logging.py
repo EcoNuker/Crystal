@@ -258,11 +258,11 @@ class Logging(commands.Cog):
                 description=f"The logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
             )
             embed.add_field(
-                name="Viewing Log Types", value=f"`{prefix}logs types`", inline=False
+                name="Viewing Log Types", value=f"View all the possible types of log channels you can set.\n`{prefix}logs types`", inline=False
             )
             embed.add_field(
                 name="Viewing Log Channels",
-                value=f"View all the possible types of log channels you can set.\n`{prefix}logs view`",
+                value=f"View all currently set log channels in the server.\n`{prefix}logs view`",
                 inline=False,
             )
             embed.add_field(
