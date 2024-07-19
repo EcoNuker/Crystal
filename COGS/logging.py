@@ -144,6 +144,7 @@ async def toggle_logging(
         status = not status
     else:
         raise TypeError('Argument "specific" must be of NoneType or bool.')
+    server_data.logging.logSettings.enabled = status
     await server_data.save()
     if not logged:
         custom_events.eventqueue.add_event(
@@ -260,7 +261,8 @@ class Logging(commands.Cog):
             server_data = documents.Server(serverId=ctx.server.id)
             await server_data.save()
 
-        status = status.lower().strip()
+        if status:
+            status = status.lower().strip()
         if status in ["on", "off", None]:
             pass
         else:
