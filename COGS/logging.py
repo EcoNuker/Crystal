@@ -276,8 +276,8 @@ class Logging(commands.Cog):
                 inline=False,
             )
             embed.add_field(
-                name="Toggle Logging",
-                value=f"Toggle all logging in the server.\n`{prefix}logs toggle [status | optional]`",
+                name="Logging Settings",
+                value=f"View logging settings and modify them.\n`{prefix}logs settings`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -288,12 +288,23 @@ class Logging(commands.Cog):
     @logs.group(name="settings", aliases=["setting"])
     async def settings(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings",
-                description=f"A list of settings for the logging module.",
+                description=f"The list of settings for the logging module.\nThe logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
+            )
+            embed.add_field(
+                name="Toggle Logging",
+                value=f"Whether or not logging is enabled in this server.\n`{prefix}logs settings toggle [status | optional]`",
+                inline=False,
             )
             embed.add_field(
                 name="Log Bot Messages",
@@ -396,7 +407,7 @@ class Logging(commands.Cog):
                 private=ctx.message.private,
             )
 
-    @logs.command(name="toggle")
+    @settings.command(name="toggle")
     async def _toggle(self, ctx: commands.Context, status: str = None):
         if ctx.server is None:
             await ctx.reply(
