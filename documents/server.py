@@ -29,10 +29,12 @@ class automoderatorModules(BaseModel):
     """
     - slurs - `bool` - Whether anti-slurs module is enabled. Defaults to False
     - profanity - `bool` - Whether anti-profanity module is enabled. Defaults to False
+    - invites - `bool` - Whether anti-invites module is enabled. Defaults to False
     """
 
     slurs: bool = False
     profanity: bool = False
+    invites: bool = False
 
 
 class loggingSettings(BaseModel):

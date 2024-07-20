@@ -1,7 +1,7 @@
 # WARNING. This document may contain sensitive regexes that include swearing and slurs. Read at your own risk.
 import re2, re
 
-seperators = "\s\-\*.,_\+=!`:"
+seperators = "\s\-\*.,_\+=!`:#$%^&()"
 
 
 def generate_regex(input: str, plural=False) -> str:
@@ -174,6 +174,17 @@ slurs = [
 # kike
 # chink
 # retard/rtard/retarded + pluralized
+
+invites = [
+    r"(?i)(?:https?:\/\/)?(?:www.|ptb.|canary.)?(?:dsc\.gg|invite\.gg|discord\.link|(?:discord\.(?:gg|io|me|li|id))|disboard\.org|discord(?:app)?\.(?:com|gg)\/(?:invite|servers))\/[a-z0-9-_]+",
+    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:guilded\.(?:gg|com))\/(?!(?:TheGG|Guilded-Official|EcoNuker|API-Official))(i\/[a-z0-9-_]+|[a-z0-9-_]+)",
+    r"^(?:https?:\/\/)?(?:www\.)?(?:revolt\.chat|rvlt\.gg)(?:(?!\/(?:posts|tracker))(?:\/[a-zA-Z0-9_-]+)*)?$",
+]
+
+# invites LIST IN ORDER:
+# discord + third-party invites
+# guilded invites, with exclusions TODO: not match support.guilded.gg links
+# revolt invites TODO: not match support.revolt.chat links
 
 profanity = [
     allow_seperators(generate_regex(swear_word))

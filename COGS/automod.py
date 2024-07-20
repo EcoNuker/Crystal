@@ -37,11 +37,17 @@ async def toggle_module(
             "Automod module `anti-profanity` was automatically `{STATUS}` on this server.",
             False,
         ],
+        "invites": [
+            "Automod module `anti-invites` was automatically `{STATUS}` on this server.",
+            False,
+        ],
     }
     if module == "slurs":
         status = server_data.data.automodModules.slurs
     elif module == "profanity":
         status = server_data.data.automodModules.profanity
+    elif module == "invites":
+        status = server_data.data.automodModules.invites
     else:
         return ValueError(f'Argument "setting" must be one of {list(modules.keys())}')
     if specific == True:
@@ -62,6 +68,8 @@ async def toggle_module(
         server_data.data.automodModules.slurs = status
     elif module == "profanity":
         server_data.data.automodModules.profanity = status
+    elif module == "invites":
+        server_data.data.automodModules.invites = status
     await server_data.save()
     if not logged:
         custom_events.eventqueue.add_event(
@@ -449,7 +457,105 @@ class AutoModeration(commands.Cog):
                 value=f"{':x: **Off' if not server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
                 inline=False,
             )
+            embed.add_field(
+                name="Anti-Invites",
+                value=f"{':x: **Off' if not server_data.data.automodModules.invites else ':white_check_mark: **On'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
+                inline=False,
+            )
             await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @modules.group(name="invites", aliases=["invite"])
+    async def invites_module(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Modules - Anti-Invites",
+                description=f"{':x: **Off' if not server_data.data.automodModules.invites else ':white_check_mark: **On'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
+            )
+            embed.add_field(
+                name="Toggle Module",
+                value=f"Toggle the `anti-invites` module.\n`{prefix}automod modules invites toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @invites_module.command(name="toggle")
+    async def _toggle_invites_module(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if not (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            msg = await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_module(ctx.server.id, "invites", status, logged=True)
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"This module was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Anti-invites automod module was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=False,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
 
     @modules.group(name="slurs", aliases=["slur"])
     async def slurs_module(self, ctx: commands.Context):
