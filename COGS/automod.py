@@ -816,17 +816,17 @@ class AutoModeration(commands.Cog):
             )
             embed.add_field(
                 name="Toggle Automod",
-                value=f"Whether or not automod is enabled in this server.\n`{prefix}automod settings toggle [status | optional]`",
+                value=f"{':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}** Whether or not automod is enabled in this server.\n`{prefix}automod settings toggle [status | optional]`",
                 inline=False,
             )
             embed.add_field(
                 name="Moderate Bots",
-                value=f"Whether to moderate bot messages.\n`{prefix}automod settings moderate_bots`",
+                value=f"{':x: **False.' if not server_data.data.automodSettings.moderateBots else ':white_check_mark: **True.'}** Whether to moderate bot messages.\n`{prefix}automod settings moderate_bots`",
                 inline=False,
             )
             embed.add_field(
                 name="Moderate the Owner",
-                value=f"Whether to moderate the server owner's messages.\n`{prefix}automod settings moderate_owner`",
+                value=f"{':x: **False.' if not server_data.data.automodSettings.moderateOwner else ':white_check_mark: **True.'}** Whether to moderate the server owner's messages.\n`{prefix}automod settings moderate_owner`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -845,7 +845,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings - Moderate the Owner",
-                description=f"Auto-moderating the owner's messages is `{'on' if server_data.data.automodSettings.moderateOwner == True else 'off'}` in this server.",
+                description=f"Auto-moderating the owner's messages is {':x: **Off.' if not server_data.data.automodSettings.moderateOwner else ':white_check_mark: **On.'}**  in this server.",
             )
             embed.add_field(
                 name="Toggle Setting",
@@ -940,7 +940,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings - Moderate Bot Messages",
-                description=f"Auto-moderating bot messages is `{'on' if server_data.data.automodSettings.moderateBots == True else 'off'}` in this server.",
+                description=f"Auto-moderating bot messages is {':x: **Off.' if not server_data.data.automodSettings.moderateBots else ':white_check_mark: **On.'}**  in this server.",
             )
             embed.add_field(
                 name="Toggle Setting",

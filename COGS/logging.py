@@ -276,12 +276,12 @@ class Logging(commands.Cog):
             )
             embed.add_field(
                 name="Toggle Logging",
-                value=f"Whether or not logging is enabled in this server.\n`{prefix}logs settings toggle [status | optional]`",
+                value=f"{':x: **Off.' if not server_data.logging.logSettings.enabled else ':white_check_mark: **On.'}** Whether or not logging is enabled in this server.\n`{prefix}logs settings toggle [status | optional]`",
                 inline=False,
             )
             embed.add_field(
                 name="Log Bot Messages",
-                value=f"Whether to log bot message changes (edits or deletions).\n`{prefix}logs settings bot_messages`",
+                value=f"{':x: **False.' if not server_data.logging.logSettings.logBotMessageChanges else ':white_check_mark: **True.'}** Whether to log bot message changes (edits or deletions).\n`{prefix}logs settings bot_messages`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -300,7 +300,7 @@ class Logging(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings - Log Bot Messages",
-                description=f"Logging bot messages is `{'on' if server_data.logging.logSettings.logBotMessageChanges == True else 'off'}` in this server.",
+                description=f"Logging bot messages is {':x: **Off.' if not server_data.logging.logSettings.logBotMessageChanges else ':white_check_mark: **On.'}** in this server.",
             )
             embed.add_field(
                 name="Toggle Setting",
