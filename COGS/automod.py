@@ -462,7 +462,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Commands",
-                description=f"The automod in this server is `{'on' if server_data.data.automodSettings.enabled == True else 'off'}`.",
+                description=f"The automod in this server is {':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}**",
             )
             embed.add_field(
                 name="Automod Settings",
@@ -604,7 +604,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"This module is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -697,7 +697,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"This module is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -792,7 +792,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"This module is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -812,7 +812,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings",
-                description=f"The list of settings for the automod module.\nThe automod in this server is `{'on' if server_data.data.automodSettings.enabled == True else 'off'}`.",
+                description=f"The list of settings for the automod module.\nThe automod in this server is {':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}**",
             )
             embed.add_field(
                 name="Toggle Automod",
@@ -920,7 +920,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Moderating the Owner {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"Auto-moderating the server owner is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"Auto-moderating the server owner is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -940,7 +940,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings - Moderate Bot Messages",
-                description=f"Auto-moderating bot messages is {':x: **Off.' if not server_data.data.automodSettings.moderateBots else ':white_check_mark: **On.'}**  in this server.",
+                description=f"Auto-moderating bot messages is {':x: **Off' if not server_data.data.automodSettings.moderateBots else ':white_check_mark: **On'}**  in this server.",
             )
             embed.add_field(
                 name="Toggle Setting",
@@ -1015,7 +1015,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Moderating Bots {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"Auto-moderating bots is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"Auto-moderating bots is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -1085,7 +1085,7 @@ class AutoModeration(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Automod {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"The automod in this server is now `{'on' if new_status == True else 'off'}`.",
+                    description=f"The automod in this server is now {':x: **Off.' if not new_status else ':white_check_mark: **On.'}**",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,

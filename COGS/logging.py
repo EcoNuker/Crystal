@@ -272,7 +272,7 @@ class Logging(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings",
-                description=f"The list of settings for the logging module.\nThe logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
+                description=f"The list of settings for the logging module.\nThe logging in this server is {':x: **Off.' if not server_data.logging.logSettings.enabled else ':white_check_mark: **On.'}** ",
             )
             embed.add_field(
                 name="Toggle Logging",
@@ -300,7 +300,7 @@ class Logging(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings - Log Bot Messages",
-                description=f"Logging bot messages is {':x: **Off.' if not server_data.logging.logSettings.logBotMessageChanges else ':white_check_mark: **On.'}** in this server.",
+                description=f"Logging bot messages is {':x: **Off' if not server_data.logging.logSettings.logBotMessageChanges else ':white_check_mark: **On'}** in this server.",
             )
             embed.add_field(
                 name="Toggle Setting",
@@ -375,7 +375,7 @@ class Logging(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Bot Message Logging {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"Logging bot messages is now `{'on' if new_status == True else 'off'}` in this server.",
+                    description=f"Logging bot messages is now {':x: **Off' if not new_status else ':white_check_mark: **On'}** in this server.",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
@@ -445,7 +445,7 @@ class Logging(commands.Cog):
             return await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title=f"Logging {'Enabled' if new_status == True else 'Disabled'}",
-                    description=f"The logging in this server is now `{'on' if new_status == True else 'off'}`.",
+                    description=f"The logging in this server is now {':x: **Off.' if not new_status else ':white_check_mark: **On.'}**",
                     color=guilded.Color.green(),
                 ),
                 private=ctx.message.private,
