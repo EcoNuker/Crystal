@@ -1,7 +1,7 @@
 # WARNING. This document may contain sensitive regexes that include swearing and slurs. Read at your own risk.
 import re2, re
 
-seperators = "\s\-\*.,_\+=!"
+seperators = "\s\-\*.,_\+=!`:"
 
 
 def generate_regex(input: str, plural=False) -> str:
@@ -180,11 +180,9 @@ profanity = [
     for swear_word in """anal
 anus
 areole
-arian
 arrse
 arse
 arsehole
-aryan
 asanchez
 ass
 assbang

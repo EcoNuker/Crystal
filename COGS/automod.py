@@ -419,6 +419,9 @@ class AutoModeration(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
+        else:
+            # All subcommands will need to check permissions, therefore fill roles
+            await ctx.server.fill_roles()
 
     @automod.group(name="modules", aliases=["module"])
     async def modules(self, ctx: commands.Context):
@@ -960,9 +963,6 @@ class AutoModeration(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
-        else:
-            # All subcommands will need to check permissions, therefore fill roles
-            await ctx.server.fill_roles()
 
     @rules.command("add", aliases=["create"])
     async def _add(
