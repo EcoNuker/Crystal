@@ -123,14 +123,14 @@ class AutoModeration(commands.Cog):
                             embed=embeds.Embeds.embed(
                                 description=messageToReply, color=guilded.Color.red()
                             ),
-                            private=message.private,
+                            private=True,
                         )
                     elif rule.punishment.action == "kick":
                         await message.reply(
                             embed=embeds.Embeds.embed(
                                 description=messageToReply, color=guilded.Color.red()
                             ),
-                            private=message.private,
+                            private=True,
                         )
                         # await message.author.kick()
                     elif rule.punishment.action == "ban":
@@ -138,7 +138,7 @@ class AutoModeration(commands.Cog):
                             embed=embeds.Embeds.embed(
                                 description=messageToReply, color=guilded.Color.red()
                             ),
-                            private=message.private,
+                            private=True,
                         )
                         # await message.author.ban(reason=reason)
                     elif rule.punishment.action == "mute":  # TODO: fix mutes
@@ -146,7 +146,7 @@ class AutoModeration(commands.Cog):
                             embed=embeds.Embeds.embed(
                                 description=messageToReply, color=guilded.Color.red()
                             ),
-                            private=message.private,
+                            private=True,
                         )
                     # Delete message regardless of action
                     try:
