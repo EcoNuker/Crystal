@@ -211,7 +211,7 @@ class Logging(commands.Cog):
                 )
                 await asyncio.sleep(5)
 
-    @commands.group(name="logs")
+    @commands.group(name="logs", aliases=["log", "logging"])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def logs(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
