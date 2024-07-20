@@ -7,10 +7,72 @@ from DATA import embeds
 from DATA import tools
 from DATA import custom_events
 
+from DATA import regexes
+
+from typing import List
+
 import documents
 from documents import Server, automodRule
 
-# TODO: toggle rules (disable/enable rule)
+# TODO: toggle custom rules (disable/enable rule)
+
+
+async def toggle_module(
+    server_id: str, module: str, specific: bool | None = None, logged: bool = False
+) -> bool | None:
+    """
+    Returns None if no changes were made, else returns the current module state.
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server_id
+    )
+    modules = {
+        "slurs": [
+            "Automod module `anti-slurs` was automatically `{STATUS}` on this server.",
+            False,
+        ],
+        "profanity": [
+            "Automod module `anti-profanity` was automatically `{STATUS}` on this server.",
+            False,
+        ],
+    }
+    if module == "slurs":
+        status = server_data.data.automodModules.slurs
+    elif module == "profanity":
+        status = server_data.data.automodModules.profanity
+    else:
+        return ValueError(f'Argument "setting" must be one of {list(modules.keys())}')
+    if specific == True:
+        if status == True:
+            return None
+        else:
+            status = True
+    elif specific == False:
+        if status == False:
+            return None
+        else:
+            status = False
+    elif specific == None:
+        status = not status
+    else:
+        raise TypeError('Argument "specific" must be of NoneType or bool.')
+    if module == "slurs":
+        server_data.data.automodModules.slurs = status
+    elif module == "profanity":
+        server_data.data.automodModules.profanity = status
+    await server_data.save()
+    if not logged:
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                modules[module][0].replace(
+                    "{STATUS}", "enabled" if status == True else "disabled"
+                ),
+                server_id,
+                bypass_enabled=modules[module][1],
+            )
+        )
+    return status
+
 
 async def toggle_setting(
     server_id: str, setting: str, specific: bool | None = None, logged: bool = False
@@ -78,12 +140,28 @@ class AutoModeration(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-        # PLEASE DON'T CANCEL!
-        self.default_racist = []
-        for rule in ["nigger", "nigga"]: # TODO: fill this out with a lot of common racist slurs
-            newrule = automodRule(author=self.bot.user.id, rule=rule, regex=False)
+        # PLEASE DON'T CANCEL US :(!
+        self.default_slurs = []
+        for rule in regexes.slurs:
+            newrule = automodRule(
+                author=self.bot.user.id,
+                rule=rule,
+                regex=True,
+                custom_reason="**[Anti-Slurs Module]** This user has violated the server's automod anti-slurs module. (`{MATCH}`)",
+            )
             newrule.punishment.action = "warn"
-            self.default_racist.append(newrule)
+            self.default_slurs.append(newrule)
+
+        self.default_profanity = []
+        for rule in regexes.profanity:
+            newrule = automodRule(
+                author=self.bot.user.id,
+                rule=rule,
+                regex=True,
+                custom_reason="**[Anti-Profanity Module]** This user has violated the server's automod anti-profanity module. (`{MATCH}`)",
+            )
+            newrule.punishment.action = "warn"
+            self.default_profanity.append(newrule)
 
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
@@ -112,85 +190,148 @@ class AutoModeration(commands.Cog):
             )
         ):
             return  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
-        if (
-            not message.author.id == self.bot.user.id
-            and server_data.data.automodRules != []
-        ):
-            for rule in server_data.data.automodRules:
-                if rule.enabled and re2.search(rule.rule, message.content):
-                    try:
-                        messageToReply = (
-                            rule.custom_message
-                            if rule.custom_message
-                            else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
-                        )
-                        reason = "**[Automod]** " + (
-                            rule.custom_reason
-                            if rule.custom_reason
-                            else f"This user has violated the server's automod rules. (`{rule.rule}`)"
-                        )
-                        if rule.punishment.action == "warn":
-                            if (
-                                messageBefore
-                                and message.content[
-                                    re2.search(rule.rule, message.content)
-                                    .start() : re2.search(rule.rule, message.content)
-                                    .end()
-                                ]
-                                in messageBefore.content
-                            ):
-                                return
-                            await message.reply(
-                                embed=embeds.Embeds.embed(
-                                    description=messageToReply,
-                                    color=guilded.Color.red(),
-                                ),
-                                private=True,
-                            )
-                        elif rule.punishment.action == "kick":
-                            await message.reply(
-                                embed=embeds.Embeds.embed(
-                                    description=messageToReply,
-                                    color=guilded.Color.red(),
-                                ),
-                                private=True,
-                            )
-                            # await message.author.kick()
-                        elif rule.punishment.action == "ban":
-                            await message.reply(
-                                embed=embeds.Embeds.embed(
-                                    description=messageToReply,
-                                    color=guilded.Color.red(),
-                                ),
-                                private=True,
-                            )
-                            # await message.author.ban(reason=reason)
-                        elif rule.punishment.action == "mute":  # TODO: fix mutes
-                            await message.reply(
-                                embed=embeds.Embeds.embed(
-                                    description=messageToReply,
-                                    color=guilded.Color.red(),
-                                ),
-                                private=True,
-                            )
-                        # Delete message regardless of action
-                        try:
-                            await message.delete()
-                        except:
-                            pass
-                        custom_events.eventqueue.add_event(
-                            custom_events.AutomodEvent(
-                                rule.punishment.action,
-                                message,
-                                message.author,
-                                reason,
-                                rule.punishment.duration,
-                            )
-                        )
-                        break
-                    except guilded.Forbidden:
-                        # await toggle_setting(message.server_id, "enabled", False)
+
+        USING_RULES: List[automodRule] = []
+        USING_RULES.extend(server_data.data.automodRules)
+        if server_data.data.automodModules.slurs:
+            USING_RULES.extend(self.default_slurs)
+        if server_data.data.automodModules.profanity:
+            USING_RULES.extend(self.default_profanity)
+
+        if not message.author.id == self.bot.user.id and USING_RULES != []:
+            matches = {}
+            for rule in USING_RULES:
+                if rule.regex:
+                    match_rule = rule.rule
+                else:
+                    match_rule = regexes.allow_seperators(
+                        regexes.generate_regex(rule.rule, plural=True)
+                    )
+                mtch = re2.search(match_rule, message.content)
+                if mtch:
+                    mtch = [mtch.group()]
+                else:
+                    mtch = []
+                if rule.enabled and mtch != []:
+                    if (
+                        messageBefore
+                        and message.content[
+                            re2.search(rule.rule, message.content)
+                            .start() : re2.search(rule.rule, message.content)
+                            .end()
+                        ]
+                        in messageBefore.content
+                    ):
+                        return
+                    matches[rule.rule] = [rule, mtch]
+            if matches == {}:
+                return
+            try:
+                severities = {
+                    "warn": 0,
+                    "tempmute": 1,
+                    "kick": 2,
+                    "mute": 3,
+                    "tempban": 4,
+                    "ban": 5,
+                }
+                c_sev = 0
+                custom_msg_found = False
+                punishments = {
+                    "all": {},
+                    "reasons": {},
+                    "tempmute_dur": 0,
+                    "tempban_dur": 0,
+                }
+                shortened_matches = []
+                messageToReply = None
+                reason = None
+                for r, matched in matches.copy().items():
+                    rule: automodRule = matched[0]
+                    matched = matched[1]
+                    mtch = matched[0]
+                    shortened_matches.append(mtch)
+                    punishments["all"][matched[0]] = rule.punishment.action
+                    if rule.punishment.action == "tempmute":
+                        punishments["tempmute_dur"] += rule.punishment.duration
+                    if rule.punishment.action == "tempban":
+                        punishments["tempban_dur"] += rule.punishment.duration
+
+                    if severities[rule.punishment.action] >= c_sev:
+                        c_sev = severities[rule.punishment.action]
+                    else:
+                        continue
+
+                    if custom_msg_found:
+                        if not rule.custom_message:
+                            continue
+
+                    messageToReply = (
+                        rule.custom_message.replace("{MATCH}", mtch)
+                        if rule.custom_message
+                        else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
+                    )
+                    reason = "**[Automod]** " + (
+                        rule.custom_reason.replace("{MATCH}", mtch)
+                        if rule.custom_reason
+                        else f"This user has violated the server's automod rules. (`{mtch}`)"
+                    )
+                    punishments["reasons"][rule.punishment.action] = reason
+
+                    if rule.custom_message:
+                        custom_msg_found = True
+
+                await message.reply(
+                    embed=embeds.Embeds.embed(
+                        description=messageToReply,
+                        color=guilded.Color.red(),
+                    ),
+                    private=True,
+                )
+
+                # Delete message regardless of action
+                try:
+                    await message.delete()
+                except:
+                    pass
+
+                removed_from_server = False
+                # TODO: still add tempmutes into logs so if tempban wears out first, when they join they're still tempmuted/muted
+                # instead, just don't run the action
+                for punishment in punishments["all"].keys():
+                    punishment = punishments["all"][punishment]
+                    reason = punishments["reasons"][punishment]
+                    if punishment == "warn":
+                        pass  # warned already
+                    elif punishment == "kick":
+                        # await message.author.kick()
+                        removed_from_server = True
+                    elif punishment == "ban":
+                        # await message.author.ban(reason=reason)
+                        removed_from_server = True
+                    elif punishment == "mute":  # TODO: add mutes
                         pass
+                    elif punishment == "tempban":  # TODO: add tempbans
+                        duration = punishments["tempban_dur"]
+                        removed_from_server = True
+                    elif punishment == "tempmute":  # TODO: add tempmutes
+                        duration = punishments["tempmute_dur"]
+                custom_events.eventqueue.add_event(
+                    custom_events.AutomodEvent(
+                        list(set(punishments["all"].values())),
+                        message,
+                        message.author,
+                        (
+                            list(punishments["reasons"].values())[0]
+                            if len(shortened_matches) == 1
+                            else f"**[Automod]** Multiple automod rules were violated. (`{'`, `'.join(shortened_matches)}`)"
+                        ),
+                        [punishments["tempmute_dur"], punishments["tempban_dur"]],
+                    )
+                )
+            except guilded.Forbidden:
+                # await toggle_setting(message.server_id, "enabled", False)
+                pass
 
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
@@ -203,6 +344,10 @@ class AutoModeration(commands.Cog):
     @commands.group("automod")
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def automod(self, ctx: commands.Context):
+        await ctx.reply(
+            "⚠️ Automod and related portions are under development; do not use! Logging is complete if you want to check that out.",
+            private=ctx.message.private,
+        )
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -218,16 +363,237 @@ class AutoModeration(commands.Cog):
                 description=f"The automod in this server is `{'on' if server_data.data.automodSettings.enabled == True else 'off'}`.",
             )
             embed.add_field(
-                name="Automod Rules",
-                value=f"View all the automod rules commands.\n`{prefix}automod rules`",
-                inline=False,
-            )
-            embed.add_field(
                 name="Automod Settings",
                 value=f"View automod settings and modify them.\n`{prefix}automod settings`",
                 inline=False,
             )
+            embed.add_field(
+                name="Automod Modules",
+                value=f"View all the automod built-in modules.\n`{prefix}automod modules`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Automod Custom Rules",
+                value=f"View all the automod custom rules commands.\n`{prefix}automod rules`",
+                inline=False,
+            )
             await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @automod.group(name="modules", aliases=["module"])
+    async def modules(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Modules",
+                description=f"{self.bot.user.name}'s built-in automod modules!",
+            )
+            embed.add_field(
+                name="Anti-Slurs",
+                value=f"{':x: **Off' if server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Anti-Profanity",
+                value=f"{':x: **Off' if server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @modules.group(name="slurs", aliases=["slur"])
+    async def slurs_module(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Modules - Anti-Slurs",
+                description=f"{':x: **Off' if server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+            )
+            embed.add_field(
+                name="Toggle Module",
+                value=f"Toggle the `anti-slurs` module.\n`{prefix}automod modules slurs toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @slurs_module.command(name="toggle")
+    async def _toggle_slurs_module(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if not (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            msg = await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_module(ctx.server.id, "slurs", status, logged=True)
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"This module was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Anti-slurs automod module was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=False,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
+
+    @modules.group(name="profanity", aliases=[])
+    async def profanity_module(self, ctx: commands.Context):
+        if ctx.invoked_subcommand is None:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == ctx.server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=ctx.server.id)
+                await server_data.save()
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Modules - Anti-Profanity",
+                description=f"{':x: **Off' if server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+            )
+            embed.add_field(
+                name="Toggle Module",
+                value=f"Toggle the `anti-profanity` module.\n`{prefix}automod modules profanity toggle [status | optional]`",
+                inline=False,
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @profanity_module.command(name="toggle")
+    async def _toggle_profanity_module(self, ctx: commands.Context, status: str = None):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        if not (
+            ctx.author.server_permissions.manage_bots
+            or ctx.author.server_permissions.manage_server
+        ):
+            msg = await ctx.reply(
+                embed=embeds.Embeds.manage_bot_server_permissions,
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        if status:
+            status = status.lower().strip()
+        if status in ["on", "off", None]:
+            pass
+        else:
+            return await ctx.reply(
+                embed=embeds.Embeds.argument_one_of("status", ["on", "off"]),
+                private=ctx.message.private,
+            )
+
+        if status == "on":
+            ostatus = status
+            status = True
+        elif status == "off":
+            ostatus = status
+            status = False
+
+        new_status = await toggle_module(
+            ctx.server.id, "profanity", status, logged=True
+        )
+
+        if new_status == None:
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Changes Made",
+                    description=f"This module was already `{ostatus}` in this server.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    f"Anti-profanity automod module was `{'enabled' if new_status == True else 'disabled'}` on this server.",
+                    ctx.author,
+                    bypass_enabled=False,
+                )
+            )
+            return await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title=f"Module {'Enabled' if new_status == True else 'Disabled'}",
+                    description=f"This module is now `{'on' if new_status == True else 'off'}` in this server.",
+                    color=guilded.Color.green(),
+                ),
+                private=ctx.message.private,
+            )
 
     @automod.group(name="settings", aliases=["setting"])
     async def settings(self, ctx: commands.Context):
@@ -718,7 +1084,7 @@ class AutoModeration(commands.Cog):
     async def _delete(
         self,
         ctx: commands.Context,
-        rule: str, # TODO: delete using wait_for, and they have to send rule there
+        rule: str,  # TODO: delete using wait_for, and they have to send rule there
     ):
         if ctx.server is None:
             await ctx.reply(

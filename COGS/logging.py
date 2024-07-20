@@ -742,7 +742,9 @@ class Logging(commands.Cog):
             embed.add_field(name="User ID", value=event.member.id)
             embed.add_field(name="Message ID", value=event.message.id)
             embed.add_field(
-                name="Action Taken", value=event.formatted_action, inline=False
+                name="Actions Taken",
+                value="\n".join(event.formatted_actions),
+                inline=False,
             )
             embed.add_field(name="Reason", value=event.reason, inline=False)
             # embed.add_field(name="Was Message Pinned", value=event.message.pinned)

@@ -25,6 +25,16 @@ class automoderatorSettings(BaseModel):
     moderateOwner: bool = False
 
 
+class automoderatorModules(BaseModel):
+    """
+    - slurs - `bool` - Whether anti-slurs module is enabled. Defaults to False
+    - profanity - `bool` - Whether anti-profanity module is enabled. Defaults to False
+    """
+
+    slurs: bool = False
+    profanity: bool = False
+
+
 class loggingSettings(BaseModel):
     """
     - enabled - `bool` - Whether logging is enabled. Defaults to True
@@ -158,12 +168,15 @@ class automodRule(BaseModel):
 class serverData(BaseModel):
     """
     - automodRules - `List[automodRule]` - The server's automod rules
-    - automodSettings - `automoderatorSettings` - Whether the server's automod is enabled
+    - automodSettings - `automoderatorSettings` - Automod settings
+    - automodModules - `automoderatorModules` - Automod default modules
     """
 
     automodRules: List[automodRule] = list()
 
     automodSettings: automoderatorSettings = automoderatorSettings()
+
+    automodModules: automoderatorModules = automoderatorModules()
 
 
 # Define the server document

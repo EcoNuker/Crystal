@@ -3,6 +3,8 @@ import string, secrets, time
 
 from DATA import tools
 
+from typing import List
+
 
 def action_map(
     action: str, duration: int = None, amount: int = None, automod: bool = False
@@ -109,11 +111,11 @@ class EventQueue:
 class AutomodEvent(CloudBaseEvent):
     def __init__(
         self,
-        action: str,
+        actions: List[str],
         message: guilded.Message,
         member: guilded.Member,
-        reason: str,
-        duration: int = 0,
+        reason: str = "Not Provided",
+        durations: List[int] = [],
     ) -> None:
         super().__init__()
         self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
@@ -123,12 +125,27 @@ class AutomodEvent(CloudBaseEvent):
         self.message = message
         self.member = member
         self.overwrite: dict = {"message_ids": [message.id]}
-        self.action = action
-        self.duration = duration if action.startswith("temp") else None
-        self.formatted_action = action_map(self.action, automod=True, duration=duration)
+        self.actions = actions
+        self.durations = durations
+        # ^^^ value 1 is tempmute, value 2 is tempban
+        self.formatted_actions = [
+            action_map(
+                action,
+                automod=True,
+                duration=(
+                    None
+                    if action not in ["tempban", "tempmute"]
+                    else (
+                        self.durations[0] if action == "tempmute" else self.durations[1]
+                    )
+                ),
+            )
+            for action in self.actions
+        ]
         self.timestamp = time.time()
         self.reason = reason
-        assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
+        for action in self.actions:
+            assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
 
 
 class ModeratorAction(CloudBaseEvent):
