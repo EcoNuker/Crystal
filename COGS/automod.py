@@ -84,14 +84,17 @@ class AutoModeration(commands.Cog):
         if not server_data:
             server_data = Server(serverId=message.server.id)
             await server_data.save()
-        print(server_data.data.automodRules)
-        server_data_DB = server_data.data.automodRules
+        if message.author.is_owner() and (
+            not server_data.data.automodSettings.moderateOwner
+        ):
+            return
+        if message.author.bot and (not server_data.data.automodSettings.moderateBots):
+            return
         if (
             not message.author.id == self.bot.user.id
-            and server_data_DB != []
-            and not message.author.is_owner()
+            and server_data.data.automodRules != []
         ):
-            for rule in server_data_DB:
+            for rule in server_data.data.automodRules:
                 if rule.enabled and re2.search(rule.rule, message.content):
                     messageToReply = (
                         rule.custom_message
@@ -114,15 +117,35 @@ class AutoModeration(commands.Cog):
                             in messageBefore.content
                         ):
                             return
-                        await messageWarning(message, messageToReply)
+                        await message.reply(
+                            embed=embeds.Embeds.embed(
+                                description=messageToReply, color=guilded.Color.red()
+                            ),
+                            private=message.private,
+                        )
                     elif rule.punishment.action == "kick":
-                        await messageWarning(message, messageToReply)
+                        await message.reply(
+                            embed=embeds.Embeds.embed(
+                                description=messageToReply, color=guilded.Color.red()
+                            ),
+                            private=message.private,
+                        )
                         # await message.author.kick()
                     elif rule.punishment.action == "ban":
-                        await messageWarning(message, messageToReply)
+                        await message.reply(
+                            embed=embeds.Embeds.embed(
+                                description=messageToReply, color=guilded.Color.red()
+                            ),
+                            private=message.private,
+                        )
                         # await message.author.ban(reason=reason)
                     elif rule.punishment.action == "mute":  # TODO: fix mutes
-                        await messageWarning(message, messageToReply)
+                        await message.reply(
+                            embed=embeds.Embeds.embed(
+                                description=messageToReply, color=guilded.Color.red()
+                            ),
+                            private=message.private,
+                        )
                     # Delete message regardless of action
                     try:
                         await message.delete()
@@ -472,20 +495,44 @@ class AutoModeration(commands.Cog):
     @automod.group(aliases=["rule"])
     async def rules(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
-            # rules help menu
+            prefix = await self.bot.get_prefix(ctx.message)
+            if type(prefix) == list:
+                prefix = prefix[0]
+            embed = embeds.Embeds.embed(
+                title=f"Automod Rules",
+                description=f"Automod rules management.",
+            )
+            embed.add_field(
+                name="List Rules",
+                value=f"Show every automod rule in the server.\n`{prefix}automod rules list`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Clear Rules",
+                value=f"Delete every automod rule in the server.\n`{prefix}automod rules clear`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Add Rule",
+                value=f"Add a new automod rule.\n`{prefix}automod rules add <rule> <punishment> [duration | optional | for tempban or tempmute]`",
+                inline=False,
+            )
+            embed.add_field(
+                name="Remove Rule",
+                value=f"Show every automod rule in the server.\n`{prefix}automod rules remove <rule>`",
+                inline=False,
+            )
             embed = embeds.Embeds.embed()
         else:
             # All subcommands will need to check permissions, therefore fill roles
-            # TODO: rules help menu
             await ctx.server.fill_roles()
 
     @rules.command("add", aliases=["create"])
     async def _add(
         self,
         ctx: commands.Context,
-        rule: str,
-        punishment: str = "warn",
-        duration: int = 0,
+        *,
+        arguments: str,
     ):  # TODO: human readable duration input (5d3m) or (3h)
         if ctx.server is None:
             await ctx.reply(
@@ -518,6 +565,22 @@ class AutoModeration(commands.Cog):
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
             await server_data.save()
+
+        # TODO: better parse arguments
+        if len(arguments) < 2:
+            embed = embeds.Embeds.embed(
+                title="Missing Arguments",
+                description="You're missing arguments! Command usage: `automod rules add <rule> <punishment> [duration | optional | for tempban or tempmute]`",
+                color=guilded.Color.red(),
+            )
+            return await ctx.reply(embed=embed, private=ctx.message.private)
+        duration = 0
+        if arguments[-1].isdigit():
+            duration = int(arguments[-1])
+            del arguments[-1]
+
+        punishment = arguments[-1]
+        rule = arguments[-2]
 
         if punishment.lower() not in [
             "kick",
@@ -899,5 +962,4 @@ class AutoModeration(commands.Cog):
 
 
 def setup(bot):
-    # bot.add_cog(AutoModeration(bot))
-    pass
+    bot.add_cog(AutoModeration(bot))

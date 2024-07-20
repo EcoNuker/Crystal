@@ -19,7 +19,7 @@ class events(commands.Cog):
                 bypassed = True
                 self.bot.bypasses[ctx.author.id].remove(ctx.message)
         self.bot.print(
-            f"{self.bot.COLORS.command_logs}[COMMAND]{' ' + self.bot.COLORS.warn_logs + '[BOT OWNER BYPASS]' if bypassed else ''} {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
+            f"{self.bot.COLORS.command_logs}[COMMAND]{' ' + self.bot.COLORS.warn_logs + '[BOT OWNER BYPASS - ' + ctx.message.bypassed + ']' if bypassed else ''} {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
         )
 
     @commands.Cog.listener("on_message")

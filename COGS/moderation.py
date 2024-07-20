@@ -11,17 +11,17 @@ from DATA import custom_events
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.cooldowns = {}
-        # self.db = bot.db
+        self.cooldowns = {"purge": {}}
 
     @commands.command(name="purge")
     async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
         # check permissions
-        if time.time() - self.cooldowns.get(ctx.channel.id, 0) < 120:
+        if time.time() - self.cooldowns["purge"].get(ctx.channel.id, 0) < 120:
             try:
                 raise commands.CommandOnCooldown(
                     commands.Cooldown(1, 120),
-                    retry_after=time.time() - self.cooldowns.get(ctx.channel.id, 0)
+                    retry_after=120
+                    - (time.time() - self.cooldowns.get(ctx.channel.id, 0))
                     < 120,
                     type=commands.BucketType.channel,
                 )
@@ -33,7 +33,7 @@ class Moderation(commands.Cog):
                     description=f"Please wait `{rounded:,}` second{'s' if rounded != 1 else ''} before trying again.",
                 )
                 msg = await ctx.reply(embed=embedig, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
+                bypass = await tools.check_bypass(ctx, msg, "cooldown")
                 if not bypass:
                     return
         if ctx.server is None:
@@ -69,7 +69,7 @@ class Moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, "amount")
             if not bypass:
                 return
             if amount - 1 > 1000:
@@ -88,7 +88,7 @@ class Moderation(commands.Cog):
                     color=guilded.Color.red(),
                 )
                 msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
+                bypass = await tools.check_bypass(ctx, msg, "amount")
                 if not bypass:
                     raise tools.BypassFailed()
                 newlimit += 50
@@ -139,7 +139,10 @@ class Moderation(commands.Cog):
             )
             m_id = await ctx.send(embed=embed, delete_after=3)
             custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
-            self.cooldowns[ctx.channel.id] = time.time()
+            self.cooldowns["purge"][ctx.channel.id] = time.time()
+            for channel_id, ran_at in self.cooldowns["purge"].copy().items():
+                if time.time() - ran_at > 120:
+                    del self.cooldowns["purge"][channel_id]
 
     # @commands.command(name="kick")
     # async def kick(
@@ -199,7 +202,7 @@ class Moderation(commands.Cog):
     #         "moderator": ctx.author.id,
     #         "server": ctx.server.id,
     #     }
-    #     # somehow log this; check if theres a log channel, send to channel
+    #
     #     custom_events.eventqueue.add_event(
     #         custom_events.ModeratorAction(
     #             action="kick", member=user, moderator=ctx.author
@@ -266,7 +269,7 @@ class Moderation(commands.Cog):
     #         "moderator": ctx.author.id,
     #         "server": ctx.server.id,
     #     }
-    #     # somehow log this into db
+    #
     #     custom_events.eventqueue.add_event(
     #         custom_events.ModeratorAction(
     #             action="ban", member=user, moderator=ctx.author

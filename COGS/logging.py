@@ -607,7 +607,7 @@ class Logging(commands.Cog):
                 colour=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, "amount")
             if not bypass:
                 return
         elif server_data.logging.setChannels.get(channel.id):
