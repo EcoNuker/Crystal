@@ -173,6 +173,17 @@ class AutoModeration(commands.Cog):
             newrule.punishment.action = "warn"
             self.default_profanity.append(newrule)
 
+        self.default_invites = []
+        for rule in regexes.invites:
+            newrule = automodRule(
+                author=self.bot.user.id,
+                rule=rule,
+                regex=True,
+                custom_reason="**[Anti-Invites Module]** This user has violated the server's automod anti-invites module. (`{MATCH}`)",
+            )
+            newrule.punishment.action = "warn"
+            self.default_profanity.append(newrule)
+
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
     ):
@@ -207,6 +218,8 @@ class AutoModeration(commands.Cog):
             USING_RULES.extend(self.default_slurs)
         if server_data.data.automodModules.profanity:
             USING_RULES.extend(self.default_profanity)
+        if server_data.data.automodModules.invites:
+            USING_RULES.extend(self.default_invites)
 
         if not message.author.id == self.bot.user.id and USING_RULES != []:
 
@@ -318,7 +331,7 @@ class AutoModeration(commands.Cog):
                     messageToReply = (
                         rule.custom_message.replace("{MATCH}", mtch)
                         if rule.custom_message
-                        else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
+                        else f"Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator.\nThe content flagged was: `{mtch}`"
                     )
                     reason = "**[Automod]** " + (
                         rule.custom_reason.replace("{MATCH}", mtch)
@@ -449,17 +462,17 @@ class AutoModeration(commands.Cog):
             )
             embed.add_field(
                 name="Anti-Slurs",
-                value=f"{':x: **Off' if not server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+                value=f"{':x: **Off.' if not server_data.data.automodModules.slurs else ':white_check_mark: **On.'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
                 inline=False,
             )
             embed.add_field(
                 name="Anti-Profanity",
-                value=f"{':x: **Off' if not server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+                value=f"{':x: **Off.' if not server_data.data.automodModules.profanity else ':white_check_mark: **On.'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
                 inline=False,
             )
             embed.add_field(
                 name="Anti-Invites",
-                value=f"{':x: **Off' if not server_data.data.automodModules.invites else ':white_check_mark: **On'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
+                value=f"{':x: **Off.' if not server_data.data.automodModules.invites else ':white_check_mark: **On.'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -478,7 +491,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Invites",
-                description=f"{':x: **Off' if not server_data.data.automodModules.invites else ':white_check_mark: **On'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
+                description=f"{':x: **Off.' if not server_data.data.automodModules.invites else ':white_check_mark: **On.'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
             )
             embed.add_field(
                 name="Toggle Module",
@@ -571,7 +584,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Slurs",
-                description=f"{':x: **Off' if not server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+                description=f"{':x: **Off.' if not server_data.data.automodModules.slurs else ':white_check_mark: **On.'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
             )
             embed.add_field(
                 name="Toggle Module",
@@ -664,7 +677,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Profanity",
-                description=f"{':x: **Off' if not server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+                description=f"{':x: **Off,' if not server_data.data.automodModules.profanity else ':white_check_mark: **On.'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
             )
             embed.add_field(
                 name="Toggle Module",
