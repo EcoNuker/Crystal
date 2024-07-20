@@ -316,16 +316,17 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -387,16 +388,17 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -487,19 +489,20 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
             or ctx.author.server_permissions.manage_channels
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.missing_permissions(
                     "Manage Channels", manage_bot_server=True
                 ),
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -530,16 +533,17 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         # define typehinting here since pylance/python extensions apparently suck
         channel: str | guilded.ChatChannel | None
@@ -602,8 +606,10 @@ class Logging(commands.Cog):
                 description=f"You can only have `20` log channels.",
                 colour=guilded.Color.red(),
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
-            return
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         elif server_data.logging.setChannels.get(channel.id):
             event_type = server_data.logging.setChannels.get(channel.id)
             embed = embeds.Embeds.embed(
@@ -650,16 +656,17 @@ class Logging(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         # define typehinting here since pylance/python extensions apparently suck
         channel: str | guilded.ChatChannel | None

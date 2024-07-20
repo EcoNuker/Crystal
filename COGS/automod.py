@@ -4,6 +4,7 @@ from io import BufferedIOBase, BytesIO, IOBase
 from aiohttp import ClientSession
 from pathlib import Path
 from DATA import embeds
+from DATA import tools
 from DATA import custom_events
 
 import documents
@@ -238,16 +239,17 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -332,16 +334,17 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -403,16 +406,17 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
         )
@@ -472,6 +476,7 @@ class AutoModeration(commands.Cog):
             embed = embeds.Embeds.embed()
         else:
             # All subcommands will need to check permissions, therefore fill roles
+            # TODO: rules help menu
             await ctx.server.fill_roles()
 
     @rules.command("add", aliases=["create"])
@@ -487,6 +492,7 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
+        bypass = False
         if not (
             ctx.author.server_permissions.manage_messages
             or ctx.author.server_permissions.manage_roles
@@ -504,7 +510,10 @@ class AutoModeration(commands.Cog):
                     "Manage Server",
                 ]
             )
-            return await ctx.reply(embed=embed, private=ctx.message.private)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await Server.find_one(Server.serverId == ctx.server.id)
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
@@ -526,7 +535,7 @@ class AutoModeration(commands.Cog):
             punishment = punishment.lower()
 
         if punishment in ["warn"] and not (
-            ctx.author.server_permissions.manage_messages
+            ctx.author.server_permissions.manage_messages or bypass
         ):
             embed = embeds.Embeds.missing_permissions(
                 "Manage Messages", manage_bot_server=False
@@ -535,31 +544,31 @@ class AutoModeration(commands.Cog):
         elif punishment in ["kick"] and not (
             ctx.author.server_permissions.kick_members
             or ctx.author.server_permissions.ban_members
+            or bypass
         ):
             embed = embeds.Embeds.missing_permissions(
                 "Kick/Ban Members", manage_bot_server=False
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
         elif punishment in ["ban", "tempban"] and not (
-            ctx.author.server_permissions.ban_members
+            ctx.author.server_permissions.ban_members or bypass
         ):
             embed = embeds.Embeds.missing_permissions(
                 "Kick/Ban Members", manage_bot_server=False
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
         elif punishment in ["mute", "tempmute"] and not (
-            ctx.author.server_permissions.manage_roles
+            ctx.author.server_permissions.manage_roles or bypass
         ):
             embed = embeds.Embeds.missing_permissions(
                 "Manage Roles", manage_bot_server=False
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
-        print(await server_data.data.automodRules.find_one(automodRules=""))
         for (
             i
         ) in (
             server_data.data.automodRules
-        ):  # TODO: Maybe use findOne for faster speeds, how?
+        ):  # TODO: Maybe use get a better method for this
             if i.rule == rule:
                 embed = embeds.Embeds.embed(
                     title="Rule Not Added",
@@ -574,7 +583,7 @@ class AutoModeration(commands.Cog):
         rule_data.punishment.action = punishment
         rule_data.punishment.duration = duration
         server_data.data.automodRules.append(rule_data)
-        # await server_data.save()
+        await server_data.save()
         embed = embeds.Embeds.embed(
             title="Rule Added",
             description=f"Rule: `{rule}`\nPunishment: {punishment.capitalize()}\nDuration: {duration}\nCreator: {ctx.author.mention}",
@@ -598,6 +607,7 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
+        bypass = False
         if not (
             ctx.author.server_permissions.manage_messages
             or ctx.author.server_permissions.manage_roles
@@ -615,7 +625,10 @@ class AutoModeration(commands.Cog):
                     "Manage Server",
                 ]
             )
-            return await ctx.reply(embed=embed, private=ctx.message.private)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await Server.find_one(Server.serverId == ctx.server.id)
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
@@ -632,7 +645,7 @@ class AutoModeration(commands.Cog):
 
         if ruleToDelete:
             if ruleToDelete.punishment.action in ["warn"] and not (
-                ctx.author.server_permissions.manage_messages
+                ctx.author.server_permissions.manage_messages or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Messages", manage_bot_server=False
@@ -641,20 +654,21 @@ class AutoModeration(commands.Cog):
             elif ruleToDelete.punishment.action in ["kick"] and not (
                 ctx.author.server_permissions.kick_members
                 or ctx.author.server_permissions.ban_members
+                or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
             elif ruleToDelete.punishment.action in ["ban"] and not (
-                ctx.author.server_permissions.ban_members
+                ctx.author.server_permissions.ban_members or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
             elif ruleToDelete.punishment.action in ["mute"] and not (
-                ctx.author.server_permissions.manage_roles
+                ctx.author.server_permissions.manage_roles or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Roles", manage_bot_server=False
@@ -708,6 +722,7 @@ class AutoModeration(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
+        bypass = False
         if not (
             ctx.author.server_permissions.manage_messages
             or ctx.author.server_permissions.manage_roles
@@ -725,7 +740,10 @@ class AutoModeration(commands.Cog):
                     "Manage Server",
                 ]
             )
-            return await ctx.reply(embed=embed, private=ctx.message.private)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await Server.find_one(Server.serverId == ctx.server.id)
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
@@ -733,7 +751,7 @@ class AutoModeration(commands.Cog):
         wordCount, description, creatorCache = 0, "", {}
         for i in server_data.data.automodRules:
             if i.punishment.action in ["warn"] and not (
-                ctx.author.server_permissions.manage_messages
+                ctx.author.server_permissions.manage_messages or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Messages", manage_bot_server=False
@@ -742,20 +760,21 @@ class AutoModeration(commands.Cog):
             elif i.punishment.action in ["kick"] and not (
                 ctx.author.server_permissions.kick_members
                 or ctx.author.server_permissions.ban_members
+                or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
             elif i.punishment.action in ["ban"] and not (
-                ctx.author.server_permissions.ban_members
+                ctx.author.server_permissions.ban_members or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
             elif i.punishment.action in ["mute"] and not (
-                ctx.author.server_permissions.manage_roles
+                ctx.author.server_permissions.manage_roles or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Manage Roles", manage_bot_server=False
@@ -831,7 +850,10 @@ class AutoModeration(commands.Cog):
                     "Manage Server",
                 ]
             )
-            return await ctx.reply(embed=embed, private=ctx.message.private)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         server_data = await Server.find_one(Server.serverId == ctx.server.id)
         if not server_data:
             server_data = Server(serverId=ctx.server.id)

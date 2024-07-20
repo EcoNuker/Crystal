@@ -14,7 +14,7 @@ def action_map(
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
-        "purge": "{amount} messages were deleted using purge",
+        "purge": "{amount} message{checkS} were deleted using purge",
     }
 
     def format_duration(seconds: int) -> str:
@@ -45,8 +45,12 @@ def action_map(
 
     if "{amount}" in res and amount is not None:
         res = res.format(amount=f"{amount:,}")
+        if "{checkS}" in res:
+            res = res.format(checkS="s" if amount != 1 else "")
     elif "{amount}" in res:
-        res = res.format(time="an unknown amount of")
+        res = res.format(amount="an unknown amount of")
+        if "{checkS}" in res:
+            res = res.format(checkS="s")
 
     if automod:
         res += " and the message was deleted."

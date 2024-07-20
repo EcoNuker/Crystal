@@ -1,7 +1,9 @@
 import guilded
 import asyncio
 from guilded.ext import commands
-from DATA.embeds import Embeds
+
+from DATA import tools
+from DATA import embeds
 from DATA import custom_events
 
 
@@ -15,21 +17,25 @@ class Moderation(commands.Cog):
     async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
         # check permissions
         if ctx.server is None:
-            await ctx.reply(embed=Embeds.server_only, private=ctx.message.private)
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
             return
         await ctx.server.fill_roles()
         if not ctx.author.server_permissions.manage_messages:
-            await ctx.reply(
-                embed=Embeds.missing_permissions(
-                    "Maange Messages", manage_bot_server=False
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Manage Messages", manage_bot_server=False
                 ),
                 private=ctx.message.private,
             )
-            return
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         try:
             amount = int(amount) + 1
         except:
-            embed = Embeds.embed(
+            embed = embeds.Embeds.embed(
                 title="Invalid Amount",
                 description="The amount of messages to delete must be a number.",
                 color=guilded.Color.red(),
@@ -37,13 +43,15 @@ class Moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
         if not amount - 1 <= 250:
-            embed = Embeds.embed(
+            embed = embeds.Embeds.embed(
                 title="Invalid Amount",
                 description="The amount of messages to delete must be less than 250.",
                 color=guilded.Color.red(),
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
-            return
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
         else:
             custom_events.eventqueue.add_event(
                 custom_events.ModeratorAction(
@@ -84,7 +92,7 @@ class Moderation(commands.Cog):
                     pass
 
             await asyncio.gather(*[del_message(message) for message in list(set(msgs))])
-            embed = Embeds.embed(
+            embed = embeds.Embeds.embed(
                 title="Purge",
                 description=f"{amount-1} message{'s' if amount-1 != 1 else ''} have been deleted!",
                 color=guilded.Color.green(),
@@ -102,12 +110,19 @@ class Moderation(commands.Cog):
 
     #     # check permissions
     #     if ctx.server is None:
-    #         await ctx.reply(embed=Embeds.server_only, private=ctx.message.private)
+    #         await ctx.reply(embed=embeds.Embeds.server_only, private=ctx.message.private)
     #         return
     #     await ctx.server.fill_roles()
     #     if not ctx.author.server_permissions.kick_members:
-    #         await ctx.reply(embed=Embeds.missing_permissions("Kick/Ban Members", manage_bot_server=False), private=ctx.message.private)
-    #         return
+    #         msg = await ctx.reply(
+    #             embed=embeds.Embeds.missing_permissions(
+    #                 "Kick/Ban Members", manage_bot_server=False
+    #             ),
+    #             private=ctx.message.private,
+    #         )
+    #         bypass = await tools.check_bypass(ctx, msg)
+    #         if not bypass:
+    #             return
 
     #     # combine all args and get full reason with username
     #     reason = user + " " + reason
@@ -122,13 +137,15 @@ class Moderation(commands.Cog):
     #         except guilded.NotFound:
     #             user = None
     #     if user is None:
-    #         await ctx.reply(embed=Embeds.invalid_user, private=ctx.message.private)
+    #         await ctx.reply(embed=embeds.Embeds.invalid_user, private=ctx.message.private)
     #         return
 
     #     # remove user display name or id from reason
-    #     reason = reason.removeprefix(
-    #         "@" + user.nick if user.nick else user.display_name
-    #     ).removeprefix(user.id).strip()
+    #     reason = (
+    #         reason.removeprefix("@" + user.nick if user.nick else user.display_name)
+    #         .removeprefix(user.id)
+    #         .strip()
+    #     )
 
     #     # kick member
     #     # await user.kick()
@@ -147,9 +164,8 @@ class Moderation(commands.Cog):
     #             action="kick", member=user, moderator=ctx.author
     #         )
     #     )
-    #     # custom_events.eventqueue.add_event(custom_events.AutomodEvent(action="kick", data=log_data))
 
-    # @commands.command(name="ban") # TODO: ban people not in server
+    # @commands.command(name="ban")  # TODO: ban people not in server
     # async def ban(
     #     self, ctx: commands.Context, user: str, *, reason: str = "Not specified."
     # ):
@@ -159,12 +175,19 @@ class Moderation(commands.Cog):
 
     #     # check permissions
     #     if ctx.server is None:
-    #         await ctx.reply(embed=Embeds.server_only, private=ctx.message.private)
+    #         await ctx.reply(embed=embeds.Embeds.server_only, private=ctx.message.private)
     #         return
     #     await ctx.server.fill_roles()
     #     if not ctx.author.server_permissions.kick_members:
-    #         await ctx.reply(embed=Embeds.missing_permissions("Kick/Ban Members", manage_bot_server=False), private=ctx.message.private)
-    #         return
+    #         msg = await ctx.reply(
+    #             embed=embeds.Embeds.missing_permissions(
+    #                 "Kick/Ban Members", manage_bot_server=False
+    #             ),
+    #             private=ctx.message.private,
+    #         )
+    #         bypass = await tools.check_bypass(ctx, msg)
+    #         if not bypass:
+    #             return
 
     #     # combine all args and get full reason with username
     #     reason = user + " " + reason
@@ -179,13 +202,17 @@ class Moderation(commands.Cog):
     #         except guilded.NotFound:
     #             user = None
     #     if user is None:
-    #         await ctx.reply(embed=Embeds.invalid_user, private=ctx.message.private)
+    #         await ctx.reply(
+    #             embed=embeds.Embeds.invalid_user, private=ctx.message.private
+    #         )
     #         return
 
     #     # remove user display name or id from reason
-    #     reason = reason.removeprefix(
-    #         "@" + user.nick if user.nick else user.display_name
-    #     ).removeprefix(user.id).strip()
+    #     reason = (
+    #         reason.removeprefix("@" + user.nick if user.nick else user.display_name)
+    #         .removeprefix(user.id)
+    #         .strip()
+    #     )
 
     #     # ban member
     #     # await user.ban(reason=reason)
