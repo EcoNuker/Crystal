@@ -69,6 +69,8 @@ class Moderation(commands.Cog):
                         include_private=private,
                         before=last_message.created_at,
                     )
+                if len(messages) == 0:
+                    break
                 msgs.extend(messages)
                 d_msgs.extend([message.id for message in messages])
                 last_message = messages[-1] if messages else None
