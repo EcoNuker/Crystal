@@ -77,6 +77,13 @@ class AutoModeration(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+        # PLEASE DON'T CANCEL!
+        self.default_racist = []
+        for rule in ["nigger", "nigga"]: # TODO: fill this out with a lot of common racist slurs
+            newrule = automodRule(author=self.bot.user.id, rule=rule, regex=False)
+            newrule.punishment.action = "warn"
+            self.default_racist.append(newrule)
+
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
     ):
@@ -96,12 +103,12 @@ class AutoModeration(commands.Cog):
         if message.author.bot and (not server_data.data.automodSettings.moderateBots):
             return
         if message.content.startswith(
-            [
+            (
                 prefix + "automod rules remove ",
                 prefix + "automod rules delete ",
                 prefix + "automod rule remove ",
                 prefix + "automod rule delete ",
-            ]
+            )
         ):
             return  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
         if (
@@ -590,7 +597,29 @@ class AutoModeration(commands.Cog):
 
         arguments = arguments.split()
 
-        # TODO: better parse arguments, preferably by using chained wait_fors
+        # TODO: better parse arguments, using chained wait_fors
+        # NOTE: maximum length for answers to message questions should be 250
+        """
+        Ask the following questions:
+        1. Are you inserting regex. (If you don't know what this means, probably no.)
+        yes/no/true/false
+        2. What do you want to be added to automod? (PHRASE THIS QUESTION BETTER, ASK FOR RULE OF AUTOMOD)
+        rule
+        3. What punishment? Include duration if tempban/tempmute. (HANDLE HUMAN FRIENDLY DURATION)
+        punishment duration
+        4. Do you want a custom reason for this automod rule?
+        yes/no
+        4a. (if yes) What is your custom punishment reason for this automod rule?
+        MESSAGE
+        5. Do you want a custom message to be given to the user for this automod rule?
+        yes/no
+        5a. (if yes) What is your custom message for this automod rule?
+        MESSAGE
+        6. Do you want a description for your new rule?
+        yes/no
+        6a. (if yes) What is your description?
+        MESSAGE
+        """
         if len(arguments) < 2:
             embed = embeds.Embeds.embed(
                 title="Missing Arguments",
@@ -688,7 +717,7 @@ class AutoModeration(commands.Cog):
     async def _delete(
         self,
         ctx: commands.Context,
-        rule: str,
+        rule: str, # TODO: delete using wait_for, and they have to send rule there
     ):
         if ctx.server is None:
             await ctx.reply(

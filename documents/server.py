@@ -127,9 +127,10 @@ class punishmentData(BaseModel):
 class automodRule(BaseModel):
     """
     - author - `str` - ID of the author of the rule
-    - rule - `str` - The actual regex rule
+    - rule - `str` - The actual regex or string rule
+    - regex - `bool` - Whether it's regex or not (defaults to False)
     - description - `Optional[str]` - The automod rule description (defaults to None)
-    - punishment - `dict` - Punishment (action key), along with duration (duration key, set to 0 if punishment has no duration option)
+    - punishment - `punishmentData` - Punishment data, action and duration
     - enabled - `bool` - Whether the rule is enabled or not (defaults to True)
     - custom_message - `Optional[str]` - Custom message given to user
     - custom_reason - `Optional[str]` - Custom reason that's logged as the warning or note or whatever
@@ -138,6 +139,7 @@ class automodRule(BaseModel):
 
     author: str
     rule: str
+    regex: bool = False
     punishment: punishmentData = punishmentData()
     description: Optional[str] = None
     custom_message: Optional[str] = None
