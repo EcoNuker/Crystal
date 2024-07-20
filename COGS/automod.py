@@ -98,71 +98,75 @@ class AutoModeration(commands.Cog):
         ):
             for rule in server_data.data.automodRules:
                 if rule.enabled and re2.search(rule.rule, message.content):
-                    messageToReply = (
-                        rule.custom_message
-                        if rule.custom_message
-                        else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
-                    )
-                    reason = "**[Automod]** " + (
-                        rule.custom_reason
-                        if rule.custom_reason
-                        else f"This user has violated the server's automod rules. (`{rule.rule}`)"
-                    )
-                    if rule.punishment.action == "warn":
-                        if (
-                            messageBefore
-                            and message.content[
-                                re2.search(rule.rule, message.content)
-                                .start() : re2.search(rule.rule, message.content)
-                                .end()
-                            ]
-                            in messageBefore.content
-                        ):
-                            return
-                        await message.reply(
-                            embed=embeds.Embeds.embed(
-                                description=messageToReply, color=guilded.Color.red()
-                            ),
-                            private=True,
-                        )
-                    elif rule.punishment.action == "kick":
-                        await message.reply(
-                            embed=embeds.Embeds.embed(
-                                description=messageToReply, color=guilded.Color.red()
-                            ),
-                            private=True,
-                        )
-                        # await message.author.kick()
-                    elif rule.punishment.action == "ban":
-                        await message.reply(
-                            embed=embeds.Embeds.embed(
-                                description=messageToReply, color=guilded.Color.red()
-                            ),
-                            private=True,
-                        )
-                        # await message.author.ban(reason=reason)
-                    elif rule.punishment.action == "mute":  # TODO: fix mutes
-                        await message.reply(
-                            embed=embeds.Embeds.embed(
-                                description=messageToReply, color=guilded.Color.red()
-                            ),
-                            private=True,
-                        )
-                    # Delete message regardless of action
                     try:
-                        await message.delete()
-                    except:
-                        pass
-                    custom_events.eventqueue.add_event(
-                        custom_events.AutomodEvent(
-                            rule.punishment.action,
-                            message,
-                            message.author,
-                            reason,
-                            rule.punishment.duration,
+                        messageToReply = (
+                            rule.custom_message
+                            if rule.custom_message
+                            else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
                         )
-                    )
-                    break
+                        reason = "**[Automod]** " + (
+                            rule.custom_reason
+                            if rule.custom_reason
+                            else f"This user has violated the server's automod rules. (`{rule.rule}`)"
+                        )
+                        if rule.punishment.action == "warn":
+                            if (
+                                messageBefore
+                                and message.content[
+                                    re2.search(rule.rule, message.content)
+                                    .start() : re2.search(rule.rule, message.content)
+                                    .end()
+                                ]
+                                in messageBefore.content
+                            ):
+                                return
+                            await message.reply(
+                                embed=embeds.Embeds.embed(
+                                    description=messageToReply, color=guilded.Color.red()
+                                ),
+                                private=True,
+                            )
+                        elif rule.punishment.action == "kick":
+                            await message.reply(
+                                embed=embeds.Embeds.embed(
+                                    description=messageToReply, color=guilded.Color.red()
+                                ),
+                                private=True,
+                            )
+                            # await message.author.kick()
+                        elif rule.punishment.action == "ban":
+                            await message.reply(
+                                embed=embeds.Embeds.embed(
+                                    description=messageToReply, color=guilded.Color.red()
+                                ),
+                                private=True,
+                            )
+                            # await message.author.ban(reason=reason)
+                        elif rule.punishment.action == "mute":  # TODO: fix mutes
+                            await message.reply(
+                                embed=embeds.Embeds.embed(
+                                    description=messageToReply, color=guilded.Color.red()
+                                ),
+                                private=True,
+                            )
+                        # Delete message regardless of action
+                        try:
+                            await message.delete()
+                        except:
+                            pass
+                        custom_events.eventqueue.add_event(
+                            custom_events.AutomodEvent(
+                                rule.punishment.action,
+                                message,
+                                message.author,
+                                reason,
+                                rule.punishment.duration,
+                            )
+                        )
+                        break
+                    except guilded.Forbidden:
+                        # await toggle_setting(message.server_id, "enabled", False)
+                        pass
 
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
