@@ -27,7 +27,7 @@ class Moderation(commands.Cog):
             )
             return
         try:
-            amount = int(amount) + 2
+            amount = int(amount) + 1
         except:
             embed = Embeds.embed(
                 title="Invalid Amount",
@@ -36,7 +36,7 @@ class Moderation(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
-        if not amount - 2 <= 250:
+        if not amount - 1 <= 250:
             embed = Embeds.embed(
                 title="Invalid Amount",
                 description="The amount of messages to delete must be less than 250.",
@@ -50,7 +50,7 @@ class Moderation(commands.Cog):
                     "purge",
                     moderator=ctx.author,
                     channel=ctx.channel,
-                    amount=amount - 2,
+                    amount=amount - 1,
                 )
             )
             handling_amount = amount
@@ -84,10 +84,10 @@ class Moderation(commands.Cog):
             await asyncio.gather(*[del_message(message) for message in list(set(msgs))])
             embed = Embeds.embed(
                 title="Purge",
-                description=f"{amount-2} messages have been deleted!",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} have been deleted!",
                 color=guilded.Color.green(),
             )
-            m_id = await ctx.send(embed=embed, delete_after=5)
+            m_id = await ctx.send(embed=embed, delete_after=3)
             custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
 
     # @commands.command(name="kick")
