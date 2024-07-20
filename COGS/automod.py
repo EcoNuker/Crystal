@@ -492,7 +492,7 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
-    @automod.group(aliases=["rule"])
+    @automod.group("rules", aliases=["rule"])
     async def rules(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
@@ -522,7 +522,7 @@ class AutoModeration(commands.Cog):
                 value=f"Show every automod rule in the server.\n`{prefix}automod rules remove <rule>`",
                 inline=False,
             )
-            embed = embeds.Embeds.embed()
+            await ctx.reply(embed=embed, private=ctx.message.private)
         else:
             # All subcommands will need to check permissions, therefore fill roles
             await ctx.server.fill_roles()
