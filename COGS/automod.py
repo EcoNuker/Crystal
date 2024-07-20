@@ -84,6 +84,8 @@ class AutoModeration(commands.Cog):
         if not server_data:
             server_data = Server(serverId=message.server.id)
             await server_data.save()
+        if not server_data.data.automodSettings.enabled:
+            return
         if message.author.is_owner() and (
             not server_data.data.automodSettings.moderateOwner
         ):
@@ -101,7 +103,7 @@ class AutoModeration(commands.Cog):
                         if rule.custom_message
                         else "Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator."
                     )
-                    reason = "[Automod]" + (
+                    reason = "**[Automod]** " + (
                         rule.custom_reason
                         if rule.custom_reason
                         else f"This user has violated the server's automod rules. (`{rule.rule}`)"
@@ -566,7 +568,9 @@ class AutoModeration(commands.Cog):
             server_data = Server(serverId=ctx.server.id)
             await server_data.save()
 
-        # TODO: better parse arguments
+        arguments = arguments.split()
+
+        # TODO: better parse arguments, preferably by using chained wait_fors
         if len(arguments) < 2:
             embed = embeds.Embeds.embed(
                 title="Missing Arguments",
@@ -640,8 +644,8 @@ class AutoModeration(commands.Cog):
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
         rule_data = automodRule(
-            ctx.author.id,
-            rule,
+            author=ctx.author.id,
+            rule=rule,
         )
         rule_data.punishment.action = punishment
         rule_data.punishment.duration = duration
@@ -654,9 +658,10 @@ class AutoModeration(commands.Cog):
         )
         custom_events.eventqueue.add_event(
             custom_events.BotSettingChanged(
-                f"The automod rule `{rule.rule}` was created.", ctx.author
+                f"The automod rule `{rule}` was created.", ctx.author
             )
         )
+        await server_data.save()
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
     @rules.command("remove", aliases=["delete"])
