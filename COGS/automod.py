@@ -80,6 +80,9 @@ class AutoModeration(commands.Cog):
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
     ):
+        prefix = await self.bot.get_prefix(message)
+        if type(prefix) == list:
+            prefix = prefix[0]
         server_data = await Server.find_one(Server.serverId == message.server.id)
         if not server_data:
             server_data = Server(serverId=message.server.id)
@@ -92,6 +95,15 @@ class AutoModeration(commands.Cog):
             return
         if message.author.bot and (not server_data.data.automodSettings.moderateBots):
             return
+        if message.content.startswith(
+            [
+                prefix + "automod rules remove ",
+                prefix + "automod rules delete ",
+                prefix + "automod rule remove ",
+                prefix + "automod rule delete ",
+            ]
+        ):
+            return  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
         if (
             not message.author.id == self.bot.user.id
             and server_data.data.automodRules != []
@@ -122,14 +134,16 @@ class AutoModeration(commands.Cog):
                                 return
                             await message.reply(
                                 embed=embeds.Embeds.embed(
-                                    description=messageToReply, color=guilded.Color.red()
+                                    description=messageToReply,
+                                    color=guilded.Color.red(),
                                 ),
                                 private=True,
                             )
                         elif rule.punishment.action == "kick":
                             await message.reply(
                                 embed=embeds.Embeds.embed(
-                                    description=messageToReply, color=guilded.Color.red()
+                                    description=messageToReply,
+                                    color=guilded.Color.red(),
                                 ),
                                 private=True,
                             )
@@ -137,7 +151,8 @@ class AutoModeration(commands.Cog):
                         elif rule.punishment.action == "ban":
                             await message.reply(
                                 embed=embeds.Embeds.embed(
-                                    description=messageToReply, color=guilded.Color.red()
+                                    description=messageToReply,
+                                    color=guilded.Color.red(),
                                 ),
                                 private=True,
                             )
@@ -145,7 +160,8 @@ class AutoModeration(commands.Cog):
                         elif rule.punishment.action == "mute":  # TODO: fix mutes
                             await message.reply(
                                 embed=embeds.Embeds.embed(
-                                    description=messageToReply, color=guilded.Color.red()
+                                    description=messageToReply,
+                                    color=guilded.Color.red(),
                                 ),
                                 private=True,
                             )
