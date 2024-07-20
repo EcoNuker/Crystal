@@ -10,6 +10,7 @@ from DATA import custom_events
 import documents
 from documents import Server, automodRule
 
+# TODO: toggle rules (disable/enable rule)
 
 async def toggle_setting(
     server_id: str, setting: str, specific: bool | None = None, logged: bool = False
