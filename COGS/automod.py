@@ -14,6 +14,8 @@ from typing import List
 import documents
 from documents import Server, automodRule
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 # TODO: toggle custom rules (disable/enable rule)
 
 
@@ -199,31 +201,70 @@ class AutoModeration(commands.Cog):
             USING_RULES.extend(self.default_profanity)
 
         if not message.author.id == self.bot.user.id and USING_RULES != []:
-            matches = {}
-            for rule in USING_RULES:
+
+            def process_rule(
+                rule: automodRule,
+                message_content: str,
+                message_before_content: str = None,
+            ):
                 if rule.regex:
                     match_rule = rule.rule
                 else:
                     match_rule = regexes.allow_seperators(
                         regexes.generate_regex(rule.rule, plural=True)
                     )
-                mtch = re2.search(match_rule, message.content)
+
+                # Perform the regex search
+                mtch = re2.search(match_rule, message_content)
                 if mtch:
                     mtch = [mtch.group()]
                 else:
                     mtch = []
-                if rule.enabled and mtch != []:
+
+                if rule.enabled and mtch:
                     if (
-                        messageBefore
-                        and message.content[
-                            re2.search(rule.rule, message.content)
-                            .start() : re2.search(rule.rule, message.content)
+                        message_before_content
+                        and message_content[
+                            re2.search(rule.rule, message_content)
+                            .start() : re2.search(rule.rule, message_content)
                             .end()
                         ]
-                        in messageBefore.content
+                        in message_before_content
                     ):
-                        return
-                    matches[rule.rule] = [rule, mtch]
+                        return None  # Skip this rule if it matches the condition
+                    return (rule.rule, [rule, mtch])
+                return None
+
+            def parallel_regex_search(
+                USING_RULES: List[automodRule],
+                message: guilded.Message,
+                message_before: guilded.Message = None,
+            ):
+                matches = {}
+
+                # Create a ThreadPoolExecutor to run tasks in parallel
+                with ThreadPoolExecutor(max_workers=1000) as executor:
+                    # Submit tasks to the executor
+                    futures = {
+                        executor.submit(
+                            process_rule,
+                            rule,
+                            message.content,
+                            message_before.content if message_before else None,
+                        ): rule
+                        for rule in USING_RULES
+                    }
+
+                    # Process completed futures
+                    for future in as_completed(futures):
+                        result = future.result()
+                        if result:
+                            rule_key, match_result = result
+                            matches[rule_key] = match_result
+
+                return matches
+
+            matches = parallel_regex_search(USING_RULES, message, messageBefore)
             if matches == {}:
                 return
             try:
@@ -397,12 +438,12 @@ class AutoModeration(commands.Cog):
             )
             embed.add_field(
                 name="Anti-Slurs",
-                value=f"{':x: **Off' if server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+                value=f"{':x: **Off' if not server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
                 inline=False,
             )
             embed.add_field(
                 name="Anti-Profanity",
-                value=f"{':x: **Off' if server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+                value=f"{':x: **Off' if not server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -421,7 +462,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Slurs",
-                description=f"{':x: **Off' if server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
+                description=f"{':x: **Off' if not server_data.data.automodModules.slurs else ':white_check_mark: **On'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
             )
             embed.add_field(
                 name="Toggle Module",
@@ -514,7 +555,7 @@ class AutoModeration(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Profanity",
-                description=f"{':x: **Off' if server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
+                description=f"{':x: **Off' if not server_data.data.automodModules.profanity else ':white_check_mark: **On'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
             )
             embed.add_field(
                 name="Toggle Module",
@@ -646,7 +687,7 @@ class AutoModeration(commands.Cog):
             )
             embed.add_field(
                 name="Toggle Setting",
-                value=f"Toggle the `moderate server owner` setting.\n`{prefix}automod settings bot_messages toggle [status | optional]`",
+                value=f"Toggle the `moderate server owner` setting.\n`{prefix}automod settings moderate_owner toggle [status | optional]`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -741,7 +782,7 @@ class AutoModeration(commands.Cog):
             )
             embed.add_field(
                 name="Toggle Setting",
-                value=f"Toggle the `moderate bot messages` setting.\n`{prefix}automod settings bot_messages toggle [status | optional]`",
+                value=f"Toggle the `moderate bot messages` setting.\n`{prefix}automod settings moderate_bots toggle [status | optional]`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
