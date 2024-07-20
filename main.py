@@ -221,6 +221,7 @@ bot.version = CONFIGS.version
 bot.name = "Crystal"
 bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
+bot.bypasses = {}
 
 # Logging
 bot.print = _print

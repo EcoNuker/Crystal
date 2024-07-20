@@ -1,6 +1,7 @@
 import guilded
 import asyncio
 from guilded.ext import commands
+import time
 
 from DATA import tools
 from DATA import embeds
@@ -10,12 +11,31 @@ from DATA import custom_events
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.cooldowns = {}
         # self.db = bot.db
 
     @commands.command(name="purge")
-    @commands.cooldown(1, 120, commands.BucketType.channel)
     async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
         # check permissions
+        if time.time() - self.cooldowns.get(ctx.channel.id, 0) < 120:
+            try:
+                raise commands.CommandOnCooldown(
+                    commands.Cooldown(1, 120),
+                    retry_after=time.time() - self.cooldowns.get(ctx.channel.id, 0)
+                    < 120,
+                    type=commands.BucketType.channel,
+                )
+            except commands.CommandOnCooldown as e:
+                rounded = round(e.retry_after)
+                embedig = embeds.Embeds.embed(
+                    title="Slow down there!",
+                    color=guilded.Color.red(),
+                    description=f"Please wait `{rounded:,}` second{'s' if rounded != 1 else ''} before trying again.",
+                )
+                msg = await ctx.reply(embed=embedig, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    return
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -45,13 +65,33 @@ class Moderation(commands.Cog):
         if not amount - 1 <= 250:
             embed = embeds.Embeds.embed(
                 title="Invalid Amount",
-                description="The amount of messages to delete must be less than 250.",
+                description="The amount of messages to delete must be less than `250`.",
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
+            if amount - 1 > 1000:
+                embed = embeds.Embeds.embed(
+                    title="REALLY >:(",
+                    description=f"Look, you may be special, but we have ratelimits!!!! We're not doing this, NO MORE THAN `1000`!!! :<",
+                    color=guilded.Color.red(),
+                )
+                await ctx.reply(embed=embed, private=ctx.message.private)
+                raise tools.BypassFailed()
+            newlimit = 250 + 50
+            while newlimit < (amount - 1):
+                embed = embeds.Embeds.embed(
+                    title="REALLY >:(",
+                    description=f"Look, you may be special, but we have ratelimits!!!! Maximum `{newlimit}`. Keep bypassing, nub! :<",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    raise tools.BypassFailed()
+                newlimit += 50
         else:
             custom_events.eventqueue.add_event(
                 custom_events.ModeratorAction(
@@ -94,11 +134,12 @@ class Moderation(commands.Cog):
             await asyncio.gather(*[del_message(message) for message in list(set(msgs))])
             embed = embeds.Embeds.embed(
                 title="Purge",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} have been deleted!",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been deleted!",
                 color=guilded.Color.green(),
             )
             m_id = await ctx.send(embed=embed, delete_after=3)
             custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
+            self.cooldowns[ctx.channel.id] = time.time()
 
     # @commands.command(name="kick")
     # async def kick(

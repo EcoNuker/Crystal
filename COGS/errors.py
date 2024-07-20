@@ -13,8 +13,18 @@ class errors(commands.Cog):
 
     @commands.Cog.listener(name="on_command_error")
     async def ANERROROCCURED(self, ctx: commands.Context, error):
+        self.bot.print(
+            f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.error_logs}[FAILED] {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
+        )
         try:
             if isinstance(error, commands.CommandNotFound):
+                return
+            elif hasattr(error, "original") and isinstance(
+                error.original, tools.BypassFailed
+            ):
+                bypasses = self.bot.bypasses.get(ctx.author.id, [])
+                if ctx.message in bypasses:
+                    self.bot.bypasses[ctx.author.id].remove(ctx.message)
                 return
             elif isinstance(error, commands.CommandOnCooldown):
                 rounded = round(error.retry_after)

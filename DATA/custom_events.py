@@ -44,13 +44,15 @@ def action_map(
         res = res.format(time="an unknown duration")
 
     if "{amount}" in res and amount is not None:
-        res = res.format(amount=f"{amount:,}")
         if "{checkS}" in res:
-            res = res.format(checkS="s" if amount != 1 else "")
+            res = res.format(amount=f"{amount:,}", checkS="s" if amount != 1 else "")
+        else:
+            res = res.format(amount=f"{amount:,}")
     elif "{amount}" in res:
-        res = res.format(amount="an unknown amount of")
         if "{checkS}" in res:
-            res = res.format(checkS="s")
+            res = res.format(checkS="s", amount="an unknown amount of")
+        else:
+            res = res.format(amount="an unknown amount of")
 
     if automod:
         res += " and the message was deleted."

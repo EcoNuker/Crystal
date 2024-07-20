@@ -10,10 +10,16 @@ class events(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.Cog.listener("on_command")
+    @commands.Cog.listener("on_command_completion")
     async def commandwasrun(self, ctx: commands.Context):
+        bypassed = False
+        if ctx.author.id in self.bot.owner_ids:
+            bypasses = self.bot.bypasses.get(ctx.author.id, [])
+            if ctx.message in bypasses:
+                bypassed = True
+                self.bot.bypasses[ctx.author.id].remove(ctx.message)
         self.bot.print(
-            f"{self.bot.COLORS.command_logs}[COMMAND] {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
+            f"{self.bot.COLORS.command_logs}[COMMAND]{' ' + self.bot.COLORS.warn_logs + '[BOT OWNER BYPASS]' if bypassed else ''} {self.bot.COLORS.user_name}{ctx.author.name} ({ctx.author.id}){self.bot.COLORS.normal_message} ran command {self.bot.COLORS.item_name}{ctx.command.qualified_name}{self.bot.COLORS.normal_message} on the server {self.bot.COLORS.item_name}{ctx.server.name} ({ctx.server.id}){self.bot.COLORS.normal_message}. Full command: {self.bot.COLORS.item_name}{ctx.message.content}"
         )
 
     @commands.Cog.listener("on_message")
