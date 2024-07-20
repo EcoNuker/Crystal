@@ -177,9 +177,15 @@ slurs = [
 
 invites = [
     r"(?i)(?:https?:\/\/)?(?:www.|ptb.|canary.)?(?:dsc\.gg|invite\.gg|discord\.link|(?:discord\.(?:gg|io|me|li|id))|disboard\.org|discord(?:app)?\.(?:com|gg)\/(?:invite|servers))\/[a-z0-9-_]+",
-    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:guilded\.(?:gg|com))\/(?!(?:TheGG|Guilded-Official|EcoNuker|API-Official))(i\/[a-z0-9-_]+|[a-z0-9-_]+)",
-    r"^(?:https?:\/\/)?(?:www\.)?(?:revolt\.chat|rvlt\.gg)(?:(?!\/(?:posts|tracker))(?:\/[a-zA-Z0-9_-]+)*)?$",
+    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:guilded\.(?:gg|com))\/(?:i\/[a-z0-9-_]+|[a-z0-9-_]+)",
+    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:revolt\.chat|rvlt\.gg)(?:\/[a-zA-Z0-9_-]+)*",
 ]
+
+invites_exclusions = {
+    "guilded": ["TheGG", "Guilded-Official", "EcoNuker", "API-Official"],
+    "discord": [],
+    "revolt": ["posts", "tracker"],
+}
 
 # invites LIST IN ORDER:
 # discord + third-party invites

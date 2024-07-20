@@ -1,8 +1,9 @@
-import guilded, json, re2, time, base64, math, random
+import guilded, json, time, base64, math, random, re
 from guilded.ext import commands
 from io import BufferedIOBase, BytesIO, IOBase
 from aiohttp import ClientSession
 from pathlib import Path
+import re2
 from DATA import embeds
 from DATA import tools
 from DATA import custom_events
@@ -182,7 +183,7 @@ class AutoModeration(commands.Cog):
                 custom_reason="**[Anti-Invites Module]** This user has violated the server's automod anti-invites module. (`{MATCH}`)",
             )
             newrule.punishment.action = "warn"
-            self.default_profanity.append(newrule)
+            self.default_invites.append(newrule)
 
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
@@ -218,10 +219,8 @@ class AutoModeration(commands.Cog):
             USING_RULES.extend(self.default_slurs)
         if server_data.data.automodModules.profanity:
             USING_RULES.extend(self.default_profanity)
-        if server_data.data.automodModules.invites:
-            USING_RULES.extend(self.default_invites)
 
-        if not message.author.id == self.bot.user.id and USING_RULES != []:
+        if (not message.author.id == self.bot.user.id) and USING_RULES != []:
 
             def process_rule(
                 rule: automodRule,
@@ -286,6 +285,47 @@ class AutoModeration(commands.Cog):
                 return matches
 
             matches = parallel_regex_search(USING_RULES, message, messageBefore)
+            if server_data.data.automodModules.invites:
+                i = 0
+                for rule in self.default_invites:
+                    mtch = re2.search(rule.rule, message.content)
+                    if mtch:
+                        mtch = [mtch.group()]
+                    else:
+                        mtch = []
+
+                    if rule.enabled and mtch:
+                        if (
+                            messageBefore
+                            and message.content[
+                                re2.search(rule.rule, message.content)
+                                .start() : re2.search(rule.rule, message.content)
+                                .end()
+                            ]
+                            in messageBefore.content
+                        ):
+                            continue
+                        if i == 0:
+                            if any(
+                                exclusion.lower() in mtch[0].lower()
+                                for exclusion in regexes.invites_exclusions["guilded"]
+                            ):
+                                continue
+                        elif i == 1:
+                            if any(
+                                exclusion.lower() in mtch[0].lower()
+                                for exclusion in regexes.invites_exclusions["discord"]
+                            ):
+                                continue
+                        elif i == 2:
+                            if any(
+                                exclusion.lower() in mtch[0].lower()
+                                for exclusion in regexes.invites_exclusions["revolt"]
+                            ):
+                                continue
+                        rule_key, match_result = rule.rule, [rule, mtch]
+                        matches[rule_key] = match_result
+                        i += 1
             if matches == {}:
                 return
             try:

@@ -21,8 +21,7 @@ class Moderation(commands.Cog):
                 raise commands.CommandOnCooldown(
                     commands.Cooldown(1, 120),
                     retry_after=120
-                    - (time.time() - self.cooldowns.get(ctx.channel.id, 0))
-                    < 120,
+                    - (time.time() - self.cooldowns["purge"].get(ctx.channel.id, 0)),
                     type=commands.BucketType.channel,
                 )
             except commands.CommandOnCooldown as e:
