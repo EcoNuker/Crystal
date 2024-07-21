@@ -1,5 +1,5 @@
 # WARNING. This document may contain sensitive regexes that include swearing and slurs. Read at your own risk.
-import re2, re
+import re2
 
 seperators = "\s\-\*.,_\+=!`:#$%^&()"
 
@@ -135,7 +135,7 @@ def allow_seperators(regex: str) -> str:
     regex = re2.sub(
         r"([^\\])\+", lambda match: f"{match.group(1)}+[{seperators}]*", regex
     )
-    regex = re.sub(
+    regex = re2.sub(
         r"(\[.*?\])(?![\+\*])", lambda match: f"{match.group(1)}[{seperators}]*", regex
     )
 
@@ -491,7 +491,6 @@ masterbations
 masturbate
 masturbating
 masturbation
-menses
 menstruate
 menstruation
 meth
@@ -559,8 +558,6 @@ pedo
 pedophile
 pedophilia
 pedophiliac
-pee
-peepee
 penetrate
 penetration
 penial
@@ -659,10 +656,6 @@ smut
 smutty
 son-of-a-bitch
 sperm
-spooge
-spunk
-strip club
-stripclub
 sumofabiatch
 teat
 teets
@@ -686,9 +679,6 @@ tittyfucker
 tittywank
 titwank
 transsexual
-undies
-unwed
-urinal
 urine
 uterus
 vag
@@ -697,7 +687,6 @@ valium
 viagra
 vigra
 virgin
-vomit
 voyeur
 vulva
 weed

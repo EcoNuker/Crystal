@@ -197,8 +197,10 @@ class AutoModeration(commands.Cog):
             await server_data.save()
         if not server_data.data.automodSettings.enabled:
             return
-        if message.author.is_owner() and (
-            not server_data.data.automodSettings.moderateOwner
+        if (
+            message.author
+            and message.author.is_owner()
+            and (not server_data.data.automodSettings.moderateOwner)
         ):
             return
         if message.author.bot and (not server_data.data.automodSettings.moderateBots):
