@@ -1659,7 +1659,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.gilded(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -1708,7 +1708,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Deleted",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -1867,7 +1867,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.gilded(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -1914,7 +1914,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Deleted",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -2075,7 +2075,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.gilded(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -2124,7 +2124,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Deleted",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -2281,7 +2281,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.gilded(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
@@ -2330,7 +2330,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Deleted",
-            url=event.reply.share_url,
+            url=event.reply.channel.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)

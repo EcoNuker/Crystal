@@ -159,6 +159,7 @@ class AutoModeration(commands.Cog):
                 rule=rule,
                 regex=True,
                 custom_reason="**[Anti-Slurs Module]** This user has violated the server's automod anti-slurs module. (`{MATCH}`)",
+                extra_data={"check_leetspeak": True},
             )
             newrule.punishment.action = "warn"
             self.default_slurs.append(newrule)
@@ -170,6 +171,7 @@ class AutoModeration(commands.Cog):
                 rule=rule,
                 regex=True,
                 custom_reason="**[Anti-Profanity Module]** This user has violated the server's automod anti-profanity module. (`{MATCH}`)",
+                extra_data={"check_leetspeak": True},
             )
             newrule.punishment.action = "warn"
             self.default_profanity.append(newrule)
@@ -199,6 +201,7 @@ class AutoModeration(commands.Cog):
             return
         if (
             message.author
+            and isinstance(message.author, guilded.Member)
             and message.author.is_owner()
             and (not server_data.data.automodSettings.moderateOwner)
         ):
@@ -254,7 +257,26 @@ class AutoModeration(commands.Cog):
                         in message_before_content
                     ):
                         return None  # Skip this rule if it matches the condition
-                    return (rule.rule, [rule, mtch])
+                    if rule.extra_data.get(
+                        "check_leetspeak"
+                    ):  # over 50% numbers in match is probably not leetspeak, or nearly unreadable
+                        fifty_percent_numbers = (
+                            lambda s: len(s) > 0
+                            and (sum(c.isdigit() for c in s) / len(s)) > 0.5
+                        )
+                        safe = True
+                        to_delete = []
+                        for i, m in enumerate(mtch):
+                            if fifty_percent_numbers(m):
+                                to_delete.append(i)
+                            else:
+                                safe = False
+                        if safe:
+                            return None
+                        to_delete.reverse()
+                        for index in to_delete:
+                            del mtch[index]
+                    return (rule.rule, [rule, [m.strip() for m in mtch]])
                 return None
 
             def parallel_regex_search(
@@ -428,7 +450,7 @@ class AutoModeration(commands.Cog):
                         (
                             list(punishments["reasons"].values())[0]
                             if len(shortened_matches) == 1
-                            else f"**[Automod]** Multiple automod rules were violated. (`{'`, `'.join(shortened_matches)}`)"
+                            else f"**[Automod]** Multiple automod rules were violated. (`{'`, `'.join(list(set(shortened_matches)))}`)"
                         ),
                         [punishments["tempmute_dur"], punishments["tempban_dur"]],
                     )

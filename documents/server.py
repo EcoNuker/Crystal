@@ -147,6 +147,7 @@ class automodRule(BaseModel):
     - custom_message - `Optional[str]` - Custom message given to user
     - custom_reason - `Optional[str]` - Custom reason that's logged as the warning or note or whatever
     - created - `int` - Created at timestamp in epoch seconds - Automatically generated when rule is made
+    - extra_data - `dict` - Automod rule extra data
     """
 
     author: str
@@ -158,6 +159,7 @@ class automodRule(BaseModel):
     custom_reason: Optional[str] = None
     enabled: bool = True
     created: int = None
+    extra_data: dict = {}
 
     @model_validator(mode="after")
     def created_validator(self):
