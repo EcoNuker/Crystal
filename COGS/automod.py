@@ -225,6 +225,8 @@ class AutoModeration(commands.Cog):
         if server_data.data.automodModules.profanity:
             USING_RULES.extend(self.default_profanity)
 
+        # TODO: integrate mention spam into this
+
         if (not message.author.id == self.bot.user.id) and USING_RULES != []:
 
             def process_rule(
