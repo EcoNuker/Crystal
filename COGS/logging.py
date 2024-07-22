@@ -883,6 +883,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.after.author:
+            await self.bot.fetch_user(event.after.author_id)
 
         if (not server_data.logging.logSettings.logBotMessageChanges) and (
             await self.bot.getch_user(event.after.author_id)
@@ -1004,6 +1006,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.member:
+            await self.bot.fetch_user(event.user_id)
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -1188,6 +1192,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.member:
+            await self.bot.fetch_user(event.ban.user.id)
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -1251,6 +1257,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.member:
+            await self.bot.fetch_user(event.ban.user.id)
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -1310,6 +1318,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.message.author:
+            await self.bot.fetch_user(event.message.author_id)
 
         if (not server_data.logging.logSettings.logBotMessageChanges) and (
             await self.bot.getch_user(event.message.author_id)
@@ -1367,6 +1377,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Updated",
             url=event.topic.share_url,
@@ -1417,6 +1429,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Deleted",
             url=event.topic.share_url,
@@ -1467,6 +1481,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Pinned",
             url=event.topic.share_url,
@@ -1514,6 +1530,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unpinned",
             url=event.topic.share_url,
@@ -1561,6 +1579,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Locked",
             url=event.topic.share_url,
@@ -1608,6 +1628,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.topic.author:
+            await self.bot.fetch_user(event.topic.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unlocked",
             url=event.topic.share_url,
@@ -1657,6 +1679,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
             url=event.reply.channel.share_url,
@@ -1706,6 +1730,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Deleted",
             url=event.reply.channel.share_url,
@@ -1753,9 +1779,11 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.doc.author:
+            await self.bot.fetch_user(event.doc.author_id)
         embed = embeds.Embeds.embed(
             title=f"Doc Updated",
-            url=event.doc.share_url,
+            url=event.doc.channel.share_url,
             colour=guilded.Colour.gilded(),
         )
         embed.set_thumbnail(url=event.doc.author.display_avatar.url)
@@ -1811,7 +1839,7 @@ class Logging(commands.Cog):
             return
         embed = embeds.Embeds.embed(
             title=f"Doc Deleted",
-            url=event.doc.share_url,
+            url=event.doc.channel.share_url,
             colour=guilded.Colour.red(),
         )
         embed.set_thumbnail(url=event.doc.author.display_avatar.url)
@@ -1865,6 +1893,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
             url=event.reply.channel.share_url,
@@ -1912,6 +1942,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Deleted",
             url=event.reply.channel.share_url,
@@ -1959,6 +1991,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.announcement.author:
+            await self.bot.fetch_user(event.announcement.author_id)
         embed = embeds.Embeds.embed(
             title=f"Announcement Updated",
             url=event.announcement.share_url,
@@ -2015,6 +2049,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.announcement.author:
+            await self.bot.fetch_user(event.announcement.author_id)
         embed = embeds.Embeds.embed(
             title=f"Announcement Deleted",
             url=event.announcement.share_url,
@@ -2073,6 +2109,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
             url=event.reply.channel.share_url,
@@ -2122,6 +2160,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Deleted",
             url=event.reply.channel.share_url,
@@ -2169,6 +2209,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.calendar_event.author:
+            await self.bot.fetch_user(event.calendar_event.author_id)
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Updated",
             url=event.calendar_event.share_url,
@@ -2223,6 +2265,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.calendar_event.author:
+            await self.bot.fetch_user(event.calendar_event.author_id)
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Deleted",
             url=event.calendar_event.share_url,
@@ -2279,6 +2323,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
             url=event.reply.channel.share_url,
@@ -2328,6 +2374,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.reply.author:
+            await self.bot.fetch_user(event.reply.author_id)
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Deleted",
             url=event.reply.channel.share_url,
@@ -2375,6 +2423,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.item.author:
+            await self.bot.fetch_user(event.item.author_id)
         embed = embeds.Embeds.embed(
             title=f"List Item Updated",
             url=event.item.share_url,
@@ -2422,6 +2472,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.item.author:
+            await self.bot.fetch_user(event.item.author_id)
         embed = embeds.Embeds.embed(
             title=f"List Item Deleted",
             url=event.item.share_url,
@@ -2469,6 +2521,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.item.author:
+            await self.bot.fetch_user(event.item.author_id)
         embed = embeds.Embeds.embed(
             title=f"List Item Completed",
             url=event.item.share_url,
@@ -2516,6 +2570,8 @@ class Logging(commands.Cog):
             pass
         else:
             return
+        if not event.item.author:
+            await self.bot.fetch_user(event.item.author_id)
         embed = embeds.Embeds.embed(
             title=f"List Item Uncompleted",
             url=event.item.share_url,

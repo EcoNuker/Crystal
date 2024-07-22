@@ -1,8 +1,8 @@
-import guilded, json, time, base64, math, random, re
+import guilded
 from guilded.ext import commands
-from io import BufferedIOBase, BytesIO, IOBase
-from aiohttp import ClientSession
-from pathlib import Path
+
+import string, unicodedata, time, asyncio
+
 import re2
 from DATA import embeds
 from DATA import tools
@@ -151,6 +151,8 @@ class AutoModeration(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+        self.cooldowns = {"scan": {}}
+
         # PLEASE DON'T CANCEL US :(!
         self.default_slurs = []
         for rule in regexes.slurs:
@@ -189,7 +191,8 @@ class AutoModeration(commands.Cog):
 
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
-    ):
+    ) -> bool:
+        modded = False
         prefix = await self.bot.get_prefix(message)
         if type(prefix) == list:
             prefix = prefix[0]
@@ -198,16 +201,20 @@ class AutoModeration(commands.Cog):
             server_data = Server(serverId=message.server.id)
             await server_data.save()
         if not server_data.data.automodSettings.enabled:
-            return
+            return modded
+        if not message.author:
+            try:
+                message._author = await message.server.getch_member(message.author_id)
+            except:
+                message._author = await self.bot.getch_user(message.author_id)
         if (
-            message.author
-            and isinstance(message.author, guilded.Member)
+            isinstance(message.author, guilded.Member)
             and message.author.is_owner()
             and (not server_data.data.automodSettings.moderateOwner)
         ):
-            return
+            return modded
         if message.author.bot and (not server_data.data.automodSettings.moderateBots):
-            return
+            return modded
         if message.content.startswith(
             (
                 prefix + "automod rules remove ",
@@ -216,7 +223,7 @@ class AutoModeration(commands.Cog):
                 prefix + "automod rule delete ",
             )
         ):
-            return  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
+            return modded  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
 
         USING_RULES: List[automodRule] = []
         USING_RULES.extend(server_data.data.automodRules)
@@ -225,18 +232,22 @@ class AutoModeration(commands.Cog):
         if server_data.data.automodModules.profanity:
             USING_RULES.extend(self.default_profanity)
 
-        # TODO: integrate mention spam into this
+        # TODO: integrate mention spam into this, and normal message spam
+        # TODO: check previous messages by user and combine
 
         if (not message.author.id == self.bot.user.id) and USING_RULES != []:
 
             def process_rule(
                 rule: automodRule,
                 message_content: str,
+                o_message_content: str,
                 message_before_content: str = None,
             ):
                 if rule.regex:
+                    orule = ""
                     match_rule = rule.rule
                 else:
+                    orule = rule.rule
                     match_rule = regexes.allow_seperators(
                         regexes.generate_regex(rule.rule, plural=True)
                     )
@@ -246,19 +257,22 @@ class AutoModeration(commands.Cog):
                 if mtch:
                     mtch = [mtch.group()]
                 else:
-                    mtch = []
+                    mtch = None
+                if mtch and (len(o_message_content) == len(message_content)):
+                    i = message_content.index(mtch[0])
+                    mtch = [o_message_content[i : len(mtch[0]) + 1]]
 
                 if rule.enabled and mtch:
-                    if (
-                        message_before_content
-                        and message_content[
-                            re2.search(rule.rule, message_content)
-                            .start() : re2.search(rule.rule, message_content)
-                            .end()
-                        ]
-                        in message_before_content
-                    ):
-                        return None  # Skip this rule if it matches the condition
+                    # if (
+                    #     message_before_content
+                    #     and message_content[
+                    #         re2.search(rule.rule, message_content)
+                    #         .start() : re2.search(rule.rule, message_content)
+                    #         .end()
+                    #     ]
+                    #     in message_before_content
+                    # ):
+                    #     return None  # Skip this rule if it matches the condition
                     if rule.extra_data.get(
                         "check_leetspeak"
                     ):  # over 50% numbers in match is probably not leetspeak, or nearly unreadable
@@ -278,7 +292,29 @@ class AutoModeration(commands.Cog):
                         to_delete.reverse()
                         for index in to_delete:
                             del mtch[index]
-                    return (rule.rule, [rule, [m.strip() for m in mtch]])
+                    return (
+                        rule.rule,
+                        [
+                            rule,
+                            [
+                                m.strip(
+                                    regexes.seperators.replace(
+                                        "\\s", string.whitespace
+                                    ).replace("\\", "")
+                                    if any(
+                                        char in orule
+                                        for char in [
+                                            *regexes.seperators.replace(
+                                                "\\s", string.whitespace
+                                            ).replace("\\", "")
+                                        ]
+                                    )
+                                    else string.whitespace
+                                )
+                                for m in mtch
+                            ],
+                        ],
+                    )
                 return None
 
             def parallel_regex_search(
@@ -288,6 +324,13 @@ class AutoModeration(commands.Cog):
             ):
                 matches = {}
 
+                o_message_content = message.content
+                message_content = unicodedata.normalize("NFC", message.content)
+                message_content = regexes.CHARS.attempt_clean_zalgo(
+                    message_content.lower()
+                )
+                message_content = regexes.CHARS.replace_doubled_chars(message_content)
+
                 # Create a ThreadPoolExecutor to run tasks in parallel
                 with ThreadPoolExecutor(max_workers=1000) as executor:
                     # Submit tasks to the executor
@@ -295,7 +338,8 @@ class AutoModeration(commands.Cog):
                         executor.submit(
                             process_rule,
                             rule,
-                            message.content,
+                            message_content,
+                            o_message_content,
                             message_before.content if message_before else None,
                         ): rule
                         for rule in USING_RULES
@@ -353,8 +397,14 @@ class AutoModeration(commands.Cog):
                         matches[rule_key] = match_result
                         i += 1
             if matches == {}:
-                return
+                return modded
             try:
+                for key, mtchs in matches.copy().items():
+                    if mtchs[0].strip() == "":
+                        del matches[key]
+                if matches == {}:
+                    return modded
+                modded = True
                 severities = {
                     "warn": 0,
                     "tempmute": 1,
@@ -460,6 +510,7 @@ class AutoModeration(commands.Cog):
             except guilded.Forbidden:
                 # await toggle_setting(message.server_id, "enabled", False)
                 pass
+            return modded
 
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
@@ -472,10 +523,6 @@ class AutoModeration(commands.Cog):
     @commands.group("automod")
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def automod(self, ctx: commands.Context):
-        await ctx.reply(
-            "⚠️ Automod and related portions are under development; do not use! Logging is complete if you want to check that out.",
-            private=ctx.message.private,
-        )
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -489,6 +536,11 @@ class AutoModeration(commands.Cog):
             embed = embeds.Embeds.embed(
                 title=f"Automod Commands",
                 description=f"The automod in this server is {':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}**",
+            )
+            embed.add_field(
+                name="Scan",
+                value=f"Immediately scan and moderate up to 250 messages.\n`{prefix}automod scan <amount>`",
+                inline=False,
             )
             embed.add_field(
                 name="Automod Settings",
@@ -509,6 +561,141 @@ class AutoModeration(commands.Cog):
         else:
             # All subcommands will need to check permissions, therefore fill roles
             await ctx.server.fill_roles()
+
+    @automod.command(name="scan")
+    async def scan(self, ctx: commands.Context, *, amount, private: bool = True):
+        # check permissions
+        if time.time() - self.cooldowns["scan"].get(ctx.channel.id, 0) < 120:
+            try:
+                raise commands.CommandOnCooldown(
+                    commands.Cooldown(1, 120),
+                    retry_after=120
+                    - (time.time() - self.cooldowns["scan"].get(ctx.channel.id, 0)),
+                    type=commands.BucketType.channel,
+                )
+            except commands.CommandOnCooldown as e:
+                rounded = round(e.retry_after)
+                embedig = embeds.Embeds.embed(
+                    title="Slow down there!",
+                    color=guilded.Color.red(),
+                    description=f"Please wait `{rounded:,}` second{'s' if rounded != 1 else ''} before trying again.",
+                )
+                msg = await ctx.reply(embed=embedig, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg, "cooldown")
+                if not bypass:
+                    return
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.read_messages:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Read Messages", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        try:
+            amount = int(amount) + 1
+        except:
+            embed = embeds.Embeds.embed(
+                title="Invalid Amount",
+                description="The amount of messages to scan must be a number.",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
+        if not amount - 1 <= 250:
+            embed = embeds.Embeds.embed(
+                title="Invalid Amount",
+                description="The amount of messages to scan must be less than `250`.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, "amount")
+            if not bypass:
+                return
+            if amount - 1 > 1000:
+                embed = embeds.Embeds.embed(
+                    title="REALLY >:(",
+                    description=f"Look, you may be special, but we have ratelimits!!!! We're not doing this, NO MORE THAN `1000`!!! :<",
+                    color=guilded.Color.red(),
+                )
+                await ctx.reply(embed=embed, private=ctx.message.private)
+                raise tools.BypassFailed()
+            newlimit = 250 + 50
+            while newlimit < (amount - 1):
+                embed = embeds.Embeds.embed(
+                    title="REALLY >:(",
+                    description=f"Look, you may be special, but we have ratelimits!!!! Maximum `{newlimit}`. Keep bypassing, nub! :<",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg, "amount")
+                if not bypass:
+                    raise tools.BypassFailed()
+                newlimit += 50
+        else:
+            custom_events.eventqueue.add_event(
+                custom_events.ModeratorAction(
+                    "scan",
+                    moderator=ctx.author,
+                    channel=ctx.channel,
+                    amount=amount - 1,
+                )
+            )
+            handling_amount = amount
+            last_message = None
+            d_msgs = []
+            msgs = []
+            while handling_amount > 0:
+                limit = min(handling_amount, 100)
+                if last_message is None:
+                    messages = await ctx.channel.history(
+                        limit=limit, include_private=private
+                    )
+                else:
+                    messages = await ctx.channel.history(
+                        limit=limit,
+                        include_private=private,
+                        before=last_message.created_at,
+                    )
+                if len(messages) == 0:
+                    break
+                msgs.extend(messages)
+                d_msgs.extend([message.id for message in messages])
+                last_message = messages[-1] if messages else None
+                handling_amount -= limit
+            msgs.reverse()
+
+            modded = 0
+
+            async def modMessage(message):
+                nonlocal modded
+                try:
+                    res = await self.moderateMessage(message)
+                    if res:
+                        modded += 1
+                except:
+                    pass
+
+            await asyncio.gather(*[modMessage(message) for message in msgs])
+            embed = embeds.Embeds.embed(
+                title="Messages Scanned",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if amount-1 != 1 else 'was'} actioned upon.",
+                color=guilded.Color.green(),
+            )
+            m_id = await ctx.reply(embed=embed, private=ctx.message.private)
+            custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
+            self.cooldowns["scan"][ctx.channel.id] = time.time()
+            for channel_id, ran_at in self.cooldowns["scan"].copy().items():
+                if time.time() - ran_at > 120:
+                    del self.cooldowns["scan"][channel_id]
 
     @automod.group(name="modules", aliases=["module"])
     async def modules(self, ctx: commands.Context):
@@ -1119,6 +1306,10 @@ class AutoModeration(commands.Cog):
 
     @automod.group("rules", aliases=["rule"])
     async def rules(self, ctx: commands.Context):
+        await ctx.reply(
+            "⚠️ Automod custom rules are under development; do not use! Logging and automod modules are complete if you want to check that out.",
+            private=ctx.message.private,
+        )
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:

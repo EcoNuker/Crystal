@@ -17,6 +17,7 @@ def action_map(
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
         "purge": "{amount} message{checkS} were deleted using purge",
+        "scan": "{amount} message{checkS} were scanned using automod",
     }
 
     def format_duration(seconds: int) -> str:
@@ -177,7 +178,16 @@ class ModeratorAction(CloudBaseEvent):
         )
         self.reason = reason
         self.timestamp = time.time()
-        assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn", "purge"]
+        assert action in [
+            "kick",
+            "ban",
+            "mute",
+            "tempban",
+            "tempmute",
+            "warn",
+            "purge",
+            "scan",
+        ]
 
 
 class BotSettingChanged(CloudBaseEvent):
