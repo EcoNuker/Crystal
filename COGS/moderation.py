@@ -61,6 +61,13 @@ class Moderation(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
+        if not amount - 1 > 0:
+            embed = embeds.Embeds.embed(
+                title="Invalid Amount",
+                description="The amount of messages to delete must be more than `0`.",
+                color=guilded.Color.red(),
+            )
+            return await ctx.reply(embed=embed, private=ctx.message.private)
         if not amount - 1 <= 250:
             embed = embeds.Embeds.embed(
                 title="Invalid Amount",

@@ -260,8 +260,7 @@ class AutoModeration(commands.Cog):
                     mtch = None
                 if mtch and (len(o_message_content) == len(message_content)):
                     i = message_content.index(mtch[0])
-                    mtch = [o_message_content[i : len(mtch[0]) + 1]]
-
+                    mtch = [o_message_content[i : i + len(mtch[0])]]
                 if rule.enabled and mtch:
                     # if (
                     #     message_before_content
@@ -351,7 +350,6 @@ class AutoModeration(commands.Cog):
                         if result:
                             rule_key, match_result = result
                             matches[rule_key] = match_result
-
                 return matches
 
             matches = parallel_regex_search(USING_RULES, message, messageBefore)
@@ -400,7 +398,7 @@ class AutoModeration(commands.Cog):
                 return modded
             try:
                 for key, mtchs in matches.copy().items():
-                    if mtchs[0].strip() == "":
+                    if mtchs[1][0].strip() == "":
                         del matches[key]
                 if matches == {}:
                     return modded
@@ -610,6 +608,13 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
+        if not amount - 1 > 0:
+            embed = embeds.Embeds.embed(
+                title="Invalid Amount",
+                description="The amount of messages to scan must be more than `0`.",
+                color=guilded.Color.red(),
+            )
+            return await ctx.reply(embed=embed, private=ctx.message.private)
         if not amount - 1 <= 250:
             embed = embeds.Embeds.embed(
                 title="Invalid Amount",
@@ -687,7 +692,7 @@ class AutoModeration(commands.Cog):
             await asyncio.gather(*[modMessage(message) for message in msgs])
             embed = embeds.Embeds.embed(
                 title="Messages Scanned",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if amount-1 != 1 else 'was'} actioned upon.",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon.",
                 color=guilded.Color.green(),
             )
             m_id = await ctx.reply(embed=embed, private=ctx.message.private)
