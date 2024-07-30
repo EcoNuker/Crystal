@@ -2,8 +2,8 @@ import guilded
 from guilded.ext import commands
 import asyncio
 import glob
-import os
-import sys
+from os import path
+from sys import modules
 from DATA import embeds
 
 
@@ -29,11 +29,11 @@ class developer(commands.Cog):
         except Exception as e:
             if ocog_name == "all":
                 cogspathpy = [
-                    os.path.basename(f)
+                    path.basename(f)
                     for f in glob.glob(f"{self.bot.CONFIGS.cogs_dir}*.py")
                 ]
                 cogs = [
-                    f"{self.bot.CONFIGS.cogs_dir[:-1]}." + os.path.splitext(f)[0]
+                    f"{self.bot.CONFIGS.cogs_dir[:-1]}." + path.splitext(f)[0]
                     for f in cogspathpy
                 ]
                 for cog in cogs:
@@ -70,7 +70,7 @@ class developer(commands.Cog):
         if ocog_name == "all" and (not cog_name in self.bot.extensions):
             for cog in [cog for cog in self.bot.extensions]:
                 if cog in self.bot.extensions:
-                    if self.bot.extensions[cog] == sys.modules[__name__]:
+                    if self.bot.extensions[cog] == modules[__name__]:
                         em = embeds.Embeds.embed(
                             description=f"`{cog}` cog wasn't unloaded, you do need access to these commands. Use reload instead.",
                             color=0x363942,
@@ -113,9 +113,11 @@ class developer(commands.Cog):
                 await ctx.reply(embed=em, private=ctx.message.private)
 
     @commands.command(name="reload", description="Reloads a cog.")
-    async def reload(self, ctx: commands.Context, *, cog_name: str = None):
+    async def reload(self, ctx: commands.Context, *, cog_name: str | None = None):
         if not ctx.author.id in self.bot.CONFIGS.owners:
             return await ctx.reply("No.", private=ctx.message.private)
+        if not cog_name:
+            cog_name = "all"
         ocog_name = cog_name
         if not cog_name.startswith(f"{self.bot.CONFIGS.cogs_dir[:-1]}."):
             cog_name = f"{self.bot.CONFIGS.cogs_dir[:-1]}." + cog_name
@@ -169,10 +171,17 @@ class developer(commands.Cog):
             )
 
         async def aexec(code, message, bot):
+            modified_globals = globals().copy()
+            modified_globals["__builtins__"] = {
+                k: __builtins__[k]
+                for k in __builtins__
+                if k
+                not in ("quit", "exit", "eval", "exec", "open", "input", "__import__")
+            }
             exec(
                 f"async def __ex(message, bot):\n    "
                 + ("".join(f"\n    {l}" for l in code.split("\n"))).strip(),
-                globals(),
+                modified_globals,
                 locals(),
             )
             return await locals()["__ex"](message, bot)
@@ -186,7 +195,7 @@ class developer(commands.Cog):
             self.bot.traceback(e)
             await ctx.message.add_reaction(90002175)
             await ctx.message.reply(
-                f"**Eval failed with Exception.**\nPlease check console.",
+                f"**Eval failed with Exception.**\n```python\n{e}\n```\nPlease check console for full exception.",
                 private=ctx.message.private,
             )
         else:

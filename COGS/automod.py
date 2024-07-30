@@ -29,6 +29,7 @@ async def toggle_module(
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
     )
+    assert server_data != None
     modules = {
         "slurs": [
             "Automod module `anti-slurs` was automatically `{STATUS}` on this server.",
@@ -50,7 +51,7 @@ async def toggle_module(
     elif module == "invites":
         status = server_data.data.automodModules.invites
     else:
-        return ValueError(f'Argument "setting" must be one of {list(modules.keys())}')
+        raise ValueError(f'Argument "setting" must be one of {list(modules.keys())}')
     if specific == True:
         if status == True:
             return None
@@ -94,6 +95,7 @@ async def toggle_setting(
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
     )
+    assert server_data != None
     settings = {
         "enabled": ["Automod was automatically `{STATUS}` on this server.", False],
         "moderateBots": [
@@ -112,7 +114,7 @@ async def toggle_setting(
     elif setting == "moderateOwner":
         status = server_data.data.automodSettings.moderateOwner
     else:
-        return ValueError(f'Argument "setting" must be one of {list(settings.keys())}')
+        raise ValueError(f'Argument "setting" must be one of {list(settings.keys())}')
     if specific == True:
         if status == True:
             return None
@@ -194,8 +196,8 @@ class AutoModeration(commands.Cog):
     ) -> bool:
         modded = False
         prefix = await self.bot.get_prefix(message)
-        if type(prefix) == list:
-            prefix = prefix[0]
+        if type(prefix) == str:
+            prefix = [prefix]
         server_data = await Server.find_one(Server.serverId == message.server.id)
         if not server_data:
             server_data = Server(serverId=message.server.id)
@@ -215,15 +217,16 @@ class AutoModeration(commands.Cog):
             return modded
         if message.author.bot and (not server_data.data.automodSettings.moderateBots):
             return modded
-        if message.content.startswith(
-            (
-                prefix + "automod rules remove ",
-                prefix + "automod rules delete ",
-                prefix + "automod rule remove ",
-                prefix + "automod rule delete ",
-            )
-        ):
-            return modded  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
+        for pre in prefix:
+            if message.content.startswith(
+                (
+                    pre + "automod rules remove ",
+                    pre + "automod rules delete ",
+                    pre + "automod rule remove ",
+                    pre + "automod rule delete ",
+                )
+            ):
+                return modded  # TODO: properly check permissions and if command doesnt run successfully, message is deleted
 
         USING_RULES: List[automodRule] = []
         USING_RULES.extend(server_data.data.automodRules)
@@ -373,22 +376,28 @@ class AutoModeration(commands.Cog):
                             in messageBefore.content
                         ):
                             continue
+
+                        def is_excluded(match, exclusions):
+                            for exclusion in exclusions:
+                                if re2.search(
+                                    rf"(?i){re2.escape(exclusion)}($|/)", match
+                                ):
+                                    return True
+                            return False
+
                         if i == 0:
-                            if any(
-                                exclusion.lower() in mtch[0].lower()
-                                for exclusion in regexes.invites_exclusions["guilded"]
+                            if is_excluded(
+                                mtch[0], regexes.invites_exclusions["guilded"]
                             ):
                                 continue
                         elif i == 1:
-                            if any(
-                                exclusion.lower() in mtch[0].lower()
-                                for exclusion in regexes.invites_exclusions["discord"]
+                            if is_excluded(
+                                mtch[0], regexes.invites_exclusions["discord"]
                             ):
                                 continue
                         elif i == 2:
-                            if any(
-                                exclusion.lower() in mtch[0].lower()
-                                for exclusion in regexes.invites_exclusions["revolt"]
+                            if is_excluded(
+                                mtch[0], regexes.invites_exclusions["revolt"]
                             ):
                                 continue
                         rule_key, match_result = rule.rule, [rule, mtch]
@@ -1389,6 +1398,7 @@ class AutoModeration(commands.Cog):
         # TODO: better parse arguments, using chained wait_fors
         # NOTE: maximum length for answers to message questions should be 250
         """
+        Questions should include a format.
         Ask the following questions:
         1. Are you inserting regex. (If you don't know what this means, probably no.)
         yes/no/true/false
@@ -1506,7 +1516,6 @@ class AutoModeration(commands.Cog):
     async def _delete(
         self,
         ctx: commands.Context,
-        rule: str,  # TODO: delete using wait_for, and they have to send rule there
     ):
         if ctx.server is None:
             await ctx.reply(
@@ -1543,6 +1552,22 @@ class AutoModeration(commands.Cog):
         ruleToDelete = None
         indexOfRule = None
 
+        embed = embeds.Embeds.embed(
+            title="Send Rule",
+            description="Please send the rule you would like to delete within 60 seconds.",
+            color=guilded.Color.green(),
+        )
+        msg = await ctx.reply(embed=embed)
+        rule = await tools.get_response(ctx, 60)
+        if not rule:
+            embed = embeds.Embeds.embed(
+                title="No Response",
+                description="There was no response within 60 seconds.",
+                color=guilded.Color.red(),
+            )
+            await msg.edit(embed=embed)
+            return
+
         for i, r in enumerate(server_data.data.automodRules):
             if r.rule == rule:
                 ruleToDelete = r
@@ -1566,14 +1591,14 @@ class AutoModeration(commands.Cog):
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            elif ruleToDelete.punishment.action in ["ban"] and not (
+            elif ruleToDelete.punishment.action in ["ban", "tempban"] and not (
                 ctx.author.server_permissions.ban_members or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
                 )
                 return await ctx.reply(embed=embed, private=ctx.message.private)
-            elif ruleToDelete.punishment.action in ["mute"] and not (
+            elif ruleToDelete.punishment.action in ["mute", "tempmute"] and not (
                 ctx.author.server_permissions.manage_roles or bypass
             ):
                 embed = embeds.Embeds.missing_permissions(

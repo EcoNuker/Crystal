@@ -19,6 +19,23 @@ class BypassFailed(Exception):
         super().__init__(*args)
 
 
+async def get_response(ctx: commands.Context, timeout: int = 30) -> guilded.Message:
+    """
+    Gets the response by waiting for a message in the same channel from the same author.
+    """
+    try:
+        response = await ctx.bot.wait_for(
+            "message",
+            check=lambda m: m.message.author.id == ctx.author.id
+            and m.message.channel.id == ctx.channel.id,
+            # and msg.id in m.message.replied_to_ids,
+            timeout=timeout,
+        )
+        return response
+    except asyncio.TimeoutError:
+        return False
+
+
 async def check_bypass(
     ctx: commands.Context, msg: guilded.Message, bypassed: str = "PERMS"
 ) -> bool:

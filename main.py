@@ -260,6 +260,8 @@ async def on_ready():
             )
         except commands.errors.ExtensionAlreadyLoaded:
             pass
+        except Exception as e:
+            bot.traceback(e)
 
     bot.success(f"Bot ready! Logged in as {COLORS.user_name}{bot.user}")
 

@@ -186,6 +186,7 @@ class Logging(commands.Cog):
                 while True:
                     custom_events.eventqueue.clear_old_overwrites()
                     for eventId, data in custom_events.eventqueue.events.copy().items():
+                        # TODO: switch to guilded.py's client.dispatch()
                         func_map = {
                             "AutomodEvent": self.on_automod,
                             "ModeratorAction": self.on_moderator_action,
