@@ -203,11 +203,13 @@ class HistoryCase(BaseModel):
 
 class serverMember(BaseModel):
     """
+    - member - `str` - The member's ID
     - history - `Dict[str, HistoryCase]` - The user's history of cases.
 
     # TODO: tempmute and tempban durations here
     """
 
+    member: str
     history: Dict[str, HistoryCase] = dict()
 
 
@@ -218,6 +220,7 @@ class Server(Document):
     - prefix - `Optional[str]` - The server's prefix.
     - logging - `LoggingChannels` - Logging channels for events.
     - members - `Dict[str, ServerMember]` - Members data and punishment log. (Defaults to {})
+    - cases - `Dict[str, str]` - Maps a caseID to a user
     - data - `serverData` - Server data and configs.
     """
 
@@ -228,5 +231,7 @@ class Server(Document):
     logging: loggingChannels = loggingChannels()
 
     members: Dict[str, serverMember] = dict()
+
+    cases: Dict[str, str] = dict()
 
     data: serverData = serverData()

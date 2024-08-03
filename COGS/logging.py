@@ -790,12 +790,14 @@ class Logging(commands.Cog):
 
         server_data.members[event.member.id].history[event.event_id] = HistoryCase(
             caseId=event.event_id,
-            action=event.actions,
+            actions=event.actions,
             reason=event.reason,
             moderator=self.bot.user_id,
             duration=event.durations,
             automod=True,
         )
+
+        server_data.cases[event.event_id] = event.member.id
 
         await server_data.save()
 
@@ -904,17 +906,23 @@ class Logging(commands.Cog):
                     except Exception as e:
                         await delete_log(event.server_id, channel_id, error=e)
 
-        if event.member:
-
+        if event.action in [
+            "kick",
+            "ban",
+            "mute",
+            "tempban",
+            "tempmute",
+            "warn",
+        ]:
             server_data.members[event.member.id] = server_data.members.get(
                 event.member.id, serverMember(member=event.member.id)
             )
 
             server_data.members[event.member.id].history[event.event_id] = HistoryCase(
                 caseId=event.event_id,
-                action=[event.action],
+                actions=[event.action],
                 reason=event.reason,
-                moderator=self.bot.user_id,
+                moderator=event.moderator.id,
                 duration=(
                     [event.duration, 0]
                     if event.action == "tempmute"
@@ -922,6 +930,8 @@ class Logging(commands.Cog):
                 ),
                 automod=False,
             )
+
+            server_data.cases[event.event_id] = event.member.id
 
             await server_data.save()
 
@@ -1018,7 +1028,7 @@ class Logging(commands.Cog):
                 format_timespan(datetime.datetime.now() - event.member.created_at)
                 + "\n:warning: *New account!*"
                 if event.member.created_at
-                < (datetime.datetime.now() - datetime.timedelta(days=30))
+                > (datetime.datetime.now() - datetime.timedelta(days=30))
                 else ""
             ),
             inline=False,

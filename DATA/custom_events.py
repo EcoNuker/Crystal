@@ -13,6 +13,8 @@ def action_map(
         "kick": "The user was kicked",
         "ban": "The user was banned",
         "mute": "The user was muted",
+        "clear_history": "The user's punishment history was cleared",
+        "delete_case": "A single case history was deleted from the user",
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
@@ -187,6 +189,8 @@ class ModeratorAction(CloudBaseEvent):
             "warn",
             "purge",
             "scan",
+            "clear_history",
+            "delete_case",
         ]
 
 

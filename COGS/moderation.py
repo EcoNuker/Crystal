@@ -206,6 +206,7 @@ class Moderation(commands.Cog):
         reason = (
             reason.removeprefix("@" + user.nick if user.nick else user.display_name)
             .removeprefix(user.id)
+            .removeprefix("<@" + user.id + ">")
             .strip()
         )
         if reason == "":
@@ -284,6 +285,7 @@ class Moderation(commands.Cog):
         reason = (
             reason.removeprefix("@" + user.nick if user.nick else user.display_name)
             .removeprefix(user.id)
+            .removeprefix("<@" + user.id + ">")
             .strip()
         )
         if reason == "":
@@ -360,6 +362,7 @@ class Moderation(commands.Cog):
         reason = (
             reason.removeprefix("@" + user.nick if user.nick else user.display_name)
             .removeprefix(user.id)
+            .removeprefix("<@" + user.id + ">")
             .strip()
         )
         if reason == "":
