@@ -32,7 +32,7 @@ class history(commands.Cog):
             )
             embed.add_field(
                 name="Viewing User History",
-                value=f"View the user's current history.\n`{prefix}history view <user>`",
+                value=f"View the user's current history.\n`{prefix}history view <user> [page | optional]`",
                 inline=False,
             )
             embed.add_field(
@@ -300,7 +300,7 @@ class history(commands.Cog):
         )
 
         embed = embeds.Embeds.embed(
-            title=f"Case Details for {case.caseId}", description=case_info.strip()
+            title=f"{user.name}'s Case Details", description=case_info.strip()
         )
 
         await ctx.reply(embed=embed, private=ctx.message.private)
