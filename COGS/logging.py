@@ -6,6 +6,7 @@ from DATA import embeds
 from DATA import tools
 from humanfriendly import format_timespan
 import documents
+from documents import serverMember, HistoryCase
 from fuzzywuzzy import process
 
 import traceback
@@ -757,7 +758,11 @@ class Logging(commands.Cog):
                 value="\n".join(event.formatted_actions),
                 inline=False,
             )
-            embed.add_field(name="Reason", value=event.reason, inline=False)
+            embed.add_field(
+                name="Reason",
+                value=event.reason if event.reason else "No Reason Provided",
+                inline=False,
+            )
             # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
 
             # Push the event to the listening channels
@@ -778,7 +783,23 @@ class Logging(commands.Cog):
                         )
                     except Exception as e:
                         await delete_log(event.server_id, channel_id, error=e)
-        # TODO: cloud event log
+
+        server_data.members[event.member.id] = server_data.members.get(
+            event.member.id, serverMember(member=event.member.id)
+        )
+
+        server_data.members[event.member.id].history[event.event_id] = HistoryCase(
+            caseId=event.event_id,
+            action=event.actions,
+            reason=event.reason,
+            moderator=self.bot.user_id,
+            duration=event.durations,
+            automod=True,
+        )
+
+        await server_data.save()
+
+        # TODO: make api and send new info via WS
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
         # Fetch the server from the database
@@ -825,7 +846,7 @@ class Logging(commands.Cog):
                         )
                     except Exception as e:
                         await delete_log(event.server_id, channel_id, error=e)
-        # TODO: cloud event log
+        # TODO: cloud event log, make api and update via WS
 
     async def on_moderator_action(self, event: custom_events.ModeratorAction):
         # Fetch the server from the database
@@ -859,7 +880,11 @@ class Logging(commands.Cog):
             embed.add_field(
                 name="Action Taken", value=event.formatted_action, inline=False
             )
-            embed.add_field(name="Reason", value=event.reason, inline=False)
+            embed.add_field(
+                name="Reason",
+                value=event.reason if event.reason else "No Reason Provided",
+                inline=False,
+            )
 
             # Push the event to the listening channels
             if server_data.logging.moderatorAction:
@@ -878,7 +903,29 @@ class Logging(commands.Cog):
                         )
                     except Exception as e:
                         await delete_log(event.server_id, channel_id, error=e)
-        # TODO: cloud event log
+
+        if event.member:
+
+            server_data.members[event.member.id] = server_data.members.get(
+                event.member.id, serverMember(member=event.member.id)
+            )
+
+            server_data.members[event.member.id].history[event.event_id] = HistoryCase(
+                caseId=event.event_id,
+                action=[event.action],
+                reason=event.reason,
+                moderator=self.bot.user_id,
+                duration=(
+                    [event.duration, 0]
+                    if event.action == "tempmute"
+                    else [0, event.duration] if event.action == "tempban" else None
+                ),
+                automod=False,
+            )
+
+            await server_data.save()
+
+        # TODO: dispatch via ws
 
     @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):

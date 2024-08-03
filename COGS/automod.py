@@ -855,7 +855,7 @@ class AutoModeration(commands.Cog):
 
             embed = embeds.Embeds.embed(
                 title="Messages Scanned",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon. This process took `{round(time.time()-time(), 1):,}` seconds.",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon. This process took `{round(time.time()-timing, 1):,}` seconds.",
                 color=guilded.Color.green(),
             )
             await msg.edit(embed=embed)

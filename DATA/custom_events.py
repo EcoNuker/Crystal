@@ -115,7 +115,7 @@ class AutomodEvent(CloudBaseEvent):
         actions: List[str],
         message: guilded.Message,
         member: guilded.Member,
-        reason: str = "Not Provided",
+        reason: str = None,
         durations: List[int] = [],
     ) -> None:
         super().__init__()
@@ -158,7 +158,7 @@ class ModeratorAction(CloudBaseEvent):
         channel: guilded.ChatChannel | None = None,
         duration: int = 0,
         amount: int = 0,
-        reason: str = "Not Provided",
+        reason: str = None,
         overwrites: dict = {},
     ) -> None:
         super().__init__()

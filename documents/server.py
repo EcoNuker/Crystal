@@ -1,7 +1,7 @@
 # Import types
 import time
 from beanie import Document
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, model_validator
 
 
@@ -183,13 +183,41 @@ class serverData(BaseModel):
     automodModules: automoderatorModules = automoderatorModules()
 
 
+class HistoryCase(BaseModel):
+    """
+    - caseId - `str` - The case id.
+    - actions - `List[str]` - The actions taken. Must be a list of strings.
+    - reason - `Optional[str]` - The reason, if provided. Else, None.
+    - moderator - `str` -  The moderator's id.
+    - duration - `Optional[List[int]]` - The durations of the actions. Format: [tempmute, tempban]
+    - automod - `bool` - Whether the case was because of automod.
+    """
+
+    caseId: str
+    actions: List[str]
+    reason: Optional[str] = None
+    moderator: str
+    duration: Optional[List[int]] = None
+    automod: bool = False
+
+
+class serverMember(BaseModel):
+    """
+    - history - `Dict[str, HistoryCase]` - The user's history of cases.
+
+    # TODO: tempmute and tempban durations here
+    """
+
+    history: Dict[str, HistoryCase] = dict()
+
+
 # Define the server document
 class Server(Document):
     """
     - serverId - `str` - The server's Id.
     - prefix - `Optional[str]` - The server's prefix.
     - logging - `LoggingChannels` - Logging channels for events.
-    - members - `dict` - Members data and punishment log. (Defaults to {})
+    - members - `Dict[str, ServerMember]` - Members data and punishment log. (Defaults to {})
     - data - `serverData` - Server data and configs.
     """
 
@@ -199,6 +227,6 @@ class Server(Document):
 
     logging: loggingChannels = loggingChannels()
 
-    members: dict = dict()
+    members: Dict[str, serverMember] = dict()
 
     data: serverData = serverData()

@@ -157,137 +157,232 @@ class Moderation(commands.Cog):
                 if time.time() - ran_at > 120:
                     del self.cooldowns["purge"][channel_id]
 
-    # @commands.command(name="kick")
-    # async def kick(
-    #     self, ctx: commands.Context, user: str, *, reason: str = "Not specified."
-    # ):
-    #     # define typehinting here since pylance/python extensions apparently suck
-    #     user: str | guilded.Member | None
-    #     reason: str | None
+    @commands.command(name="warn")
+    async def warn(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
 
-    #     # check permissions
-    #     if ctx.server is None:
-    #         await ctx.reply(embed=embeds.Embeds.server_only, private=ctx.message.private)
-    #         return
-    #     await ctx.server.fill_roles()
-    #     if not ctx.author.server_permissions.kick_members:
-    #         msg = await ctx.reply(
-    #             embed=embeds.Embeds.missing_permissions(
-    #                 "Kick/Ban Members", manage_bot_server=False
-    #             ),
-    #             private=ctx.message.private,
-    #         )
-    #         bypass = await tools.check_bypass(ctx, msg)
-    #         if not bypass:
-    #             return
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.manage_messages:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Manage Messages", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
-    #     # combine all args and get full reason with username
-    #     reason = user + " " + reason
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
 
-    #     # get the user from message
-    #     user_mentions = ctx.message.raw_user_mentions
-    #     if len(user_mentions) > 0:
-    #         user = await ctx.server.fetch_member(user_mentions[-1])
-    #     else:
-    #         try:
-    #             user = await ctx.server.fetch_member(user)
-    #         except guilded.NotFound:
-    #             user = None
-    #     if user is None:
-    #         await ctx.reply(embed=embeds.Embeds.invalid_user, private=ctx.message.private)
-    #         return
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await ctx.server.getch_member(user_mentions[-1])
+            except:
+                user = None
+        else:
+            try:
+                user = await ctx.server.getch_member(user)
+            except guilded.NotFound:
+                user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
 
-    #     # remove user display name or id from reason
-    #     reason = (
-    #         reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-    #         .removeprefix(user.id)
-    #         .strip()
-    #     )
+        # remove user display name or id from reason
+        reason = (
+            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
+            .removeprefix(user.id)
+            .strip()
+        )
+        if reason == "":
+            reason = None
 
-    #     # kick member
-    #     # await user.kick()
+        # warn member
+        warn_message = f"You have been warned by a server moderator.\n**Reason**\n`{reason if reason else 'No reason was provided.'}`"
 
-    #     # log kick into member logs, with information on moderator and reason
-    #     log_data = {
-    #         "action": "kick",
-    #         "reason": reason,
-    #         "user": user.id,
-    #         "moderator": ctx.author.id,
-    #         "server": ctx.server.id,
-    #     }
-    #
-    #     custom_events.eventqueue.add_event(
-    #         custom_events.ModeratorAction(
-    #             action="kick", member=user, moderator=ctx.author
-    #         )
-    #     )
+        await ctx.send(
+            embed=embeds.Embeds.embed(
+                description=user.mention + "\n" + warn_message,
+                color=guilded.Color.red(),
+            ),
+            private=True,
+        )
 
-    # @commands.command(name="ban")  # TODO: ban people not in server
-    # async def ban(
-    #     self, ctx: commands.Context, user: str, *, reason: str = "Not specified."
-    # ):
-    #     # define typehinting here since pylance/python extensions apparently suck
-    #     user: str | guilded.Member | None
-    #     reason: str | None
+        embed = embeds.Embeds.embed(
+            title="User Warned",
+            description=f"Successfully warned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=True)
 
-    #     # check permissions
-    #     if ctx.server is None:
-    #         await ctx.reply(embed=embeds.Embeds.server_only, private=ctx.message.private)
-    #         return
-    #     await ctx.server.fill_roles()
-    #     if not ctx.author.server_permissions.kick_members:
-    #         msg = await ctx.reply(
-    #             embed=embeds.Embeds.missing_permissions(
-    #                 "Kick/Ban Members", manage_bot_server=False
-    #             ),
-    #             private=ctx.message.private,
-    #         )
-    #         bypass = await tools.check_bypass(ctx, msg)
-    #         if not bypass:
-    #             return
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="warn", member=user, moderator=ctx.author, reason=reason
+            )
+        )
 
-    #     # combine all args and get full reason with username
-    #     reason = user + " " + reason
+    @commands.command(name="kick")
+    async def kick(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
 
-    #     # get the user from message
-    #     user_mentions = ctx.message.raw_user_mentions
-    #     if len(user_mentions) > 0:
-    #         user = await ctx.server.fetch_member(user_mentions[-1])
-    #     else:
-    #         try:
-    #             user = await ctx.server.fetch_member(user)
-    #         except guilded.NotFound:
-    #             user = None
-    #     if user is None:
-    #         await ctx.reply(
-    #             embed=embeds.Embeds.invalid_user, private=ctx.message.private
-    #         )
-    #         return
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.kick_members:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Kick/Ban Members", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
-    #     # remove user display name or id from reason
-    #     reason = (
-    #         reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-    #         .removeprefix(user.id)
-    #         .strip()
-    #     )
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
 
-    #     # ban member
-    #     # await user.ban(reason=reason)
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await ctx.server.getch_member(user_mentions[-1])
+            except:
+                user = None
+        else:
+            try:
+                user = await ctx.server.getch_member(user)
+            except guilded.NotFound:
+                user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
 
-    #     # log kick into member logs, with information on moderator and reason
-    #     log_data = {
-    #         "action": "ban",
-    #         "reason": reason,
-    #         "user": user.id,
-    #         "moderator": ctx.author.id,
-    #         "server": ctx.server.id,
-    #     }
-    #
-    #     custom_events.eventqueue.add_event(
-    #         custom_events.ModeratorAction(
-    #             action="ban", member=user, moderator=ctx.author
-    #         )
-    #     )
+        # remove user display name or id from reason
+        reason = (
+            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
+            .removeprefix(user.id)
+            .strip()
+        )
+        if reason == "":
+            reason = None
+
+        # kick member
+        await user.kick()
+
+        embed = embeds.Embeds.embed(
+            title="User Kicked",
+            description=f"Successfully kicked `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="kick", member=user, moderator=ctx.author, reason=reason
+            )
+        )
+
+    @commands.command(name="ban")  # TODO: duration to make a ban a tempban
+    async def ban(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
+
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.kick_members:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Kick/Ban Members", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
+
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await ctx.server.getch_member(user_mentions[-1])
+            except:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        else:
+            try:
+                user = await ctx.server.getch_member(user)
+            except guilded.NotFound:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+
+        # remove user display name or id from reason
+        reason = (
+            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
+            .removeprefix(user.id)
+            .strip()
+        )
+        if reason == "":
+            reason = None
+
+        # ban member
+        if isinstance(user, guilded.Member):
+            await user.ban(reason=reason)
+        else:
+            await ctx.server.ban(user, reason=reason)
+
+        embed = embeds.Embeds.embed(
+            title="User Banned",
+            description=f"Successfully banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="ban", member=user, moderator=ctx.author, reason=reason
+            )
+        )
 
 
 def setup(bot):
