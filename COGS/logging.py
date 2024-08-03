@@ -1330,7 +1330,7 @@ class Logging(commands.Cog):
         else:
             return
         if not event.member:
-            user = await self.bot.getch_user(event.user_id)
+            user = await self.bot.getch_user(event.ban.user.id)
         else:
             user = event.member
 
