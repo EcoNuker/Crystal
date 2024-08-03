@@ -288,7 +288,12 @@ class history(commands.Cog):
         duration = "N/A"
         if case.duration:
             tempmute, tempban = case.duration
-            duration = f"Tempmute: {tempmute if tempmute else 'Permanent'}, Tempban: {tempban if tempban else 'Permanent'}"
+            if tempmute + tempban == 0:
+                duration = "N/A"
+            elif "tempban" not in case.actions and "tempmute" not in case.actions:
+                duration = "N/A"
+            else:
+                duration = f"{'Tempmute: `' + duration[0] + '`s' if 'tempmute' in case.actions else ''}\n{'Tempban: `' + duration[1] + '`s' if 'tempban' in case.actions else ''}".strip()
 
         case_info = (
             f"**Case ID:** `{case.caseId}`\n"
