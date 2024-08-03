@@ -300,7 +300,7 @@ class history(commands.Cog):
         )
 
         embed = embeds.Embeds.embed(
-            title=f"Case Details for {case.caseId}", description=case_info
+            title=f"Case Details for {case.caseId}", description=case_info.strip()
         )
 
         await ctx.reply(embed=embed, private=ctx.message.private)
@@ -365,6 +365,7 @@ class history(commands.Cog):
             embed = embeds.Embeds.embed(
                 title=f"{user.name}'s History",
                 description="Wow! So empty in here! This user should keep up the great work!",
+                color=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
@@ -396,7 +397,7 @@ class history(commands.Cog):
         for page_number, page in enumerate(pages, start=1):
             embed = embeds.Embeds.embed(
                 title=f"{user.name}'s Case History (Page {page_number}/{len(pages)})",
-                description="\n".join(page),
+                description="\n".join(page).strip(),
             )
             embeds_list.append(embed)
 
