@@ -298,7 +298,7 @@ class history(commands.Cog):
         case_info = (
             f"**Case ID:** `{case.caseId}`\n"
             f"**Moderator:** {moderator.name}\n"
-            f"**Actions:** {', '.join(case.actions)}\n"
+            f"**Action{'s' if len(case.actions) != 1 else ''}:** {', '.join(case.actions)}\n"
             f"**Reason:** {case.reason if case.reason else 'N/A'}\n"
             f"**Duration:** {duration}\n"
             f"**Automod:** {'Yes' if case.automod else 'No'}\n"
@@ -386,7 +386,8 @@ class history(commands.Cog):
             case_info = (
                 f"**Case ID:** `{case.caseId}`\n"
                 f"**Moderator:** {moderator.name}\n"
-                f"**Actions:** {', '.join(case.actions)}\n"
+                f"**Action{'s' if len(case.actions) != 1 else ''}:** {', '.join(case.actions)}\n"
+                f"**Reason:** {case.reason if case.reason else 'N/A'}\n"
                 "\n"
             )
             page.append(case_info)
