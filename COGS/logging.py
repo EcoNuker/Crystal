@@ -8,6 +8,8 @@ from humanfriendly import format_timespan
 import documents
 from fuzzywuzzy import process
 
+import traceback
+
 human_readable_map = {
     "allEvents": "All Events",
     "allChannelEvents": "All Channel Events",
@@ -28,7 +30,9 @@ human_readable_map = {
 }
 
 
-async def delete_log(server_id: str, channel_id: str, logged: bool = False) -> bool:
+async def delete_log(
+    server_id: str, channel_id: str, logged: bool = False, error: Exception = None
+) -> bool:
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
     )
@@ -68,10 +72,16 @@ async def delete_log(server_id: str, channel_id: str, logged: bool = False) -> b
             server_data.logging.categoryUpdate.remove(channel_id)
         del server_data.logging.setChannels[channel_id]
         await server_data.save()
+        if error:
+            print(
+                "".join(traceback.format_exception(error, error, error.__traceback__))
+            )
+        else:
+            error = "Unknown"
         if not logged:
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
-                    f"A channel (ID `{channel_id}`) was automatically removed as a `{human_readable_map[event_type]}` log channel, as I can no longer access it.",
+                    f"A channel (ID `{channel_id}`) was automatically removed as a `{human_readable_map[event_type]}` log channel, as I can no longer access it (`{error}`).",
                     server_id,
                 )
             )
@@ -227,7 +237,7 @@ class Logging(commands.Cog):
                 prefix = prefix[0]
             embed = embeds.Embeds.embed(
                 title=f"Logging Commands",
-                description=f"The logging in this server is `{'on' if server_data.logging.logSettings.enabled == True else 'off'}`.",
+                description=f"The logging in this server is {':white_check_mark: **On' if server_data.logging.logSettings.enabled == True else ':x: **Off'}**",
             )
             embed.add_field(
                 name="Viewing Log Types",
@@ -757,8 +767,8 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
@@ -766,8 +776,8 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
         # TODO: cloud event log
 
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
@@ -804,8 +814,8 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
@@ -813,8 +823,8 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
         # TODO: cloud event log
 
     async def on_moderator_action(self, event: custom_events.ModeratorAction):
@@ -858,16 +868,16 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
                     try:
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except:
-                        await delete_log(event.server_id, channel_id)
+                    except Exception as e:
+                        await delete_log(event.server_id, channel_id, error=e)
         # TODO: cloud event log
 
     @commands.Cog.listener()
@@ -885,7 +895,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.after.author:
-            await self.bot.fetch_user(event.after.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.after.author_id
+            )
 
         if (not server_data.logging.logSettings.logBotMessageChanges) and (
             await self.bot.getch_user(event.after.author_id)
@@ -917,8 +929,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -926,8 +938,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_join(self, event: guilded.MemberJoinEvent):
@@ -972,8 +984,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -981,8 +993,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -990,8 +1002,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_remove(self, event: guilded.MemberRemoveEvent):
@@ -1008,26 +1020,26 @@ class Logging(commands.Cog):
         else:
             return
         if not event.member:
-            await self.bot.fetch_user(event.user_id)
+            user = await self.bot.getch_user(event.user_id)
+        else:
+            user = event.member
 
         # Create the event embed
         embed = embeds.Embeds.embed(
-            title=f"{event.member.mention} Left",
-            url=event.member.profile_url,
+            title=f"{user.mention} Left",
+            url=user.profile_url,
             colour=(event.kicked or event.banned)
             and guilded.Colour.red()
             or guilded.Colour.gilded(),
         )
 
         # Set related fields
-        embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User ID", value=event.member.id)
-        if event.member.created_at:
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.add_field(name="User ID", value=user.id)
+        if user.created_at:
             embed.add_field(
                 name="Account Age",
-                value=format_timespan(
-                    datetime.datetime.now() - event.member.created_at
-                ),
+                value=format_timespan(datetime.datetime.now() - user.created_at),
             )
 
         # Push the event to the listening channels
@@ -1037,8 +1049,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1046,8 +1058,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1055,8 +1067,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_update(self, event: guilded.MemberUpdateEvent):
@@ -1093,8 +1105,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         elif server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1102,8 +1114,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         elif server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1111,8 +1123,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_bulk_member_roles_update(
@@ -1194,7 +1206,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.member:
-            await self.bot.fetch_user(event.ban.user.id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.ban.user.id
+            )
 
         # Create the event embed
         embed = embeds.Embeds.embed(
@@ -1223,8 +1237,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1232,8 +1246,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1241,8 +1255,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
@@ -1259,26 +1273,26 @@ class Logging(commands.Cog):
         else:
             return
         if not event.member:
-            await self.bot.fetch_user(event.ban.user.id)
+            user = await self.bot.getch_user(event.user_id)
+        else:
+            user = event.member
 
         # Create the event embed
         embed = embeds.Embeds.embed(
-            title=f"{event.member.mention} Unbanned",
-            url=event.member.profile_url,
+            title=f"{user.mention} Unbanned",
+            url=user.profile_url,
             colour=guilded.Colour.gilded(),
         )
 
         # Add related fields
-        embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User ID", value=event.member.id)
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.add_field(name="User ID", value=user.id)
         embed.add_field(name="Banned by", value=event.ban.author.mention)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
-        if event.member.created_at:  # Add the account's creation date if it exists
+        if user.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
-                value=format_timespan(
-                    datetime.datetime.now() - event.member.created_at
-                ),
+                value=format_timespan(datetime.datetime.now() - user.created_at),
             )
 
         # Push the event to the listening channels
@@ -1288,8 +1302,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1297,8 +1311,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -1320,7 +1334,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.message.author:
-            await self.bot.fetch_user(event.message.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.message.author_id
+            )
 
         if (not server_data.logging.logSettings.logBotMessageChanges) and (
             await self.bot.getch_user(event.message.author_id)
@@ -1354,16 +1370,16 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_update(self, event: guilded.ForumTopicUpdateEvent):
@@ -1379,7 +1395,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Updated",
             url=event.topic.share_url,
@@ -1398,24 +1416,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_delete(self, event: guilded.ForumTopicDeleteEvent):
@@ -1431,7 +1449,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Deleted",
             url=event.topic.share_url,
@@ -1450,24 +1470,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_pin(self, event: guilded.ForumTopicPinEvent):
@@ -1483,7 +1503,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Pinned",
             url=event.topic.share_url,
@@ -1499,24 +1521,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_unpin(self, event: guilded.ForumTopicUnpinEvent):
@@ -1532,7 +1554,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unpinned",
             url=event.topic.share_url,
@@ -1548,24 +1572,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_lock(self, event: guilded.ForumTopicLockEvent):
@@ -1581,7 +1605,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Locked",
             url=event.topic.share_url,
@@ -1597,24 +1623,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_unlock(self, event: guilded.ForumTopicUnlockEvent):
@@ -1630,7 +1656,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.topic.author:
-            await self.bot.fetch_user(event.topic.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.topic.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unlocked",
             url=event.topic.share_url,
@@ -1646,24 +1674,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_update(
@@ -1681,7 +1709,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
             url=event.reply.channel.share_url,
@@ -1697,24 +1727,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_delete(
@@ -1732,7 +1762,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Deleted",
             url=event.reply.channel.share_url,
@@ -1748,24 +1780,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_update(self, event: guilded.DocUpdateEvent):
@@ -1781,7 +1813,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.doc.author:
-            await self.bot.fetch_user(event.doc.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.doc.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Doc Updated",
             url=event.doc.channel.share_url,
@@ -1806,24 +1840,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_delete(self, event: guilded.DocDeleteEvent):
@@ -1862,24 +1896,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_reply_update(self, event: guilded.DocReplyUpdateEvent):
@@ -1895,7 +1929,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
             url=event.reply.channel.share_url,
@@ -1911,24 +1947,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_reply_delete(self, event: guilded.DocReplyDeleteEvent):
@@ -1944,7 +1980,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Deleted",
             url=event.reply.channel.share_url,
@@ -1960,24 +1998,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_update(self, event: guilded.AnnouncementUpdateEvent):
@@ -1993,7 +2031,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.announcement.author:
-            await self.bot.fetch_user(event.announcement.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.announcement.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Announcement Updated",
             url=event.announcement.share_url,
@@ -2018,24 +2058,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_delete(self, event: guilded.AnnouncementDeleteEvent):
@@ -2051,7 +2091,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.announcement.author:
-            await self.bot.fetch_user(event.announcement.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.announcement.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Announcement Deleted",
             url=event.announcement.share_url,
@@ -2076,24 +2118,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_reply_update(
@@ -2111,7 +2153,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
             url=event.reply.channel.share_url,
@@ -2127,24 +2171,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_reply_delete(
@@ -2162,7 +2206,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Deleted",
             url=event.reply.channel.share_url,
@@ -2178,24 +2224,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_update(self, event: guilded.CalendarEventUpdateEvent):
@@ -2211,7 +2257,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.calendar_event.author:
-            await self.bot.fetch_user(event.calendar_event.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.calendar_event.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Updated",
             url=event.calendar_event.share_url,
@@ -2234,24 +2282,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_delete(self, event: guilded.CalendarEventDeleteEvent):
@@ -2267,7 +2315,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.calendar_event.author:
-            await self.bot.fetch_user(event.calendar_event.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.calendar_event.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Deleted",
             url=event.calendar_event.share_url,
@@ -2290,24 +2340,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_update(
@@ -2325,7 +2375,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
             url=event.reply.channel.share_url,
@@ -2341,24 +2393,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_delete(
@@ -2376,7 +2428,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.reply.author:
-            await self.bot.fetch_user(event.reply.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.reply.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Deleted",
             url=event.reply.channel.share_url,
@@ -2392,24 +2446,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_update(self, event: guilded.ListItemUpdateEvent):
@@ -2425,7 +2479,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.item.author:
-            await self.bot.fetch_user(event.item.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.item.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"List Item Updated",
             url=event.item.share_url,
@@ -2441,24 +2497,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_delete(self, event: guilded.ListItemDeleteEvent):
@@ -2474,7 +2530,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.item.author:
-            await self.bot.fetch_user(event.item.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.item.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"List Item Deleted",
             url=event.item.share_url,
@@ -2490,24 +2548,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_complete(self, event: guilded.ListItemCompleteEvent):
@@ -2523,7 +2581,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.item.author:
-            await self.bot.fetch_user(event.item.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.item.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"List Item Completed",
             url=event.item.share_url,
@@ -2539,24 +2599,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_uncomplete(self, event: guilded.ListItemUncompleteEvent):
@@ -2572,7 +2632,9 @@ class Logging(commands.Cog):
         else:
             return
         if not event.item.author:
-            await self.bot.fetch_user(event.item.author_id)
+            await (await self.bot.getch_server(event.server_id)).getch_member(
+                event.item.author_id
+            )
         embed = embeds.Embeds.embed(
             title=f"List Item Uncompleted",
             url=event.item.share_url,
@@ -2588,24 +2650,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_server_channel_create(self, event: guilded.ServerChannelCreateEvent):
@@ -2641,24 +2703,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_server_channel_delete(self, event: guilded.ServerChannelDeleteEvent):
@@ -2694,24 +2756,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()  # confusing ✨
     async def on_server_channel_update(self, event: guilded.ServerChannelUpdateEvent):
@@ -2794,24 +2856,24 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
             elif (
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
@@ -2838,24 +2900,24 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except:
-                            await delete_log(event.server_id, channel_id)
+                        except Exception as e:
+                            await delete_log(event.server_id, channel_id, error=e)
         else:
             embed.add_field(
                 name="Unknown Changes", value="Could not compare changes.", inline=False
@@ -2866,24 +2928,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_create(self, event: guilded.CategoryCreateEvent):
@@ -2917,24 +2979,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_delete(self, event: guilded.CategoryDeleteEvent):
@@ -2968,8 +3030,8 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_update(self, event: guilded.CategoryUpdateEvent):
@@ -3016,24 +3078,24 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except:
-                    await delete_log(event.server_id, channel_id)
+                except Exception as e:
+                    await delete_log(event.server_id, channel_id, error=e)
 
 
 def setup(bot: commands.Bot):

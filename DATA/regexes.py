@@ -5,7 +5,9 @@ import unicodedata
 
 import json
 
-seperators = "\s\-\*.,_\+=!`:#$%^&()1234567890"
+seperators = r"[\s\-\*.,_\+=!`:;#'\"|$%^&()1234567890" + "".join(
+    chr(c) for c in range(0x2000, 0x2050)
+)  # U+2000 to U+204F
 
 
 def helper_string_to_unicode(unicode_list):
@@ -184,21 +186,44 @@ def allow_seperators(regex: str) -> str:
 
     regex = re2.sub(r"(\[.*?\])", replace_match, regex)
 
+    o_regex = regex
+    regex = [*regex]
+
+    if o_regex.startswith("\\b(?i)"):
+        s_insert_position = 6
+    elif o_regex.startswith("\\b"):
+        s_insert_position = 2
+    elif o_regex.startswith("(?i)"):
+        s_insert_position = 4
+    else:
+        s_insert_position = 0
+
+    regex.insert(s_insert_position, f"[{seperators}]*")
+
+    if o_regex.endswith("\\b"):
+        e_insert_position = -2
+    else:
+        e_insert_position = len(regex)  # Absolute end
+
+    regex.insert(e_insert_position, f"[{seperators}]*")
+
+    regex = "".join(regex)
+
     return regex
 
 
 slurs = [
     allow_seperators(
-        f"\\b(?i)([{CHARS.get_char('s', include_leetspeak=True)}][{CHARS.get_char('a', include_leetspeak=True)}][{CHARS.get_char('h', include_leetspeak=True)}][{CHARS.get_char('d', include_leetspeak=True)}])*([{CHARS.get_char('n', include_leetspeak=True)}]+|[{CHARS.get_char('w', include_leetspeak=True)}]+[{CHARS.get_char('h', include_leetspeak=True)}]*)+[{CHARS.get_char('i', include_leetspeak=True)}{CHARS.get_char('o', include_leetspeak=True)}{CHARS.get_char('a', include_leetspeak=True)}]*[{CHARS.get_char('g', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+([{CHARS.get_char('e', include_leetspeak=True)}{CHARS.get_char('a', include_leetspeak=True)}]*[{CHARS.get_char('r', include_leetspeak=True)}]+|[{CHARS.get_char('a', include_leetspeak=True)}{CHARS.get_char('e', include_leetspeak=True)}]+[{CHARS.get_char('r', include_leetspeak=True)}]*)+[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}{CHARS.get_char('h', include_leetspeak=True)}]*"
+        f"(?i)([{CHARS.get_char('s', include_leetspeak=True)}][{CHARS.get_char('a', include_leetspeak=True)}][{CHARS.get_char('h', include_leetspeak=True)}][{CHARS.get_char('d', include_leetspeak=True)}])*([{CHARS.get_char('n', include_leetspeak=True)}]+|[{CHARS.get_char('w', include_leetspeak=True)}]+[{CHARS.get_char('h', include_leetspeak=True)}]*)+[{CHARS.get_char('i', include_leetspeak=True)}{CHARS.get_char('o', include_leetspeak=True)}{CHARS.get_char('a', include_leetspeak=True)}]*[{CHARS.get_char('g', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+([{CHARS.get_char('e', include_leetspeak=True)}{CHARS.get_char('a', include_leetspeak=True)}]*[{CHARS.get_char('r', include_leetspeak=True)}]+|[{CHARS.get_char('a', include_leetspeak=True)}{CHARS.get_char('e', include_leetspeak=True)}]+[{CHARS.get_char('r', include_leetspeak=True)}]*)+[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}{CHARS.get_char('h', include_leetspeak=True)}]*\\b"
     ),
     allow_seperators(
-        f"\\b(?i)([{CHARS.get_char('n', include_leetspeak=True)}]+|[{CHARS.get_char('w', include_leetspeak=True)}]+[{CHARS.get_char('h', include_leetspeak=True)}]*)+([{CHARS.get_char('e', include_leetspeak=True)}]|[{CHARS.get_char('i', include_leetspeak=True)}])+[{CHARS.get_char('g', include_leetspeak=True)}]+(([{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('o', include_leetspeak=True)}]+)|([{CHARS.get_char('l', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+[{CHARS.get_char('t', include_leetspeak=True)}]+)|([{CHARS.get_char('n', include_leetspeak=True)}]+[{CHARS.get_char('o', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+[{CHARS.get_char('a', include_leetspeak=True)}]*))[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}]*"
+        f"(?i)([{CHARS.get_char('n', include_leetspeak=True)}]+|[{CHARS.get_char('w', include_leetspeak=True)}]+[{CHARS.get_char('h', include_leetspeak=True)}]*)+([{CHARS.get_char('e', include_leetspeak=True)}]|[{CHARS.get_char('i', include_leetspeak=True)}])+[{CHARS.get_char('g', include_leetspeak=True)}]+(([{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('o', include_leetspeak=True)}]+)|([{CHARS.get_char('l', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+[{CHARS.get_char('t', include_leetspeak=True)}]+)|([{CHARS.get_char('n', include_leetspeak=True)}]+[{CHARS.get_char('o', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+[{CHARS.get_char('a', include_leetspeak=True)}]*))[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}]*\\b"
     ),
     allow_seperators(
         f"\\b(?i)[{CHARS.get_char('t', include_leetspeak=True)}]+[{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('a', include_leetspeak=True)}]+[{CHARS.get_char('n', include_leetspeak=True)}]+([{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+|[{CHARS.get_char('y', include_leetspeak=True)}]+|[{CHARS.get_char('e', include_leetspeak=True)}]+[{CHARS.get_char('r', include_leetspeak=True)}]+)[{CHARS.get_char('z', include_leetspeak=True)}{CHARS.get_char('s', include_leetspeak=True)}]*"
     ),
     allow_seperators(
-        f"\\b(?i)[{CHARS.get_char('f', include_leetspeak=True)}]+[{CHARS.get_char('a', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+([{CHARS.get_char('g', include_leetspeak=True)}{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('t', include_leetspeak=True)}]+([{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('y', include_leetspeak=True)}]+|[{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+)?|([{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}])?)?([{CHARS.get_char('s', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+)?[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}]*"
+        f"(?i)[{CHARS.get_char('f', include_leetspeak=True)}]+(([{CHARS.get_char('a', include_leetspeak=True)}]*[{CHARS.get_char('g', include_leetspeak=True)}]+([{CHARS.get_char('g', include_leetspeak=True)}{CHARS.get_char('i', include_leetspeak=True)}]*[{CHARS.get_char('o', include_leetspeak=True)}]*[{CHARS.get_char('t', include_leetspeak=True)}]+([{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('y', include_leetspeak=True)}]+|[{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+)?|([{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]))([{CHARS.get_char('s', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+)?)|([{CHARS.get_char('a', include_leetspeak=True)}]+[{CHARS.get_char('g', include_leetspeak=True)}]+))[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}]*\\b"
     ),
     allow_seperators(
         f"\\b(?i)[{CHARS.get_char('k', include_leetspeak=True)}]+[{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('k', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]([{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('y', include_leetspeak=True)}]+|[{CHARS.get_char('r', include_leetspeak=True)}]+[{CHARS.get_char('i', include_leetspeak=True)}]+[{CHARS.get_char('e', include_leetspeak=True)}]+)?[{CHARS.get_char('s', include_leetspeak=True)}{CHARS.get_char('z', include_leetspeak=True)}]*\\b"
@@ -211,11 +236,11 @@ slurs = [
     ),
 ]
 
-# slurs LIST IN ORDER: - no boundary matching on ending unless specified
+# slurs LIST IN ORDER: - no boundary matching on start unless specified
 # (n or wh or w) nigger/nigga + pluralized (double g mandatory to match)
 # (n or wh or w) negro/niglet/nignog + pluralized
 # tranny + pluralized (double n NOT mandatory to match)
-# faggot + faggie (double g NOT mandatory)
+# faggot + faggie
 # kike (BOUNDARY MATCHES!)
 # chink (BOUNDARY MATCHES!)
 # retard/rtard/retarded + pluralized

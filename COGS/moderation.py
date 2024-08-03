@@ -14,7 +14,7 @@ class Moderation(commands.Cog):
         self.cooldowns = {"purge": {}}
 
     @commands.command(name="purge")
-    async def purge(self, ctx: commands.Context, *, amount, private: bool = True):
+    async def purge(self, ctx: commands.Context, *, amount, private: bool = False):
         # check permissions
         if time.time() - self.cooldowns["purge"].get(ctx.channel.id, 0) < 120:
             try:
@@ -130,6 +130,12 @@ class Moderation(commands.Cog):
                 last_message = messages[-1] if messages else None
                 handling_amount -= limit
             custom_events.eventqueue.add_overwrites({"message_ids": d_msgs})
+            embed = embeds.Embeds.embed(
+                title="Purging Messages",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'are' if amount-1 != 1 else 'is'} being purged.",
+                color=guilded.Color.green(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
 
             async def del_message(message: guilded.ChatMessage) -> None:
                 try:
@@ -143,8 +149,9 @@ class Moderation(commands.Cog):
                 description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been deleted!",
                 color=guilded.Color.green(),
             )
-            m_id = await ctx.send(embed=embed, delete_after=3)
-            custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
+            await msg.edit(embed=embed)
+            await msg.delete(delay=3)
+            custom_events.eventqueue.add_overwrites({"message_ids": [msg.id]})
             self.cooldowns["purge"][ctx.channel.id] = time.time()
             for channel_id, ran_at in self.cooldowns["purge"].copy().items():
                 if time.time() - ran_at > 120:

@@ -18,6 +18,9 @@ humanfriendly
 fuzzywuzzy
 python-Levenshtein
 
+# Console commands
+gpy-console
+
 # Better regex
 google-re2
 

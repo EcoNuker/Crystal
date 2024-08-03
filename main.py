@@ -2,9 +2,14 @@ import sys
 
 debug_mode = sys.argv[-1] == "-d"
 
+file_logging = False
+
 # Guilded imports
 import guilded
 from guilded.ext import commands
+
+# gpyConsole imports
+from gpyConsole import console_commands
 
 # Colorama imports
 from colorama import init as coloramainit
@@ -12,10 +17,12 @@ from colorama import init as coloramainit
 coloramainit(autoreset=True)
 
 # Utility imports
-import json, os, glob, logging, traceback, re, signal, platform, sys
+import json, os, glob, logging, traceback, signal, platform, sys
 import logging.handlers
 from datetime import datetime, timezone
 import asyncio
+
+import re2
 
 # Database imports
 from beanie import init_beanie
@@ -69,13 +76,14 @@ class IncrementalRotatingFileHandler(logging.handlers.RotatingFileHandler):
 
 
 console_logger = logging.Logger(name="console")
-handler = IncrementalRotatingFileHandler(
-    os.path.join(logs_dir, f"latest.txt"),
-    maxBytes=10 * 1024 * 1024,  # 10mb
-    backupCount=100,  # Keep up to 100 old log files, totaling 1gb of logs
-)
-console_logger.addHandler(handler)
-glogger.addHandler(handler)
+if file_logging:
+    handler = IncrementalRotatingFileHandler(
+        os.path.join(logs_dir, f"latest.txt"),
+        maxBytes=10 * 1024 * 1024,  # 10mb
+        backupCount=100,  # Keep up to 100 old log files, totaling 1gb of logs
+    )
+    console_logger.addHandler(handler)
+    glogger.addHandler(handler)
 
 
 class CONFIGS:
@@ -112,7 +120,7 @@ def _print(*args, **kwargs):
     print(*args, **kwargs)
 
     def remove_formatting(text):
-        ansi_escape = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+        ansi_escape = re2.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
         formatted_text = ansi_escape.sub("", text)
         return formatted_text
 

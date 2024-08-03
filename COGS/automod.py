@@ -153,6 +153,8 @@ class AutoModeration(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+        self.max_thread_workers = 1024
+
         self.cooldowns = {"scan": {}}
 
         # PLEASE DON'T CANCEL US :(!
@@ -191,13 +193,42 @@ class AutoModeration(commands.Cog):
             newrule.punishment.action = "warn"
             self.default_invites.append(newrule)
 
+        self.ch_prev_messages = {}
+
     async def moderateMessage(
         self, message: guilded.ChatMessage, messageBefore: guilded.ChatMessage = None
     ) -> bool:
+        """
+        Do not asyncio.gather() this function.
+        """
         modded = False
         prefix = await self.bot.get_prefix(message)
         if type(prefix) == str:
             prefix = [prefix]
+        # Last 10 messages, so you can't bypass by sending multiple messages. Works for multiple users helping
+        self.ch_prev_messages[message.channel_id] = await message.channel.history(
+            before=message.created_at, limit=10, include_private=False
+        )
+
+        f = False
+        for msg in self.ch_prev_messages[message.channel_id]:
+            if msg.id == message.id:
+                f = True
+
+        if not f:
+            self.ch_prev_messages[message.channel_id].append(message)
+
+        self.ch_prev_messages[message.channel_id] = [
+            item
+            for item in self.ch_prev_messages[message.channel_id]
+            if item.author != self.bot.user
+        ]
+
+        # Sort messages by created_at in descending order
+        self.ch_prev_messages[message.channel_id].sort(
+            key=lambda msg: msg.created_at, reverse=False
+        )  # Reversed = backwards text
+
         server_data = await Server.find_one(Server.serverId == message.server.id)
         if not server_data:
             server_data = Server(serverId=message.server.id)
@@ -209,14 +240,6 @@ class AutoModeration(commands.Cog):
                 message._author = await message.server.getch_member(message.author_id)
             except:
                 message._author = await self.bot.getch_user(message.author_id)
-        if (
-            isinstance(message.author, guilded.Member)
-            and message.author.is_owner()
-            and (not server_data.data.automodSettings.moderateOwner)
-        ):
-            return modded
-        if message.author.bot and (not server_data.data.automodSettings.moderateBots):
-            return modded
         for pre in prefix:
             if message.content.startswith(
                 (
@@ -237,6 +260,7 @@ class AutoModeration(commands.Cog):
 
         # TODO: integrate mention spam into this, and normal message spam
         # TODO: check previous messages by user and combine
+        # TODO: module severity
 
         if (not message.author.id == self.bot.user.id) and USING_RULES != []:
 
@@ -257,13 +281,19 @@ class AutoModeration(commands.Cog):
 
                 # Perform the regex search
                 mtch = re2.search(match_rule, message_content)
+                mtch2 = re2.search(match_rule, o_message_content)
                 if mtch:
                     mtch = [mtch.group()]
+                elif mtch2:
+                    mtch = [mtch2.group()]
                 else:
                     mtch = None
                 if mtch and (len(o_message_content) == len(message_content)):
-                    i = message_content.index(mtch[0])
-                    mtch = [o_message_content[i : i + len(mtch[0])]]
+                    try:
+                        i = message_content.index(mtch[0])
+                        mtch = [o_message_content[i : i + len(mtch[0])]]
+                    except:
+                        pass
                 if rule.enabled and mtch:
                     # if (
                     #     message_before_content
@@ -294,27 +324,25 @@ class AutoModeration(commands.Cog):
                         to_delete.reverse()
                         for index in to_delete:
                             del mtch[index]
+                    extras = (
+                        regexes.seperators.replace("\\s", string.whitespace).replace(
+                            "\\", ""
+                        )
+                        if not any(
+                            char in orule
+                            for char in [
+                                *regexes.seperators.replace(
+                                    "\\s", string.whitespace
+                                ).replace("\\", "")
+                            ]
+                        )
+                        else string.whitespace
+                    )
                     return (
                         rule.rule,
                         [
                             rule,
-                            [
-                                m.strip(
-                                    regexes.seperators.replace(
-                                        "\\s", string.whitespace
-                                    ).replace("\\", "")
-                                    if any(
-                                        char in orule
-                                        for char in [
-                                            *regexes.seperators.replace(
-                                                "\\s", string.whitespace
-                                            ).replace("\\", "")
-                                        ]
-                                    )
-                                    else string.whitespace
-                                )
-                                for m in mtch
-                            ],
+                            [m.strip(extras) for m in mtch],
                         ],
                     )
                 return None
@@ -334,7 +362,9 @@ class AutoModeration(commands.Cog):
                 message_content = regexes.CHARS.replace_doubled_chars(message_content)
 
                 # Create a ThreadPoolExecutor to run tasks in parallel
-                with ThreadPoolExecutor(max_workers=1000) as executor:
+                with ThreadPoolExecutor(
+                    max_workers=self.max_thread_workers
+                ) as executor:
                     # Submit tasks to the executor
                     futures = {
                         executor.submit(
@@ -355,8 +385,113 @@ class AutoModeration(commands.Cog):
                             matches[rule_key] = match_result
                 return matches
 
-            matches = parallel_regex_search(USING_RULES, message, messageBefore)
-            if server_data.data.automodModules.invites:
+            def combined_regex_search(
+                USING_RULES: List, messages: List[guilded.ChatMessage]
+            ) -> tuple:
+                matches = {}
+
+                # " " as it is literally a new message
+                combined_content = " ".join([msg.content for msg in messages])
+
+                # Normalize and clean the combined content
+                o_combined_content = combined_content
+                combined_content = unicodedata.normalize("NFC", combined_content)
+                combined_content = regexes.CHARS.attempt_clean_zalgo(
+                    combined_content.lower()
+                )
+                combined_content = regexes.CHARS.replace_doubled_chars(combined_content)
+
+                # Store the messages that should be deleted
+                messages_to_delete = []
+
+                # Create a ThreadPoolExecutor to run tasks in parallel
+                with ThreadPoolExecutor(
+                    max_workers=self.max_thread_workers
+                ) as executor:
+                    # Submit tasks to the executor
+                    futures = {
+                        executor.submit(
+                            process_rule, rule, combined_content, o_combined_content
+                        ): rule
+                        for rule in USING_RULES
+                    }
+
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result:
+                        rule_key, match_result = result
+                        matches[rule_key] = match_result
+
+                        # Find the start and end indices of the matched string in the combined content
+                        match_start = combined_content.find(match_result[1][0])
+                        match_end = match_start + len(match_result[1][0])
+
+                        # Determine which messages are part of the match
+                        current_index = 0
+                        for msg in messages:
+                            msg_len = (
+                                len(msg.content) + 1
+                            )  # +1 for the space we added during join
+                            msg_end_index = current_index + len(msg.content)
+                            if (
+                                current_index <= match_end
+                                and match_start <= msg_end_index
+                            ):
+                                messages_to_delete.append(msg)
+                            current_index += msg_len
+
+                if messages_to_delete:
+                    return messages_to_delete, matches
+                return [], matches
+
+            if (
+                isinstance(message.author, guilded.Member)
+                and message.author.is_owner()
+                and (not server_data.data.automodSettings.moderateOwner)
+            ):
+                matches = {}
+            elif message.author.bot and (
+                not server_data.data.automodSettings.moderateBots
+            ):
+                matches = {}
+            else:
+                matches = parallel_regex_search(USING_RULES, message, messageBefore)
+            # TODO: delete deleted messages from this stuff
+            # TODO: add message deleted evnt
+            msgs, add_matches = combined_regex_search(
+                USING_RULES, self.ch_prev_messages[message.channel_id]
+            )
+            to_be_modded_msgs = [message] if matches != {} else []
+            if len(msgs) == 1 and msgs[0] == message:
+                pass
+            else:
+                for msg in msgs:
+                    if (
+                        isinstance(msg.author, guilded.Member)
+                        and msg.author.is_owner()
+                        and (not server_data.data.automodSettings.moderateOwner)
+                    ):
+                        pass
+                    elif msg.author.bot and (
+                        not server_data.data.automodSettings.moderateBots
+                    ):
+                        pass
+                    else:
+                        to_be_modded_msgs.append(msg)
+            for key, value in add_matches.items():
+                if not matches.get(key):
+                    matches[key] = value
+            if (
+                isinstance(message.author, guilded.Member)
+                and message.author.is_owner()
+                and (not server_data.data.automodSettings.moderateOwner)
+            ):
+                pass
+            elif message.author.bot and (
+                not server_data.data.automodSettings.moderateBots
+            ):
+                pass
+            elif server_data.data.automodModules.invites:
                 i = 0
                 for rule in self.default_invites:
                     mtch = re2.search(rule.rule, message.content)
@@ -454,7 +589,7 @@ class AutoModeration(commands.Cog):
                     messageToReply = (
                         rule.custom_message.replace("{MATCH}", mtch)
                         if rule.custom_message
-                        else f"Your message has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator.\nThe content flagged was: `{mtch}`"
+                        else f"Your message(s) has been flagged because it violates this server's automod rules. If you believe this is a mistake, please contact a moderator.\nThe content flagged was: `{mtch}`"
                     )
                     reason = "**[Automod]** " + (
                         rule.custom_reason.replace("{MATCH}", mtch)
@@ -466,19 +601,29 @@ class AutoModeration(commands.Cog):
                     if rule.custom_message:
                         custom_msg_found = True
 
-                await message.reply(
-                    embed=embeds.Embeds.embed(
-                        description=messageToReply,
-                        color=guilded.Color.red(),
-                    ),
-                    private=True,
-                )
+                async def run_delete(msg):
+                    try:
+                        await msg.delete()
+                    except:
+                        pass
 
-                # Delete message regardless of action
-                try:
-                    await message.delete()
-                except:
-                    pass
+                await asyncio.gather(*[run_delete(msg) for msg in to_be_modded_msgs])
+
+                if len(to_be_modded_msgs) > 0:
+                    users = []
+                    for msg in to_be_modded_msgs:
+                        if msg.author not in users:
+                            users.append(msg.author)
+
+                    await message.channel.send(
+                        embed=embeds.Embeds.embed(
+                            description=", ".join(user.mention for user in users)
+                            + "\n"
+                            + messageToReply,
+                            color=guilded.Color.red(),
+                        ),
+                        private=True,
+                    )
 
                 removed_from_server = False
                 # TODO: still add tempmutes into logs so if tempban wears out first, when they join they're still tempmuted/muted
@@ -663,6 +808,13 @@ class AutoModeration(commands.Cog):
                     amount=amount - 1,
                 )
             )
+            embed = embeds.Embeds.embed(
+                title="Scanning Messages",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'are' if amount-1 != 1 else 'is'} being scanned by automod. Estimated time `{round(amount*(0.2), 1):,}` seconds.",  # OPTIONAL TODO: more accurate estimation based on amount of rules and modules enabled
+                color=guilded.Color.green(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            timing = time.time()
             handling_amount = amount
             last_message = None
             d_msgs = []
@@ -698,14 +850,16 @@ class AutoModeration(commands.Cog):
                 except:
                     pass
 
-            await asyncio.gather(*[modMessage(message) for message in msgs])
+            for message in msgs:
+                await modMessage(message)  # Don't gather this!
+
             embed = embeds.Embeds.embed(
                 title="Messages Scanned",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon.",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon. This process took `{round(time.time()-time(), 1):,}` seconds.",
                 color=guilded.Color.green(),
             )
-            m_id = await ctx.reply(embed=embed, private=ctx.message.private)
-            custom_events.eventqueue.add_overwrites({"message_ids": [m_id]})
+            await msg.edit(embed=embed)
+            custom_events.eventqueue.add_overwrites({"message_ids": [msg.id]})
             self.cooldowns["scan"][ctx.channel.id] = time.time()
             for channel_id, ran_at in self.cooldowns["scan"].copy().items():
                 if time.time() - ran_at > 120:
