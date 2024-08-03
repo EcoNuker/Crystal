@@ -2547,7 +2547,7 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.item.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.item.author.id)
         embed.add_field(name="Message", value=event.item.message, inline=False)
-        embed.add_field(name="Note", value=event.item.note, inline=False)
+        embed.add_field(name="Note", value=event.item.note.content, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
                 try:
@@ -2598,7 +2598,7 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.item.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.item.author.id)
         embed.add_field(name="Message", value=event.item.message, inline=False)
-        embed.add_field(name="Note", value=event.item.note, inline=False)
+        embed.add_field(name="Note", value=event.item.note.content, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
                 try:
@@ -2649,7 +2649,7 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.item.author.display_avatar.url)
         embed.add_field(name="Author ID", value=event.item.author.id)
         embed.add_field(name="Message", value=event.item.message, inline=False)
-        embed.add_field(name="Note", value=event.item.note, inline=False)
+        embed.add_field(name="Note", value=event.item.note.content, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
                 try:
@@ -2700,7 +2700,7 @@ class Logging(commands.Cog):
         embed.set_thumbnail(url=event.item.author.display_avatar.url)
         embed.add_field(name="Author ID", value=event.item.author.id)
         embed.add_field(name="Message", value=event.item.message, inline=False)
-        embed.add_field(name="Note", value=event.item.note, inline=False)
+        embed.add_field(name="Note", value=event.item.note.content, inline=False)
         if server_data.logging.listUpdate:
             for channel_id in server_data.logging.listUpdate:
                 try:
