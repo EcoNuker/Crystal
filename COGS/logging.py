@@ -197,7 +197,6 @@ class Logging(commands.Cog):
                 while True:
                     custom_events.eventqueue.clear_old_overwrites()
                     for eventId, data in custom_events.eventqueue.events.copy().items():
-                        # TODO: switch to guilded.py's client.dispatch()
                         func_map = {
                             "AutomodEvent": self.on_automod,
                             "ModeratorAction": self.on_moderator_action,
@@ -580,9 +579,7 @@ class Logging(commands.Cog):
             return
 
         # remove channel display name or id from reason
-        event_type = (
-            event_type.removeprefix("#" + channel.name).removeprefix(channel.id).strip()
-        )
+        event_type = event_type.removeprefix("<#" + channel.id + ">").strip()
 
         unhuman_readable_map = {v.lower(): k for k, v in human_readable_map.items()}
 

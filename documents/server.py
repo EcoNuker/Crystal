@@ -213,12 +213,25 @@ class serverMember(BaseModel):
     history: Dict[str, HistoryCase] = dict()
 
 
+class RSSFeed(BaseModel):
+    """
+    - channelId - `str` - The channel id
+    - feedURL - `str` - The feed's URL
+    - last_checked - `tuple` - When last checked. See: https://feedparser.readthedocs.io/en/latest/date-parsing.html
+    """
+
+    channelId: str
+    feedURL: str
+    last_checked: Optional[tuple] = None
+
+
 # Define the server document
 class Server(Document):
     """
     - serverId - `str` - The server's Id.
     - prefix - `Optional[str]` - The server's prefix.
     - logging - `LoggingChannels` - Logging channels for events.
+    - rssFeeds - `List[RSSFeed]` - Server RSS feed channels.
     - members - `Dict[str, ServerMember]` - Members data and punishment log. (Defaults to {})
     - cases - `Dict[str, str]` - Maps a caseID to a user
     - data - `serverData` - Server data and configs.
@@ -229,6 +242,8 @@ class Server(Document):
     prefix: Optional[str] = None
 
     logging: loggingChannels = loggingChannels()
+
+    rssFeeds: List[RSSFeed] = list()
 
     members: Dict[str, serverMember] = dict()
 

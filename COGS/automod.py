@@ -307,15 +307,15 @@ class AutoModeration(commands.Cog):
                     #     return None  # Skip this rule if it matches the condition
                     if rule.extra_data.get(
                         "check_leetspeak"
-                    ):  # over 50% numbers in match is probably not leetspeak, or nearly unreadable
-                        fifty_percent_numbers = (
+                    ):  # over 40% numbers in match is probably not leetspeak, or nearly unreadable
+                        forty_percent_numbers = (
                             lambda s: len(s) > 0
-                            and (sum(c.isdigit() for c in s) / len(s)) > 0.5
+                            and (sum(c.isdigit() for c in s) / len(s)) > 0.4
                         )
                         safe = True
                         to_delete = []
                         for i, m in enumerate(mtch):
-                            if fifty_percent_numbers(m):
+                            if forty_percent_numbers(m):
                                 to_delete.append(i)
                             else:
                                 safe = False
@@ -522,7 +522,9 @@ class AutoModeration(commands.Cog):
 
                         if i == 0:
                             if is_excluded(
-                                mtch[0], regexes.invites_exclusions["guilded"]
+                                mtch[0],
+                                regexes.invites_exclusions["guilded"]
+                                + ["/" + message.server.slug],
                             ):
                                 continue
                         elif i == 1:
@@ -1633,18 +1635,21 @@ class AutoModeration(commands.Cog):
                 "Manage Roles", manage_bot_server=False
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
-        for (
-            i
-        ) in (
-            server_data.data.automodRules
-        ):  # TODO: Maybe use get a better method for this
-            if i.rule == rule:
-                embed = embeds.Embeds.embed(
-                    title="Rule Not Added",
-                    description=f"This rule (`{rule}`) has not been added because it already exists.",
-                    color=guilded.Color.red(),
-                )
-                return await ctx.reply(embed=embed, private=ctx.message.private)
+        i = next(
+            (
+                rule_item
+                for rule_item in server_data.data.automodRules
+                if rule_item.rule == rule
+            ),
+            None,
+        )
+        if i is not None:
+            embed = embeds.Embeds.embed(
+                title="Rule Not Added",
+                description=f"This rule (`{rule}`) has not been added because it already exists.",
+                color=guilded.Color.red(),
+            )
+            return await ctx.reply(embed=embed, private=ctx.message.private)
         rule_data = automodRule(
             author=ctx.author.id,
             rule=rule,

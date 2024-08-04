@@ -230,6 +230,7 @@ bot.name = "Crystal"
 bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
 bot.bypasses = {}
+bot.auto_bypass = []
 
 # Logging
 bot.print = _print

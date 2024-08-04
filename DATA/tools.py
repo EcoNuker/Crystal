@@ -19,6 +19,10 @@ class BypassFailed(Exception):
         super().__init__(*args)
 
 
+def channel_mention(channel: guilded.abc.ServerChannel):
+    return f"[#{channel.name}]({channel.share_url})"
+
+
 async def get_response(ctx: commands.Context, timeout: int = 30) -> guilded.Message:
     """
     Gets the response by waiting for a message in the same channel from the same author.
@@ -44,7 +48,10 @@ async def check_bypass(
 
     returns bool: true means continue with operation
     """
-    if ctx.author.id in ctx.bot.owner_ids:
+    if ctx.author.id in ctx.bot.auto_bypass:
+        await msg.delete()
+        return True
+    elif ctx.author.id in ctx.bot.owner_ids:
         try:
             bypass = await ctx.bot.wait_for(
                 "message",

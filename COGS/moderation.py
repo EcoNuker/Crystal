@@ -203,12 +203,7 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = (
-            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-            .removeprefix(user.id)
-            .removeprefix("<@" + user.id + ">")
-            .strip()
-        )
+        reason = reason.removeprefix("<@" + user.id + ">").strip()
         if reason == "":
             reason = None
 
@@ -229,6 +224,7 @@ class Moderation(commands.Cog):
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=embed, private=True)
+        await ctx.message.delete()
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
@@ -282,12 +278,7 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = (
-            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-            .removeprefix(user.id)
-            .removeprefix("<@" + user.id + ">")
-            .strip()
-        )
+        reason = reason.removeprefix("<@" + user.id + ">").strip()
         if reason == "":
             reason = None
 
@@ -341,7 +332,8 @@ class Moderation(commands.Cog):
                 user = await ctx.server.getch_member(user_mentions[-1])
             except:
                 try:
-                    user = await self.bot.getch_user(user)
+                    user = None
+                    # user = await self.bot.getch_user(user)
                 except guilded.NotFound:
                     user = None
         else:
@@ -349,7 +341,8 @@ class Moderation(commands.Cog):
                 user = await ctx.server.getch_member(user)
             except guilded.NotFound:
                 try:
-                    user = await self.bot.getch_user(user)
+                    user = None
+                    # user = await self.bot.getch_user(user)
                 except guilded.NotFound:
                     user = None
         if user is None:
@@ -359,12 +352,7 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = (
-            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-            .removeprefix(user.id)
-            .removeprefix("<@" + user.id + ">")
-            .strip()
-        )
+        reason = reason.removeprefix("<@" + user.id + ">").strip()
         if reason == "":
             reason = None
 

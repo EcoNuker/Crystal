@@ -11,9 +11,44 @@ class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
+    async def tab(self, ctx: commands.Context, user: str):
+        if not ctx.author.id in self.bot.owner_ids:
+            return
+
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None | guilded.User
+
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await self.bot.getch_user(user)
+            except guilded.NotFound:
+                user = None
+        else:
+            try:
+                user = await self.bot.getch_user(user)
+            except guilded.NotFound:
+                user = None
+        if user is None:
+            user = ctx.author
+
+        try:
+            self.bot.auto_bypass.remove(user.id)
+            on = False
+        except ValueError:
+            self.bot.auto_bypass.append(user.id)
+            on = True
+
+            em = embeds.Embeds.embed(
+                description=f"Toggled auto bypass for user {user.mention} - `{on}`",
+                color=guilded.Color.green(),
+            )
+            await ctx.reply(embed=em, private=ctx.message.private)
+
     @commands.command(name="load", description="Loads a cog.")
     async def load(self, ctx: commands.Context, *, cog_name: str):
-        if not ctx.author.id in self.bot.CONFIGS.owners:
+        if not ctx.author.id in self.bot.owner_ids:
             return await ctx.reply("No.", private=ctx.message.private)
         ocog_name = cog_name
 
@@ -61,7 +96,7 @@ class developer(commands.Cog):
 
     @commands.command(name="unload", description="Unloads a cog.")
     async def unload(self, ctx: commands.Context, *, cog_name: str):
-        if not ctx.author.id in self.bot.CONFIGS.owners:
+        if not ctx.author.id in self.bot.owner_ids:
             return await ctx.reply("No.", private=ctx.message.private)
         ocog_name = cog_name
         if not cog_name.startswith(f"{self.bot.CONFIGS.cogs_dir[:-1]}."):
@@ -113,8 +148,8 @@ class developer(commands.Cog):
                 await ctx.reply(embed=em, private=ctx.message.private)
 
     @commands.command(name="reload", description="Reloads a cog.")
-    async def reload(self, ctx: commands.Context, *, cog_name: str | None = None):
-        if not ctx.author.id in self.bot.CONFIGS.owners:
+    async def reload(self, ctx: commands.Context, *, cog_name: str = None):
+        if not ctx.author.id in self.bot.owner_ids:
             return await ctx.reply("No.", private=ctx.message.private)
         if not cog_name:
             cog_name = "all"
@@ -161,7 +196,7 @@ class developer(commands.Cog):
     )
     async def asyncexecute(self, ctx: commands.Context):
         troll = False  # do you want to troll someone who tries to run eval without permissions?
-        if not ctx.author.id in self.bot.CONFIGS.owners:
+        if not ctx.author.id in self.bot.owner_ids:
             if troll:
                 await ctx.message.add_reaction(90001732)
                 await asyncio.sleep(2)

@@ -18,6 +18,9 @@ humanfriendly
 fuzzywuzzy
 python-Levenshtein
 
+# RSS Feed Parsing
+feedparser
+
 # Console commands
 gpy-console
 
