@@ -166,7 +166,7 @@ class RSSFeedCog(commands.Cog):
         await ctx.reply(
             embed=embeds.Embeds.embed(
                 title="RSS Feed Added",
-                description=f"RSS feed added for {channel.mention} - `{feed_url}`",
+                description=f"RSS feed added for {tools.channel_mention(channel)} - `{feed_url}`",
                 color=guilded.Color.green(),
             ),
             private=ctx.message.private,
@@ -231,7 +231,7 @@ class RSSFeedCog(commands.Cog):
             await server_data.save()
             embed = embeds.Embeds.embed(
                 title="RSS Feed Removed",
-                description=f"RSS feed for channel {channel.mention} has been removed.",
+                description=f"RSS feed for channel {tools.channel_mention(channel)} has been removed.",
                 color=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -318,7 +318,7 @@ class RSSFeedCog(commands.Cog):
         for feed in feeds_to_display:
             channel = await self.bot.getch_channel(feed.channelId)
             if channel:
-                desc += f"{channel.mention}\n**URL:** `{feed.feedURL}`\n"
+                desc += f"{tools.channel_mention(channel)}\n**URL:** `{feed.feedURL}`\n"
 
         embed.description = desc.strip()
 
@@ -349,7 +349,7 @@ class RSSFeedCog(commands.Cog):
             ) > time.mktime(feed.last_checked):
                 channel = await self.bot.getch_channel(feed.channelId)
                 if channel:
-                    embed = embeds.Embeds.embed(  # TODO: format better
+                    embed = embeds.Embeds.embed(
                         title=(
                             feed_data.feed.get("title", "")
                             + (" - " if feed_data.feed.get("title") else "")

@@ -526,7 +526,7 @@ class Logging(commands.Cog):
             try:
                 channel = await ctx.server.fetch_channel(channel_id)
                 channels.append(
-                    f"{channel.mention} is a `{human_readable_map[event_type]}` log channel."
+                    f"{tools.channel_mention(channel)} is a `{human_readable_map[event_type]}` log channel."
                 )
             except:
                 await delete_log(ctx.server.id, channel_id)
@@ -623,7 +623,7 @@ class Logging(commands.Cog):
             event_type = server_data.logging.setChannels.get(channel.id)
             embed = embeds.Embeds.embed(
                 title="Already a log channel",
-                description=f"{channel.mention} is already a `{human_readable_map[event_type]}` log channel.",
+                description=f"{tools.channel_mention(channel)} is already a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.red(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -639,20 +639,20 @@ class Logging(commands.Cog):
             except:
                 embed = embeds.Embeds.embed(
                     title="Missing Permissions",
-                    description=f"I do not have access to send messages to {channel.mention}.",
+                    description=f"I do not have access to send messages to {tools.channel_mention(channel)}.",
                 )
                 await ctx.reply(embed=embed, private=ctx.message.private)
                 return
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
-                    f"{channel.mention} was set as a `{human_readable_map[event_type]}` log channel.",
+                    f"{tools.channel_mention(channel)} was set as a `{human_readable_map[event_type]}` log channel.",
                     ctx.author,
                 )
             )
             await set_log(ctx.server.id, channel.id, event_type)
             embed = embeds.Embeds.embed(
                 title="Set Log Channel!",
-                description=f"{channel.mention} is now a `{human_readable_map[event_type]}` log channel.",
+                description=f"{tools.channel_mention(channel)} is now a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -706,14 +706,14 @@ class Logging(commands.Cog):
             event_type = server_data.logging.setChannels.get(channel.id)
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
-                    f"{channel.mention} was removed as a `{human_readable_map[event_type]}` log channel.",
+                    f"{tools.channel_mention(channel)} was removed as a `{human_readable_map[event_type]}` log channel.",
                     ctx.author,
                 )
             )
             await delete_log(ctx.server.id, channel.id, logged=True)
             embed = embeds.Embeds.embed(
                 title="Sucessfully Removed Log Channel",
-                description=f"{channel.mention} is no longer a `{human_readable_map[event_type]}` log channel.",
+                description=f"{tools.channel_mention(channel)} is no longer a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -872,7 +872,9 @@ class Logging(commands.Cog):
                 embed.add_field(name="User", value=event.member.mention)
                 embed.add_field(name="User ID", value=event.member.id)
             if event.channel:
-                embed.add_field(name="Channel", value=event.channel.mention)
+                embed.add_field(
+                    name="Channel", value=tools.channel_mention(event.channel)
+                )
                 embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
             embed.add_field(name="Moderator", value=event.moderator.mention)
             embed.add_field(name="Moderator ID", value=event.moderator.id)
