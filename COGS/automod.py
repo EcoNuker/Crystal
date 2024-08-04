@@ -606,7 +606,7 @@ class AutoModeration(commands.Cog):
                 async def run_delete(msg):
                     try:
                         await msg.delete()
-                    except:
+                    except Exception as e:
                         pass
 
                 await asyncio.gather(*[run_delete(msg) for msg in to_be_modded_msgs])
