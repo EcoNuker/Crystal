@@ -126,7 +126,7 @@ class settings(commands.Cog):
             else:
                 try:
                     mute_role = await ctx.server.getch_role(role)
-                except guilded.NotFound:
+                except (guilded.NotFound, guilded.BadRequest):
                     mute_role = None
             if (mute_role is None) or (not mute_role.is_assignable):
                 await ctx.reply(

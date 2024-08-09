@@ -88,7 +88,7 @@ class RSSFeedCog(commands.Cog):
         else:
             try:
                 channel = await ctx.server.fetch_channel(channel)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 channel = None
         if channel is None:
             await ctx.reply(
@@ -209,7 +209,7 @@ class RSSFeedCog(commands.Cog):
         else:
             try:
                 channel = await ctx.server.fetch_channel(channel)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 channel = None
         if channel is None:
             await ctx.reply(

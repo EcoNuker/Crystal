@@ -385,7 +385,7 @@ class moderation(commands.Cog):
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             await ctx.reply(
@@ -484,7 +484,7 @@ class moderation(commands.Cog):
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             await ctx.reply(
@@ -574,7 +574,7 @@ class moderation(commands.Cog):
         else:
             try:
                 user = await self.bot.getch_user(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             await ctx.reply(
@@ -663,6 +663,8 @@ class moderation(commands.Cog):
                     # user = await self.bot.getch_user(user)
                 except guilded.NotFound:
                     user = None
+            except guilded.BadRequest:
+                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
@@ -814,8 +816,10 @@ class moderation(commands.Cog):
             except guilded.NotFound:
                 try:
                     user = await self.bot.getch_user(user)
-                except guilded.NotFound:
+                except (guilded.NotFound, guilded.BadRequest):
                     user = None
+            except guilded.BadRequest:
+                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
@@ -913,15 +917,15 @@ class moderation(commands.Cog):
             except:
                 try:
                     user = await self.bot.getch_user(user)
-                except guilded.NotFound:
+                except (guilded.NotFound, guilded.BadRequest):
                     user = None
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 try:
                     user = await self.bot.getch_user(user)
-                except guilded.NotFound:
+                except (guilded.NotFound, guilded.BadRequest):
                     user = None
         if user is None:
             await ctx.reply(

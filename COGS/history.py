@@ -92,7 +92,7 @@ class history(commands.Cog):
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             await ctx.reply(
@@ -351,7 +351,7 @@ class history(commands.Cog):
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             await ctx.reply(

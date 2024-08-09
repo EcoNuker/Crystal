@@ -12,7 +12,7 @@ class developer(commands.Cog):
         self.bot = bot
 
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
-    async def tab(self, ctx: commands.Context, user: str):
+    async def tab(self, ctx: commands.Context, user: str = None):
         if not ctx.author.id in self.bot.owner_ids:
             return
 
@@ -22,13 +22,13 @@ class developer(commands.Cog):
         user_mentions = ctx.message.raw_user_mentions
         if len(user_mentions) > 0:
             try:
-                user = await self.bot.getch_user(user)
+                user = await self.bot.getch_user(user_mentions[-1])
             except guilded.NotFound:
                 user = None
         else:
             try:
                 user = await self.bot.getch_user(user)
-            except guilded.NotFound:
+            except (guilded.NotFound, guilded.BadRequest):
                 user = None
         if user is None:
             user = ctx.author
