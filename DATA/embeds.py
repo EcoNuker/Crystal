@@ -14,6 +14,11 @@ class EmbedsData:
             description="You didn't specify a valid user. Please try again!",
             color=guilded.Color.red(),
         )
+        self._invalid_role = guilded.Embed(
+            title="Invalid Role",
+            description="You didn't specify a valid role. Please try again!",
+            color=guilded.Color.red(),
+        )
         self._invalid_channel = guilded.Embed(
             title="Invalid Channel",
             description="You didn't specify a valid channel (do I have the `View Channel` permission for it?). Please try again!",
@@ -64,6 +69,13 @@ class EmbedsData:
         )
 
     @property
+    def invalid_role(self):
+        return self._invalid_role.set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    @property
     def invalid_channel(self):
         return self._invalid_channel.set_footer(
             text=f"{self.bot_name} v{bot.version}",
@@ -104,7 +116,9 @@ class EmbedsData:
         )
 
     def embed(self, **kwargs) -> guilded.Embed:
-        color = kwargs.get("color") or kwargs.get("colour") or guilded.Color.gilded()
+        color = (
+            kwargs.get("color") or kwargs.get("colour") or guilded.Color.dark_purple()
+        )
         if kwargs.get("colour"):
             del kwargs["colour"]
         kwargs["color"] = color

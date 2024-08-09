@@ -12,6 +12,8 @@ def action_map(
     actions = {
         "kick": "The user was kicked",
         "ban": "The user was banned",
+        "unban": "The user was unbanned",
+        "unmute": "The user was unmuted",
         "mute": "The user was muted",
         "clear_history": "The user's punishment history was cleared",
         "delete_case": "A single case history was deleted from the user",
@@ -78,6 +80,7 @@ class BaseEvent:
 
 class CloudBaseEvent(BaseEvent):
     def __init__(self) -> None:
+        super().__init__()
         self.event_id: str | None = None
         self.cloud_data: dict
         self.bypass_enabled: bool = False
@@ -86,13 +89,25 @@ class CloudBaseEvent(BaseEvent):
 class EventQueue:
     def __init__(self) -> None:
         self.events = {}
-        self.events_overwritten = {"message_ids": {}}
+        self.events_overwritten = {"message_ids": {}, "role_changes": {}}
 
     def add_overwrites(self, data: dict) -> None:
         for overwrite_type, overwrites in data.items():
             if overwrite_type == "message_ids":
                 for m_id in overwrites:
-                    self.events_overwritten["message_ids"][m_id] = time.time()
+                    self.events_overwritten["message_ids"][m_id] = {"time": time.time()}
+            if overwrite_type == "role_changes":
+                for data in overwrites:
+                    m_id = data["user_id"]
+                    s_id = data["server_id"]
+                    amount = data["amount"]
+                    self.events_overwritten["role_changes"][m_id + "|" + s_id] = {
+                        "time": time.time(),
+                        "amount": amount
+                        + self.events_overwritten["role_changes"]
+                        .get(m_id + "|" + s_id, {})
+                        .get("amount", 0),
+                    }
 
     def add_event(self, eventData: BaseEvent) -> None:
         eventId = tools.gen_cryptographically_secure_string(5)
@@ -106,8 +121,8 @@ class EventQueue:
 
     def clear_old_overwrites(self) -> None:
         for overwrite_type, overwrites in self.events_overwritten.copy().items():
-            for overwrite, time_overwritten in overwrites.copy().items():
-                if (time.time() - time_overwritten) > 20:  # ten seconds
+            for overwrite, data in overwrites.copy().items():
+                if (time.time() - data["time"]) > 20:  # ten seconds
                     del self.events_overwritten[overwrite_type][overwrite]
 
 
@@ -182,7 +197,9 @@ class ModeratorAction(CloudBaseEvent):
         self.timestamp = time.time()
         assert action in [
             "kick",
+            "unban",
             "ban",
+            "unmute",
             "mute",
             "tempban",
             "tempmute",
@@ -223,6 +240,36 @@ class BotSettingChanged(CloudBaseEvent):
                 self.server = changed_by.server
                 self.server_id = changed_by.server_id
                 self.changed_by = changed_by
+
+
+class BotForbidden(CloudBaseEvent):
+    def __init__(
+        self,
+        log_type: List[str],
+        exc: guilded.Forbidden,
+        server: guilded.Server,
+        channel: guilded.abc.ServerChannel | None = None,
+        message: guilded.Message | None = None,
+        action: str = "Unknown",
+        note: str | None = None,
+        overwrites: dict = {},
+        bypass_enabled: bool = False,
+    ):
+        super().__init__()
+        self.bypass_enabled = bypass_enabled
+        self.log_type = log_type
+        self.exc = exc
+        self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
+        self.eventType = "BotForbidden"
+        self.server: guilded.Server = server
+        self.server_id: str = self.server.id
+        self.channel: guilded.abc.ServerChannel | None = channel
+        self.channel_id: str | None = self.channel.id if self.channel else None
+        self.message: guilded.Message | None = message
+        self.action = action
+        self.note = note
+        self.overwrite = overwrites
+        self.timestamp = time.time()
 
 
 eventqueue = EventQueue()

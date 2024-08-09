@@ -7,11 +7,202 @@ from DATA import tools
 from DATA import embeds
 from DATA import custom_events
 
+import documents
 
-class Moderation(commands.Cog):
+
+async def unmute_user(
+    server: guilded.Server,
+    member: guilded.Member | guilded.User,
+    in_server: bool = True,
+) -> bool:
+    """
+    False if unmute failed, otherwise True
+
+    Can raise Forbidden
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server.id
+    )
+    if not server_data:
+        server_data = documents.Server(serverId=server.id)
+        await server_data.save()
+
+    mute = [mute for mute in server_data.data.mutes if mute.user == member.id]
+    mute = mute[0] if len(mute) > 0 else None
+
+    mute_roles = []
+
+    try:
+        if mute:
+            try:
+                mute_roles.append(await server.getch_role(mute.muteRole))
+            except:
+                pass
+        mute_roles.append(
+            await server.getch_role(server_data.data.settings.roles.mute)
+            if server_data.data.settings.roles.mute
+            else None
+        )
+    except guilded.Forbidden as e:
+        custom_events.eventqueue.add_event(
+            custom_events.BotForbidden(
+                ["ModeratorAction"],
+                e,
+                server,
+                action="Fetch Role",
+            )
+        )
+    except guilded.NotFound:
+        server_data.data.settings.roles.mute = None
+        await server_data.save()
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                "The mute role was automatically set to `None` as the role appears to have been deleted.",
+                server.id,
+            )
+        )
+
+    if mute_roles == []:
+        return False
+
+    if mute:
+        server_data.data.mutes = [
+            mute for mute in server_data.data.mutes if mute.user != member.id
+        ]
+        await server_data.save()
+
+    if in_server:
+        try:
+            custom_events.eventqueue.add_overwrites(
+                {
+                    "role_changes": [
+                        {
+                            "user_id": member.id,
+                            "server_id": member.server_id,
+                            "amount": len(mute_roles),
+                        }
+                    ]
+                }
+            )  # TODO: remove overwrites if error
+            # Doable by catching below and removing, then raising again
+            await member.remove_roles(*mute_roles)
+        except guilded.Forbidden as e:
+            custom_events.eventqueue.add_event(
+                custom_events.BotForbidden(
+                    ["ModeratorAction"],
+                    e,
+                    server,
+                    action="Remove Mute Role",
+                    note="Are my roles above the mute role?",
+                )
+            )
+            return False
+    return True
+
+
+async def mute_user(
+    server: guilded.Server,
+    member: guilded.Member | guilded.User,
+    endsAt: int = None,
+    in_server: bool = True,
+) -> bool:
+    """
+    False if mute failed, otherwise True
+
+    Can raise Forbidden
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server.id
+    )
+    if not server_data:
+        server_data = documents.Server(serverId=server.id)
+        await server_data.save()
+
+    try:
+        mute_role = (
+            await server.getch_role(server_data.data.settings.roles.mute)
+            if server_data.data.settings.roles.mute
+            else None
+        )
+    except guilded.Forbidden as e:
+        custom_events.eventqueue.add_event(
+            custom_events.BotForbidden(
+                ["ModeratorAction"],
+                e,
+                server,
+                action="Fetch Role",
+            )
+        )
+    except guilded.NotFound:
+        server_data.data.settings.roles.mute = None
+        await server_data.save()
+        mute_role = None
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                "The mute role was automatically set to `None` as the role appears to have been deleted.",
+                server.id,
+            )
+        )
+
+    if not mute_role:
+        return False
+
+    mute = documents.serverMute(user=member.id, muteRole=mute_role.id, endsAt=endsAt)
+    server_data.data.mutes.append(mute)
+    await server_data.save()
+
+    if in_server:
+        try:
+            custom_events.eventqueue.add_overwrites(
+                {
+                    "role_changes": [
+                        {
+                            "user_id": member.id,
+                            "server_id": member.server_id,
+                            "amount": 1,
+                        }
+                    ]
+                }
+            )  # TODO: remove overwrites if error
+            # Doable by catching below and removing, then raising again
+            await member.add_role(mute_role)
+        except guilded.Forbidden as e:
+            custom_events.eventqueue.add_event(
+                custom_events.BotForbidden(
+                    ["ModeratorAction"],
+                    e,
+                    server,
+                    action="Add Mute Role",
+                    note="Are my roles above the mute role?",
+                )
+            )
+            return False
+    return True
+
+
+class moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.cooldowns = {"purge": {}}
+
+    # Remute if they leave and rejoin.
+    @commands.Cog.listener("on_member_join")
+    async def on_member_join(self, event: guilded.MemberJoinEvent):
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server_id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server_id)
+            await server_data.save()
+
+        for mute in server_data.data.mutes.copy():
+            if mute.user == event.member.id:
+                await mute_user(event.server, event.member, mute.endsAt)
+
+        server_data.data.mutes = [
+            mute for mute in server_data.data.mutes if mute.user != event.member.id
+        ]
+        await server_data.save()
 
     @commands.command(name="purge")
     async def purge(self, ctx: commands.Context, *, amount, private: bool = False):
@@ -203,9 +394,33 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = reason.removeprefix("<@" + user.id + ">").strip()
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
         if reason == "":
             reason = None
+
+        higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
+        if len(higher_member) == 2:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot warn this user, as you are equals in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        elif higher_member[0].id != ctx.author.id:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot warn this user, as they are higher than you in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         # warn member
         warn_message = f"You have been warned by a server moderator.\n**Reason**\n`{reason if reason else 'No reason was provided.'}`"
@@ -278,9 +493,33 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = reason.removeprefix("<@" + user.id + ">").strip()
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
         if reason == "":
             reason = None
+
+        higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
+        if len(higher_member) == 2:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot kick this user, as you are equals in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        elif higher_member[0].id != ctx.author.id:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot kick this user, as they are higher than you in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         # kick member
         await user.kick()
@@ -298,6 +537,85 @@ class Moderation(commands.Cog):
             )
         )
 
+    @commands.command(name="unban")
+    async def unban(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
+
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.ban_members:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Kick/Ban Members", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
+
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await self.bot.getch_user(user_mentions[-1])
+            except:
+                user = None
+        else:
+            try:
+                user = await self.bot.getch_user(user)
+            except guilded.NotFound:
+                user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+
+        try:
+            ban = await ctx.server.fetch_ban(user)
+        except guilded.NotFound:
+            embed = embeds.Embeds.embed(
+                title="Not Banned",
+                description=f"This user isn't banned!",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
+
+        # remove user display name or id from reason
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
+        if reason == "":
+            reason = None
+
+        # unban member
+        await ban.revoke()
+
+        embed = embeds.Embeds.embed(
+            title="User Unbanned",
+            description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="unban", member=user, moderator=ctx.author, reason=reason
+            )
+        )
+
     @commands.command(name="ban")  # TODO: duration to make a ban a tempban
     async def ban(self, ctx: commands.Context, user: str, *, reason: str = None):
         # define typehinting here since pylance/python extensions apparently suck
@@ -311,7 +629,7 @@ class Moderation(commands.Cog):
             )
             return
         await ctx.server.fill_roles()
-        if not ctx.author.server_permissions.kick_members:
+        if not ctx.author.server_permissions.ban_members:
             msg = await ctx.reply(
                 embed=embeds.Embeds.missing_permissions(
                     "Kick/Ban Members", manage_bot_server=False
@@ -352,9 +670,45 @@ class Moderation(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = reason.removeprefix("<@" + user.id + ">").strip()
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
         if reason == "":
             reason = None
+
+        try:
+            ban = await ctx.server.fetch_ban(user)
+            embed = embeds.Embeds.embed(
+                title="Already Banned",
+                description=f"This user is already banned!",  # TODO: overwrite existing ban, so the bot can "preban" users
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
+        except guilded.NotFound:
+            pass
+
+        higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
+        if len(higher_member) == 2:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot ban this user, as you are equals in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+        elif higher_member[0].id != ctx.author.id:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot ban this user, as they are higher than you in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         # ban member
         if isinstance(user, guilded.Member):
@@ -375,6 +729,262 @@ class Moderation(commands.Cog):
             )
         )
 
+    @commands.command(name="mute")  # TODO: duration to make a mute a tempmute
+    async def mute(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
+
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.manage_roles:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Manage Roles", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        try:
+            mute_role = (
+                await ctx.server.getch_role(server_data.data.settings.roles.mute)
+                if server_data.data.settings.roles.mute
+                else None
+            )
+        except guilded.Forbidden as e:
+            custom_events.eventqueue.add_event(
+                custom_events.BotForbidden(
+                    ["ModeratorAction"],
+                    e,
+                    ctx.server,
+                    action="Fetch Role",
+                )
+            )
+        except guilded.NotFound:
+            server_data.data.settings.roles.mute = None
+            await server_data.save()
+            mute_role = None
+            custom_events.eventqueue.add_event(
+                custom_events.BotSettingChanged(
+                    "The mute role was automatically set to `None` as the role appears to have been deleted.",
+                    ctx.server.id,
+                )
+            )
+
+        if not mute_role:
+            embed = embeds.Embeds.embed(
+                title="Mute Role Not Set",
+                description=f"Please use the `role` command.",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
+
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
+
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await ctx.server.getch_member(user_mentions[-1])
+            except:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        else:
+            try:
+                user = await ctx.server.getch_member(user)
+            except guilded.NotFound:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+
+        # remove user display name or id from reason
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
+        if reason == "":
+            reason = None
+
+        if isinstance(user, guilded.Member):
+
+            higher_member = await tools.check_higher_member(
+                ctx.server, [ctx.author, user]
+            )
+            if len(higher_member) == 2:
+                embed = embeds.Embeds.embed(
+                    title="You Can't Do That!",
+                    description=f"You cannot ban this user, as you are equals in role hierachy.",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    return
+            elif higher_member[0].id != ctx.author.id:
+                embed = embeds.Embeds.embed(
+                    title="You Can't Do That!",
+                    description=f"You cannot ban this user, as they are higher than you in role hierachy.",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    return
+
+            # mute member
+            await mute_user(ctx.server, user, endsAt=None)
+        else:
+            await mute_user(ctx.server, user, endsAt=None, in_server=False)
+
+        embed = embeds.Embeds.embed(
+            title="User Muted",
+            description=f"Successfully muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            + (
+                "\nThe user isn't in the server, but will be muted if they join during their mute duration."
+                if not hasattr(user, "server")
+                else ""
+            ),
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="mute", member=user, moderator=ctx.author, reason=reason
+            )
+        )
+
+    @commands.command(name="unmute")
+    async def unmute(self, ctx: commands.Context, user: str, *, reason: str = None):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: str | guilded.Member | None
+        reason: str | None
+
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.manage_roles:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Manage Roles", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        # combine all args and get full reason with username
+        reason = (user + " " + reason) if reason else ""
+
+        # get the user from message
+        user_mentions = ctx.message.raw_user_mentions
+        if len(user_mentions) > 0:
+            try:
+                user = await ctx.server.getch_member(user_mentions[-1])
+            except:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        else:
+            try:
+                user = await ctx.server.getch_member(user)
+            except guilded.NotFound:
+                try:
+                    user = await self.bot.getch_user(user)
+                except guilded.NotFound:
+                    user = None
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+
+        # remove user display name or id from reason
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
+        if reason == "":
+            reason = None
+
+        if isinstance(user, guilded.Member):
+
+            higher_member = await tools.check_higher_member(
+                ctx.server, [ctx.author, user]
+            )
+            if len(higher_member) == 2:
+                embed = embeds.Embeds.embed(
+                    title="You Can't Do That!",
+                    description=f"You cannot ban this user, as you are equals in role hierachy.",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    return
+            elif higher_member[0].id != ctx.author.id:
+                embed = embeds.Embeds.embed(
+                    title="You Can't Do That!",
+                    description=f"You cannot ban this user, as they are higher than you in role hierachy.",
+                    color=guilded.Color.red(),
+                )
+                msg = await ctx.reply(embed=embed, private=ctx.message.private)
+                bypass = await tools.check_bypass(ctx, msg)
+                if not bypass:
+                    return
+
+            # unmute member
+            await unmute_user(ctx.server, user)
+        else:
+            await mute_user(ctx.server, user, in_server=False)
+
+        embed = embeds.Embeds.embed(
+            title="User Unmuted",
+            description=f"Successfully unmuted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            + (
+                "\nThe user isn't in the server, but will no longer be muted if they join."
+                if not hasattr(user, "server")
+                else ""
+            ),
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="unmute", member=user, moderator=ctx.author, reason=reason
+            )
+        )
+
 
 def setup(bot):
-    bot.add_cog(Moderation(bot))
+    bot.add_cog(moderation(bot))

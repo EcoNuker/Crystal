@@ -12,56 +12,104 @@ class information(commands.Cog):
         name="help", description="Help for every command this bot has!", aliases=["h"]
     )
     async def help(
-        self, ctx: commands.Context, *, command: str = None
+        self, ctx: commands.Context
     ) -> guilded.Message | guilded.ChatMessage:
         """
         Help command
         """
-        if command:
-            command = command.lower()
         prefixdata = await self.bot.get_prefix(ctx.message)
         if type(prefixdata) == list:
             prefixdata = prefixdata[0]
-        if command:
-            if command.startswith(prefixdata):
-                command = command[len(prefixdata) : len(command)]
         inviteandsupport = f"\n\n[Invite](https://guilded.gg/b/{self.bot.CONFIGS.botid}) || [Support Server]({self.bot.CONFIGS.supportserverinv})"
-        helpcmd = []
-        if command:
-            helpcmd = None
-            for i in self.bot.commands:
-                if (i.qualified_name).lower() == command or command in i.aliases:
-                    helpcmd = i
-                    break
-        else:
-            for i in self.bot.commands:
-                if i.qualified_name in ["load", "unload", "reload", "eval"]:
-                    if ctx.author.id in self.bot.owner_ids:
-                        helpcmd.append(i.qualified_name)
-                else:
-                    helpcmd.append(i.qualified_name)
-        if command is None:
-            embedig = embeds.Embeds.embed(
-                title="Command Help",
-                description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - 4}`\n**Do {prefixdata}help <command> for more info!**{inviteandsupport}",
+        devcmds = [
+            "load",
+            "unload",
+            "reload",
+            "eval",
+            "toggle_auto_bypass",
+        ]
+        embedig = embeds.Embeds.embed(
+            title="Command Help",
+            description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - len(devcmds)}`\n**Here are all the bot's commands.**{inviteandsupport}",
+            color=guilded.Color.dark_purple(),
+        )
+        if self.bot.extensions.get("COGS.information"):
+            embedig.add_field(
+                name=":information_source: Information Commands",
+                value="\n".join(
+                    [
+                        f"`{prefixdata}help` - The main help menu for the bot.",
+                        f"`{prefixdata}ping` - Bot latency and statistics.",
+                        f"`{prefixdata}invite` - Bot invite and support links.",
+                    ]
+                ),
             )
-            embedig.add_field(name="Commands", value=", ".join(helpcmd), inline=False)
-        elif command:
-            if not helpcmd:
-                return await ctx.reply("Command not found.", private=True)
-            embedig = embeds.Embeds.embed(
-                title="Command Help",
-                description=f"Command `{helpcmd.qualified_name}`'s information.{inviteandsupport}",
+        if self.bot.extensions.get("COGS.prefix"):
+            embedig.add_field(
+                name=":exclamation: View and Set Prefix",
+                value=f"Run `{prefixdata}prefix` for more information!",
+            )
+        if self.bot.extensions.get("COGS.moderation"):
+            embedig.add_field(
+                name=":hammer_and_wrench: Moderation Commands",
+                value="\n".join(
+                    [
+                        f"`{prefixdata}warn @user [reason | OPTIONAL]` - Warn a user, with an optional reason.",
+                        f"`{prefixdata}mute @user [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason. (tempmute in the future)",
+                        f"`{prefixdata}unmute @user [reason | OPTIONAL]` - Unmute a user, with an optional reason.",
+                        f"`{prefixdata}kick @user [reason | OPTIONAL]` - Kick a user, with an optional reason.",
+                        f"`{prefixdata}ban @user [reason | OPTIONAL]` - Ban a user, with an optional reason. (tempban future)",
+                        f"`{prefixdata}unban <user id> [reason | OPTIONAL]` - Unban a user, with an optional reason.",
+                    ]
+                ),
+                inline=False,
+            )
+        if self.bot.extensions.get("COGS.logging"):
+            embedig.add_field(
+                name=":memo: Logging Commands",
+                value=f"Run `{prefixdata}logging` for more information! This is a must have as it logs moderator actions and more.",
+            )
+        if self.bot.extensions.get("COGS.automod"):
+            embedig.add_field(
+                name=":robot_face: Automod Configuration Commands",
+                value=f"Run `{prefixdata}automod` for more information!",
+            )
+        if self.bot.extensions.get("COGS.history"):
+            embedig.add_field(
+                name=":clipboard: User Moderation History Commands",
+                value=f"Run `{prefixdata}history` for more information!",
+            )
+        if self.bot.extensions.get("COGS.settings"):
+            embedig.add_field(
+                name=":file_folder: Server Role Commands",
+                value=f"Run `{prefixdata}role` for more information! Set the server's mute role!",
             )
             embedig.add_field(
-                name="Command Description", value=f"{helpcmd.description}"
+                name=":gear: Server Setting Commands",
+                value=f"Run `{prefixdata}settings` for more information!",
             )
-            aliases = helpcmd.aliases
-            if (", ".join(aliases)).strip() == "":
-                aliases = "None"
-            else:
-                aliases = ", ".join(aliases)
-            embedig.add_field(name="Command Aliases", value=f"{aliases}")
+        if self.bot.extensions.get("COGS.rss"):
+            embedig.add_field(
+                name=":newspaper: RSS Commands",
+                value=f"Run `{prefixdata}rss` for more information!",
+            )
+        if (
+            self.bot.extensions.get("COGS.developer_commands")
+            and ctx.author.id in self.bot.owner_ids
+        ):
+            embedig.add_field(
+                name=":wow_guilded: shhh top secret dev cmds",
+                value="\n".join(
+                    [
+                        f"`{prefixdata}load <cog>` - Loads a unloaded cog.",
+                        f"`{prefixdata}unload <cog>` - Unloads a loaded cog.",
+                        f"`{prefixdata}reload [cog | optional | default ALL]` - Reloads cogs.",
+                        f"`{prefixdata}eval <code>` - Run custom code. Some builtins such as `import` are disabled.",
+                        f"`{prefixdata}toggle_auto_bypass [user | optional | default command author]` - Toggle a user's auto-bypass, meaning whether they auto-bypass permissions or not.",
+                    ]
+                ),
+                inline=False,
+            )
         await ctx.reply(embed=embedig, private=ctx.message.private)
 
     @commands.command(

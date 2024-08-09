@@ -169,11 +169,42 @@ class automodRule(BaseModel):
         return self
 
 
+class serverRoles(BaseModel):
+    """
+    - mute - `Optional[int]` - The server's mute role.
+    """
+
+    mute: Optional[int] = None
+
+
+class serverSettings(BaseModel):
+    """
+    - roles - `serverRoles` - The sever's roles settings.
+    """
+
+    roles: serverRoles = serverRoles()
+
+
+class serverMute(BaseModel):
+    """
+    TODO: when a user rejoins, if they are muted, the mute role should be automatically applied.
+    - user - `str` - The muted user's id.
+    - muteRole - `int` - The muted role given to the user. By default, the bot should attempt to remove this role first on unmute, but also try to remove the new mute role if exists. This should be overwritten if the user leaves and rejoins, to apply the new mute role.
+    - endsAt - `Optional[int]` - When the punishment ends, if tempmute. TODO: check this and remove in a task in moderation cog
+    """
+
+    user: str
+    muteRole: int
+    endsAt: Optional[int] = None
+
+
 class serverData(BaseModel):
     """
     - automodRules - `List[automodRule]` - The server's automod rules
     - automodSettings - `automoderatorSettings` - Automod settings
     - automodModules - `automoderatorModules` - Automod default modules
+    - settings - `serverSettings` - The server's settings.
+    - mutes - `List[serverMute]` - The server's current saved mutes.
     """
 
     automodRules: List[automodRule] = list()
@@ -181,6 +212,10 @@ class serverData(BaseModel):
     automodSettings: automoderatorSettings = automoderatorSettings()
 
     automodModules: automoderatorModules = automoderatorModules()
+
+    settings: serverSettings = serverSettings()
+
+    mutes: List[serverMute] = list()
 
 
 class HistoryCase(BaseModel):
@@ -234,6 +269,7 @@ class Server(Document):
     - rssFeeds - `List[RSSFeed]` - Server RSS feed channels.
     - members - `Dict[str, ServerMember]` - Members data and punishment log. (Defaults to {})
     - cases - `Dict[str, str]` - Maps a caseID to a user
+    - eventIds - `Dict[str, str]` - Maps a eventID to a eventType to show it was used
     - data - `serverData` - Server data and configs.
     """
 
@@ -248,5 +284,7 @@ class Server(Document):
     members: Dict[str, serverMember] = dict()
 
     cases: Dict[str, str] = dict()
+
+    eventIds: Dict[str, str] = dict()
 
     data: serverData = serverData()

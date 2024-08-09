@@ -2,6 +2,7 @@ import guilded
 from guilded.ext import commands
 from DATA import embeds
 from DATA import custom_events
+from DATA import tools
 
 from documents import Server
 
@@ -26,28 +27,29 @@ class prefix(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
+        else:
+            await ctx.server.fill_roles()
 
     @prefix.command(name="set")
     async def _set(self, ctx: commands.Context, *, prefix: str = "!"):
         """Sets the bot's prefix. (Leave blank to reset)"""
 
-        #
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        await ctx.server.fill_roles()
-        if (
+        if not (
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            pass
-        else:
-            return await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
+            bypass = tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
 
         prefix = prefix.strip()
         if len(prefix) > 15:
@@ -74,9 +76,12 @@ class prefix(commands.Cog):
             return
 
         # Grab the server from the database
-        s = await Server.find_one(Server.serverId == ctx.server.id)
-        s.prefix = prefix
-        await s.save()
+        server_data = await Server.find_one(Server.serverId == ctx.server.id)
+        if not server_data:
+            server_data = Server(serverId=ctx.server.id)
+            await server_data.save()
+        server_data.prefix = prefix
+        await server_data.save()
 
         embed = embeds.Embeds.embed(
             title="Prefix Changed",

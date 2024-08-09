@@ -97,7 +97,9 @@ class RSSFeedCog(commands.Cog):
             return
 
         # remove channel display name or id from reason
-        feed_url = feed_url.removeprefix("<#" + channel.id + ">").strip()
+        feed_url = tools.remove_first_prefix(
+            feed_url, [channel.id, "<#" + channel.id + ">"]
+        ).strip()
 
         valid = True
         # Check if RSS feed is valid
@@ -173,7 +175,7 @@ class RSSFeedCog(commands.Cog):
         )
         custom_events.eventqueue.add_event(
             custom_events.BotSettingChanged(
-                f"A channel (ID `{channel.id}`) had a RSS feed added to it (`{feed_url}`).",
+                f"{tools.channel_mention(channel)} (ID `{channel.id}`) had a RSS feed added to it (`{feed_url}`).",
                 ctx.author,
             )
         )
@@ -237,7 +239,7 @@ class RSSFeedCog(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
-                    f"A channel (ID `{channel.id}`) had a RSS feed removed from it (`{feed_to_remove.feedURL}`).",
+                    f"{tools.channel_mention(channel)} (ID `{channel.id}`) had a RSS feed removed from it (`{feed_to_remove.feedURL}`).",
                     ctx.author,
                 )
             )

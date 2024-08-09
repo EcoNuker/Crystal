@@ -177,7 +177,9 @@ def _tracebackprint(error: Exception):
     console_logger.info(separator_line)
     print(separator_line)
 
-    errortimestamp = datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")[:-3] + " UTC"
+    errortimestamp = (
+        datetime.now(timezone.utc).strftime("%Y/%m/%d %H:%M:%S.%f")[:-3] + " UTC"
+    )
 
     for line in traceback_lines:
         for subline in line.split("\n"):

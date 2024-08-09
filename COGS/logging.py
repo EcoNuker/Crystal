@@ -31,8 +31,8 @@ human_readable_map = {
 }
 
 
-async def delete_log(
-    server_id: str, channel_id: str, logged: bool = False, error: Exception = None
+async def delete_log( 
+    bot: commands.Bot, server_id: str, channel_id: str, logged: bool = False, error: Exception = None
 ) -> bool:
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
@@ -80,9 +80,15 @@ async def delete_log(
         else:
             error = "Unknown"
         if not logged:
+            try:
+                ch = await bot.getch_channel(channel_id)
+            except guilded.NotFound:
+                ch = None
+            except guilded.Forbidden:
+                ch = False
             custom_events.eventqueue.add_event(
                 custom_events.BotSettingChanged(
-                    f"A channel (ID `{channel_id}`) was automatically removed as a `{human_readable_map[event_type]}` log channel, as I can no longer access it (`{error}`).",
+                    f"{tools.channel_mention(ch) if ch else 'A deleted channel' if ch == None else 'A channel I do not have access to'} (ID `{channel_id}`) was automatically removed as a `{human_readable_map[event_type]}` log channel, as I can no longer access it (`{error}`).",
                     server_id,
                 )
             )
@@ -205,18 +211,33 @@ class Logging(commands.Cog):
                         if isinstance(
                             data["eventData"], custom_events.CloudBaseEvent
                         ) and (not data["eventData"].event_id):
-                            eids = []  # TODO: "get list of used event ids"
+                            server_data = await documents.Server.find_one(
+                                documents.Server.serverId == data["eventData"].server_id
+                            )
+                            if not server_data:
+                                server_data = documents.Server(
+                                    serverId=data["eventData"].server_id
+                                )
+                                await server_data.save()
+                            eids = list(server_data.eventIds.keys())
                             eid = tools.gen_cryptographically_secure_string(20)
                             while eid in eids:
                                 eid = tools.gen_cryptographically_secure_string(20)
+                            server_data.eventIds[eid] = data["eventType"]
+                            await server_data.save()
                             data["eventData"].event_id = eid
-                        await func_map[data["eventType"]](data["eventData"])
+                        if isinstance(data["eventData"], custom_events.BotForbidden):
+                            for event_type in data["eventData"].log_type:
+                                await func_map[event_type](data["eventData"])
+                        else:
+                            await func_map[data["eventType"]](data["eventData"])
                         del custom_events.eventqueue.events[eventId]
                     await asyncio.sleep(0.3)
             except Exception as e:
                 self.bot.warn(
                     f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
                 )
+                self.bot.traceback(e)
                 self.bot.info(
                     f"Restarting task in {self.bot.COLORS.item_name}5{self.bot.COLORS.normal_message} seconds"
                 )
@@ -489,7 +510,7 @@ class Logging(commands.Cog):
         }
 
         for event, description in TYPES.items():
-            embed.add_field(name=event, value=description, inline=False)
+            embed.add_field(name=event, value=description)
 
         await ctx.reply(embed=embed, private=ctx.message.private)
 
@@ -529,7 +550,7 @@ class Logging(commands.Cog):
                     f"{tools.channel_mention(channel)} is a `{human_readable_map[event_type]}` log channel."
                 )
             except:
-                await delete_log(ctx.server.id, channel_id)
+                await delete_log(self.bot, ctx.server.id, channel_id)
 
         channels = "\n".join(channels) if channels != [] else "No log channels set."
         embed = embeds.Embeds.embed(
@@ -579,7 +600,9 @@ class Logging(commands.Cog):
             return
 
         # remove channel display name or id from reason
-        event_type = event_type.removeprefix("<#" + channel.id + ">").strip()
+        event_type = tools.remove_first_prefix(
+            event_type, [channel.id, "<#" + channel.id + ">"]
+        ).strip()
 
         unhuman_readable_map = {v.lower(): k for k, v in human_readable_map.items()}
 
@@ -710,7 +733,7 @@ class Logging(commands.Cog):
                     ctx.author,
                 )
             )
-            await delete_log(ctx.server.id, channel.id, logged=True)
+            await delete_log(self.bot, ctx.server.id, channel.id, logged=True)
             embed = embeds.Embeds.embed(
                 title="Sucessfully Removed Log Channel",
                 description=f"{tools.channel_mention(channel)} is no longer a `{human_readable_map[event_type]}` log channel.",
@@ -725,7 +748,9 @@ class Logging(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
-    async def on_automod(self, event: custom_events.AutomodEvent):
+    async def on_automod(
+        self, event: custom_events.AutomodEvent | custom_events.BotForbidden
+    ):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
@@ -737,30 +762,66 @@ class Logging(commands.Cog):
         if server_data.logging.logSettings.enabled or (
             event.bypass_enabled and (server_data.logging.logSettings.enabled == False)
         ):
+            if isinstance(event, custom_events.AutomodEvent):
+                # Create the event embed
+                embed = embeds.Embeds.embed(
+                    title=f"Message Automodded",
+                    url=event.message.share_url,
+                    colour=guilded.Colour.blue(),
+                )
 
-            # Create the event embed
-            embed = embeds.Embeds.embed(
-                title=f"Message Automodded",
-                url=event.message.share_url,
-                colour=guilded.Colour.red(),
-            )
+                # Add related fields
+                embed.set_thumbnail(url=event.member.display_avatar.url)
+                embed.add_field(name="User", value=event.member.mention)
+                embed.add_field(name="User ID", value=event.member.id)
+                embed.add_field(name="Message ID", value=event.message.id)
+                embed.add_field(
+                    name="Actions Taken",
+                    value="\n".join(event.formatted_actions),
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Reason",
+                    value=event.reason if event.reason else "No Reason Provided",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Was Message Pinned", value=event.message.pinned, inline=False
+                )
 
-            # Add related fields
-            embed.set_thumbnail(url=event.member.display_avatar.url)
-            embed.add_field(name="User", value=event.member.mention)
-            embed.add_field(name="User ID", value=event.member.id)
-            embed.add_field(name="Message ID", value=event.message.id)
-            embed.add_field(
-                name="Actions Taken",
-                value="\n".join(event.formatted_actions),
-                inline=False,
-            )
-            embed.add_field(
-                name="Reason",
-                value=event.reason if event.reason else "No Reason Provided",
-                inline=False,
-            )
-            # embed.add_field(name="Was Message Pinned", value=event.message.pinned)
+            elif isinstance(event, custom_events.BotForbidden):
+                # Create the event embed
+                embed = embeds.Embeds.embed(
+                    title=f"Message Automod Failed",
+                    url=event.message.share_url,
+                    colour=guilded.Colour.red(),
+                )
+
+                # Add related fields
+                embed.add_field(
+                    name="Message Jump",
+                    value=f"[Message]({event.message.share_url})",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Action Attempted",
+                    value=event.action,
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Missing Permissions",
+                    value=f"`{', '.join(tools.missing_perms(event.exc))}`",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Note",
+                    value=f"Please check channel permission overrides.",
+                    inline=False,
+                )
+                if event.note:
+                    embed.add_field(
+                        name="Additional Note", value=event.note, inline=False
+                    )
 
             # Push the event to the listening channels
             if server_data.logging.automod:
@@ -770,7 +831,7 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
@@ -779,24 +840,25 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
 
-        server_data.members[event.member.id] = server_data.members.get(
-            event.member.id, serverMember(member=event.member.id)
-        )
+        if isinstance(event, custom_events.AutomodEvent):
+            server_data.members[event.member.id] = server_data.members.get(
+                event.member.id, serverMember(member=event.member.id)
+            )
 
-        server_data.members[event.member.id].history[event.event_id] = HistoryCase(
-            caseId=event.event_id,
-            actions=event.actions,
-            reason=event.reason,
-            moderator=self.bot.user_id,
-            duration=event.durations,
-            automod=True,
-        )
+            server_data.members[event.member.id].history[event.event_id] = HistoryCase(
+                caseId=event.event_id,
+                actions=event.actions,
+                reason=event.reason,
+                moderator=self.bot.user_id,
+                duration=event.durations,
+                automod=True,
+            )
 
-        server_data.cases[event.event_id] = event.member.id
+            server_data.cases[event.event_id] = event.member.id
 
-        await server_data.save()
+            await server_data.save()
 
         # TODO: make api and send new info via WS
 
@@ -835,7 +897,7 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
@@ -844,10 +906,12 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
         # TODO: cloud event log, make api and update via WS
 
-    async def on_moderator_action(self, event: custom_events.ModeratorAction):
+    async def on_moderator_action(
+        self, event: custom_events.ModeratorAction | custom_events.BotForbidden
+    ):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id
@@ -860,32 +924,70 @@ class Logging(commands.Cog):
             event.bypass_enabled and (server_data.logging.logSettings.enabled == False)
         ):
 
-            # Create the event embed
-            embed = embeds.Embeds.embed(
-                title=f"Moderator Action Taken",
-                colour=guilded.Colour.red(),
-            )
+            if isinstance(event, custom_events.ModeratorAction):
 
-            # Add related fields
-            embed.set_thumbnail(url=event.moderator.display_avatar.url)
-            if event.member:
-                embed.add_field(name="User", value=event.member.mention)
-                embed.add_field(name="User ID", value=event.member.id)
-            if event.channel:
-                embed.add_field(
-                    name="Channel", value=tools.channel_mention(event.channel)
+                # Create the event embed
+                embed = embeds.Embeds.embed(
+                    title=f"Moderator Action Taken",
+                    colour=guilded.Colour.red(),
                 )
-                embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
-            embed.add_field(name="Moderator", value=event.moderator.mention)
-            embed.add_field(name="Moderator ID", value=event.moderator.id)
-            embed.add_field(
-                name="Action Taken", value=event.formatted_action, inline=False
-            )
-            embed.add_field(
-                name="Reason",
-                value=event.reason if event.reason else "No Reason Provided",
-                inline=False,
-            )
+
+                # Add related fields
+                embed.set_thumbnail(url=event.member.display_avatar.url if event.member else event.moderator.display_avatar.url)
+                if event.member:
+                    embed.add_field(name="User", value=event.member.mention)
+                    embed.add_field(name="User ID", value=event.member.id)
+                if event.channel:
+                    embed.add_field(
+                        name="Channel", value=tools.channel_mention(event.channel)
+                    )
+                    embed.add_field(
+                        name="Channel ID", value=event.channel.id, inline=False
+                    )
+                embed.add_field(name="Moderator", value=event.moderator.mention)
+                embed.add_field(name="Moderator ID", value=event.moderator.id)
+                embed.add_field(
+                    name="Action Taken", value=event.formatted_action, inline=False
+                )
+                embed.add_field(
+                    name="Reason",
+                    value=event.reason if event.reason else "No Reason Provided",
+                    inline=False,
+                )
+
+            elif isinstance(event, custom_events.BotForbidden):
+                # Create the event embed
+                embed = embeds.Embeds.embed(
+                    title=f"Message Automod Failed",
+                    url=event.message.share_url,
+                    colour=guilded.Colour.red(),
+                )
+
+                # Add related fields
+                embed.add_field(
+                    name="Message Jump",
+                    value=f"[Message]({event.message.share_url})",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Action Attempted",
+                    value=event.action,
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Missing Permissions",
+                    value=f"`{', '.join(tools.missing_perms(event.exc))}`",
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Note",
+                    value=f"Please check channel permission overrides.",
+                    inline=False,
+                )
+                if event.note:
+                    embed.add_field(
+                        name="Additional Note", value=event.note, inline=False
+                    )
 
             # Push the event to the listening channels
             if server_data.logging.moderatorAction:
@@ -895,7 +997,7 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
                     try:
@@ -903,36 +1005,43 @@ class Logging(commands.Cog):
                             embed=embed, silent=True
                         )
                     except Exception as e:
-                        await delete_log(event.server_id, channel_id, error=e)
+                        await delete_log(self.bot, event.server_id, channel_id, error=e)
 
-        if event.action in [
-            "kick",
-            "ban",
-            "mute",
-            "tempban",
-            "tempmute",
-            "warn",
-        ]:
-            server_data.members[event.member.id] = server_data.members.get(
-                event.member.id, serverMember(member=event.member.id)
-            )
+        if isinstance(event, custom_events.ModeratorAction):
+            if event.action in [
+                "kick",
+                "ban",
+                "mute",
+                "tempban",
+                "tempmute",
+                "warn",
+            ]:
+                server_data.members[event.member.id] = server_data.members.get(
+                    event.member.id, serverMember(member=event.member.id)
+                )
 
-            server_data.members[event.member.id].history[event.event_id] = HistoryCase(
-                caseId=event.event_id,
-                actions=[event.action],
-                reason=event.reason,
-                moderator=event.moderator.id,
-                duration=(
-                    [event.duration, 0]
-                    if event.action == "tempmute"
-                    else [0, event.duration] if event.action == "tempban" else None
-                ),
-                automod=False,
-            )
+                server_data.members[event.member.id].history[event.event_id] = (
+                    HistoryCase(
+                        caseId=event.event_id,
+                        actions=[event.action],
+                        reason=event.reason,
+                        moderator=event.moderator.id,
+                        duration=(
+                            [event.duration, 0]
+                            if event.action == "tempmute"
+                            else (
+                                [0, event.duration]
+                                if event.action == "tempban"
+                                else None
+                            )
+                        ),
+                        automod=False,
+                    )
+                )
 
-            server_data.cases[event.event_id] = event.member.id
+                server_data.cases[event.event_id] = event.member.id
 
-            await server_data.save()
+                await server_data.save()
 
         # TODO: dispatch via ws
 
@@ -964,7 +1073,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Message Edited",
             url=event.after.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
 
         # Add related fields
@@ -986,7 +1095,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -995,7 +1104,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_join(self, event: guilded.MemberJoinEvent):
@@ -1041,7 +1150,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1050,7 +1159,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1059,7 +1168,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_remove(self, event: guilded.MemberRemoveEvent):
@@ -1086,7 +1195,7 @@ class Logging(commands.Cog):
             url=user.profile_url,
             colour=(event.kicked or event.banned)
             and guilded.Colour.red()
-            or guilded.Colour.gilded(),
+            or guilded.Colour.dark_purple(),
         )
 
         # Set related fields
@@ -1106,7 +1215,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1115,7 +1224,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1124,7 +1233,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_member_update(self, event: guilded.MemberUpdateEvent):
@@ -1145,7 +1254,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"{event.after.mention} Nickname Changed",
             url=event.after.profile_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
 
         # Set related fields
@@ -1162,7 +1271,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         elif server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1171,7 +1280,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         elif server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1180,7 +1289,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_bulk_member_roles_update(
@@ -1204,11 +1313,32 @@ class Logging(commands.Cog):
 
         # Iterate over all updated members
         for member in event.after:
+            e_overwritten = member.id + "|" + event.server_id
+
+            if (
+                e_overwritten
+                in custom_events.eventqueue.events_overwritten["role_changes"].keys()
+            ):
+                a = custom_events.eventqueue.events_overwritten["role_changes"][
+                    e_overwritten
+                ]["amount"]
+                if a > 0:
+                    a -= 1
+                    if a > 0:
+                        custom_events.eventqueue.events_overwritten["role_changes"][
+                            e_overwritten
+                        ]["amount"] = a
+                    else:
+                        del custom_events.eventqueue.events_overwritten["role_changes"][
+                            e_overwritten
+                        ]
+                    continue
+
             # Create the event embed
             embed = embeds.Embeds.embed(
                 title=f"{member.mention} Roles Changed",
                 url=member.profile_url,
-                colour=guilded.Colour.gilded(),
+                colour=guilded.Colour.dark_purple(),
             )
 
             # Add related fields
@@ -1294,7 +1424,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
@@ -1303,7 +1433,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1312,7 +1442,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
@@ -1337,7 +1467,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"{user.mention} Unbanned",
             url=user.profile_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
 
         # Add related fields
@@ -1359,7 +1489,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1368,7 +1498,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -1390,9 +1520,14 @@ class Logging(commands.Cog):
         else:
             return
         if not event.message.author:
-            await (await self.bot.getch_server(event.server_id)).getch_member(
-                event.message.author_id
-            )
+            try:
+                user = await (
+                    await self.bot.getch_server(event.server_id)
+                ).getch_member(event.message.author_id)
+            except:
+                user = await self.bot.getch_user(event.message.author_id)
+        else:
+            user = event.message.author
 
         if (not server_data.logging.logSettings.logBotMessageChanges) and (
             await self.bot.getch_user(event.message.author_id)
@@ -1404,20 +1539,12 @@ class Logging(commands.Cog):
             url=event.message.share_url,
             colour=guilded.Colour.red(),
         )
-        embed.set_thumbnail(
-            url=(
-                event.message.author.display_avatar.url
-                if event.message.author
-                else (
-                    await self.bot.getch_user(event.message.author_id)
-                ).display_avatar.url
-            )
-        )
-        embed.add_field(name="User ID", value=event.message.author.id)
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.add_field(name="User ID", value=user.id)
         embed.add_field(name="Message ID", value=event.message.id)
         embed.add_field(
             name="Contents",
-            value=event.message.content if event.message.content else "UNKNOWN",
+            value=event.message.content[:1024] if event.message.content else "UNKNOWN",
             inline=False,
         )
         if server_data.logging.messageChange:
@@ -1427,7 +1554,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1435,7 +1562,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_update(self, event: guilded.ForumTopicUpdateEvent):
@@ -1457,7 +1584,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Updated",
             url=event.topic.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.topic.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.topic.author.id)
@@ -1473,7 +1600,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1481,7 +1608,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1489,7 +1616,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_delete(self, event: guilded.ForumTopicDeleteEvent):
@@ -1527,7 +1654,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1535,7 +1662,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1543,7 +1670,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_pin(self, event: guilded.ForumTopicPinEvent):
@@ -1565,7 +1692,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Pinned",
             url=event.topic.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.topic.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.topic.author.id)
@@ -1578,7 +1705,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1586,7 +1713,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1594,7 +1721,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_unpin(self, event: guilded.ForumTopicUnpinEvent):
@@ -1616,7 +1743,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unpinned",
             url=event.topic.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.topic.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.topic.author.id)
@@ -1629,7 +1756,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1637,7 +1764,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1645,7 +1772,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_lock(self, event: guilded.ForumTopicLockEvent):
@@ -1667,7 +1794,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Locked",
             url=event.topic.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.topic.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.topic.author.id)
@@ -1680,7 +1807,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1688,7 +1815,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1696,7 +1823,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_unlock(self, event: guilded.ForumTopicUnlockEvent):
@@ -1718,7 +1845,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Unlocked",
             url=event.topic.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.topic.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.topic.author.id)
@@ -1731,7 +1858,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1739,7 +1866,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1747,7 +1874,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_update(
@@ -1771,7 +1898,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Forum Topic Reply Updated",
             url=event.reply.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.reply.author.id)
@@ -1784,7 +1911,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1792,7 +1919,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1800,7 +1927,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_forum_topic_reply_delete(
@@ -1837,7 +1964,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1845,7 +1972,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1853,7 +1980,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_update(self, event: guilded.DocUpdateEvent):
@@ -1875,7 +2002,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Doc Updated",
             url=event.doc.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.doc.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.doc.author.id)
@@ -1897,7 +2024,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1905,7 +2032,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1913,7 +2040,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_delete(self, event: guilded.DocDeleteEvent):
@@ -1953,7 +2080,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -1961,7 +2088,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -1969,7 +2096,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_reply_update(self, event: guilded.DocReplyUpdateEvent):
@@ -1991,7 +2118,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Doc Reply Updated",
             url=event.reply.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.reply.author.id)
@@ -2004,7 +2131,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2012,7 +2139,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2020,7 +2147,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_doc_reply_delete(self, event: guilded.DocReplyDeleteEvent):
@@ -2055,7 +2182,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2063,7 +2190,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2071,7 +2198,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_update(self, event: guilded.AnnouncementUpdateEvent):
@@ -2093,7 +2220,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Announcement Updated",
             url=event.announcement.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.announcement.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.announcement.author.id)
@@ -2115,7 +2242,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2123,7 +2250,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2131,7 +2258,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_delete(self, event: guilded.AnnouncementDeleteEvent):
@@ -2175,7 +2302,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2183,7 +2310,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2191,7 +2318,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_reply_update(
@@ -2215,7 +2342,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Announcement Reply Updated",
             url=event.reply.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.reply.author.id)
@@ -2228,7 +2355,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2236,7 +2363,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2244,7 +2371,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_announcement_reply_delete(
@@ -2281,7 +2408,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2289,7 +2416,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2297,7 +2424,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_update(self, event: guilded.CalendarEventUpdateEvent):
@@ -2319,7 +2446,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Updated",
             url=event.calendar_event.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.calendar_event.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.calendar_event.author.id)
@@ -2339,7 +2466,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2347,7 +2474,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2355,7 +2482,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_delete(self, event: guilded.CalendarEventDeleteEvent):
@@ -2397,7 +2524,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2405,7 +2532,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2413,7 +2540,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_update(
@@ -2437,7 +2564,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"Calendar Event Reply Updated",
             url=event.reply.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.reply.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.reply.author.id)
@@ -2450,7 +2577,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2458,7 +2585,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2466,7 +2593,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_calendar_event_reply_delete(
@@ -2503,7 +2630,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2511,7 +2638,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2519,7 +2646,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_update(self, event: guilded.ListItemUpdateEvent):
@@ -2541,7 +2668,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f"List Item Updated",
             url=event.item.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(url=event.item.author.display_avatar.url)
         embed.add_field(name="User ID", value=event.item.author.id)
@@ -2554,7 +2681,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2562,7 +2689,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2570,7 +2697,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_delete(self, event: guilded.ListItemDeleteEvent):
@@ -2605,7 +2732,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2613,7 +2740,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2621,7 +2748,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_complete(self, event: guilded.ListItemCompleteEvent):
@@ -2656,7 +2783,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2664,7 +2791,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2672,7 +2799,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_list_item_uncomplete(self, event: guilded.ListItemUncompleteEvent):
@@ -2707,7 +2834,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2715,7 +2842,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2723,7 +2850,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_server_channel_create(self, event: guilded.ServerChannelCreateEvent):
@@ -2760,7 +2887,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2768,7 +2895,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2776,7 +2903,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_server_channel_delete(self, event: guilded.ServerChannelDeleteEvent):
@@ -2813,7 +2940,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2821,7 +2948,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -2829,7 +2956,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()  # confusing ✨
     async def on_server_channel_update(self, event: guilded.ServerChannelUpdateEvent):
@@ -2848,7 +2975,7 @@ class Logging(commands.Cog):
             title=f'Channel "{event.channel.name}" Updated',
             description=f"In category \"{event.channel.category.name if event.channel.category else 'None'}\"",
             url=event.channel.share_url,
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(
             url=(
@@ -2913,7 +3040,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -2921,7 +3048,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -2929,7 +3056,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
             elif (
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
@@ -2957,7 +3084,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -2965,7 +3092,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -2973,7 +3100,7 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(event.server_id, channel_id, error=e)
+                            await delete_log(self.bot, event.server_id, channel_id, error=e)
         else:
             embed.add_field(
                 name="Unknown Changes", value="Could not compare changes.", inline=False
@@ -2985,7 +3112,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -2993,7 +3120,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -3001,7 +3128,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_create(self, event: guilded.CategoryCreateEvent):
@@ -3036,7 +3163,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -3044,7 +3171,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -3052,7 +3179,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_delete(self, event: guilded.CategoryDeleteEvent):
@@ -3087,7 +3214,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
     async def on_category_update(self, event: guilded.CategoryUpdateEvent):
@@ -3105,7 +3232,7 @@ class Logging(commands.Cog):
         embed = embeds.Embeds.embed(
             title=f'Category "{event.after.name}" Updated',
             description=f"In group \"{event.after.group.name if event.after.group else 'None'}\"",
-            colour=guilded.Colour.gilded(),
+            colour=guilded.Colour.dark_purple(),
         )
         embed.set_thumbnail(
             url=(
@@ -3135,7 +3262,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
                 try:
@@ -3143,7 +3270,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
                 try:
@@ -3151,7 +3278,7 @@ class Logging(commands.Cog):
                         embed=embed, silent=True
                     )
                 except Exception as e:
-                    await delete_log(event.server_id, channel_id, error=e)
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
 
 
 def setup(bot: commands.Bot):

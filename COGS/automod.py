@@ -221,7 +221,7 @@ class AutoModeration(commands.Cog):
         self.ch_prev_messages[message.channel_id] = [
             item
             for item in self.ch_prev_messages[message.channel_id]
-            if item.author != self.bot.user
+            if item.author_id != self.bot.user_id
         ]
 
         # Sort messages by created_at in descending order
@@ -444,6 +444,8 @@ class AutoModeration(commands.Cog):
                     return messages_to_delete, matches
                 return [], matches
 
+            to_be_modded_msgs = []
+
             if (
                 isinstance(message.author, guilded.Member)
                 and message.author.is_owner()
@@ -456,12 +458,13 @@ class AutoModeration(commands.Cog):
                 matches = {}
             else:
                 matches = parallel_regex_search(USING_RULES, message, messageBefore)
+                if matches:
+                    to_be_modded_msgs.append(message)
             # TODO: delete deleted messages from this stuff
             # TODO: add message deleted evnt
             msgs, add_matches = combined_regex_search(
                 USING_RULES, self.ch_prev_messages[message.channel_id]
             )
-            to_be_modded_msgs = [message] if matches != {} else []
             if len(msgs) == 1 and msgs[0] == message:
                 pass
             else:
@@ -493,6 +496,7 @@ class AutoModeration(commands.Cog):
                 pass
             elif server_data.data.automodModules.invites:
                 i = 0
+                i_matched = False
                 for rule in self.default_invites:
                     mtch = re2.search(rule.rule, message.content)
                     if mtch:
@@ -540,6 +544,13 @@ class AutoModeration(commands.Cog):
                         rule_key, match_result = rule.rule, [rule, mtch]
                         matches[rule_key] = match_result
                         i += 1
+                        i_matched = True
+                if i_matched:
+                    (
+                        to_be_modded_msgs.append(message)
+                        if message not in to_be_modded_msgs
+                        else None
+                    )
             if matches == {}:
                 return modded
             try:
@@ -606,10 +617,20 @@ class AutoModeration(commands.Cog):
                 async def run_delete(msg):
                     try:
                         await msg.delete()
-                    except:
+                    except guilded.NotFound:
                         pass
-
-                await asyncio.gather(*[run_delete(msg) for msg in to_be_modded_msgs])
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["AutomodEvent"],
+                                e,
+                                msg.server,
+                                channel=msg.channel,
+                                message=msg,
+                                action="Delete Message",
+                            )
+                        )
+                        raise e
 
                 if len(to_be_modded_msgs) > 0:
                     users = []
@@ -661,6 +682,7 @@ class AutoModeration(commands.Cog):
                         [punishments["tempmute_dur"], punishments["tempban_dur"]],
                     )
                 )
+                await asyncio.gather(*[run_delete(msg) for msg in to_be_modded_msgs])
             except guilded.Forbidden:
                 # await toggle_setting(message.server_id, "enabled", False)
                 pass
@@ -717,7 +739,7 @@ class AutoModeration(commands.Cog):
             await ctx.server.fill_roles()
 
     @automod.command(name="scan")
-    async def scan(self, ctx: commands.Context, *, amount, private: bool = True):
+    async def scan(self, ctx: commands.Context, *, amount, private: bool = False):
         # check permissions
         if time.time() - self.cooldowns["scan"].get(ctx.channel.id, 0) < 120:
             try:
@@ -861,7 +883,6 @@ class AutoModeration(commands.Cog):
                 color=guilded.Color.green(),
             )
             await msg.edit(embed=embed)
-            custom_events.eventqueue.add_overwrites({"message_ids": [msg.id]})
             self.cooldowns["scan"][ctx.channel.id] = time.time()
             for channel_id, ran_at in self.cooldowns["scan"].copy().items():
                 if time.time() - ran_at > 120:
@@ -1874,7 +1895,7 @@ class AutoModeration(commands.Cog):
             embed = embeds.Embeds.embed(
                 title="No Rules Found",
                 description=f"I couldn't find any rules to clear!",
-                color=guilded.Color.gilded(),
+                color=guilded.Color.red(),
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
         custom_events.eventqueue.add_event(

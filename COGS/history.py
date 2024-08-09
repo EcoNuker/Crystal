@@ -101,12 +101,9 @@ class history(commands.Cog):
             return
 
         # remove user display name or id from reason
-        reason = (
-            reason.removeprefix("@" + user.nick if user.nick else user.display_name)
-            .removeprefix(user.id)
-            .removeprefix("<@" + user.id + ">")
-            .strip()
-        )
+        reason = tools.remove_first_prefix(
+            reason, [user.id, "<@" + user.id + ">"]
+        ).strip()
         if reason == "":
             reason = None
 
@@ -126,6 +123,10 @@ class history(commands.Cog):
 
         for case in cases:
             del server_data.cases[case.caseId]
+            try:
+                del server_data.eventIds[case.caseId]
+            except:
+                pass
 
         server_data.members[user.id].history = {}
 
@@ -206,6 +207,10 @@ class history(commands.Cog):
         )
         del server_data.members[user.id].history[case_id]
         del server_data.cases[case_id]
+        try:
+            del server_data.eventIds[case_id]
+        except:
+            pass
 
         embed = embeds.Embeds.embed(
             title=f"Deleted {user.name}'s Case",
@@ -404,6 +409,7 @@ class history(commands.Cog):
             embed = embeds.Embeds.embed(
                 title=f"{user.name}'s Case History (Page {page_number}/{len(pages)})",
                 description="\n".join(page).strip(),
+                color=guilded.Color.blue(),
             )
             embeds_list.append(embed)
 

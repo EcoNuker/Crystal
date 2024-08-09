@@ -252,7 +252,14 @@ invites = [
 ]
 
 invites_exclusions = {
-    "guilded": ["/TheGG", "/Guilded-Official", "/EcoNuker", "/API-Official", "/api"],
+    "guilded": [
+        "/TheGG",
+        "/Guilded-Official",
+        "/EcoNuker",
+        "/API-Official",
+        "/api",
+        "/u/",
+    ],
     "discord": [],
     "revolt": ["/posts", "/tracker"],
 }
