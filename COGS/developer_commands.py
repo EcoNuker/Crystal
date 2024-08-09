@@ -16,6 +16,14 @@ class developer(commands.Cog):
         if not ctx.author.id in self.bot.owner_ids:
             return
 
+        if not ctx.bot.bypassing:
+            em = embeds.Embeds.embed(
+                description=f"Sorry, bypassing is disabled.",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=em, private=ctx.message.private)
+            return
+
         # define typehinting here since pylance/python extensions apparently suck
         user: str | guilded.Member | None | guilded.User
 

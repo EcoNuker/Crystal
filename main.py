@@ -4,6 +4,9 @@ debug_mode = ("-d" in sys.argv) or ("--debug" in sys.argv)
 disable_auto_restart_on_crash = ("-nar" in sys.argv) or (
     "--no-auto-restart" in sys.argv
 )
+disable_bypassing = ("-nb" in sys.argv) or (
+    "--no-bypassing" in sys.argv
+)
 
 if (
     sys.argv[-1] == "-h"
@@ -21,6 +24,8 @@ if (
         "Settings": None,
         "--no-auto-restart": "Turn off auto-restart if the bot crashes.",
         "-nar": "Short for --no-auto-restart",
+        "--no-bypassing": "Disable all developer bypassing.",
+        "-nb": "Short for --no-bypassing",
     }
     for arg, value in help_args.items():
         print(f"    {arg} - {value}" if value else f"  {arg}")
@@ -260,6 +265,7 @@ bot.CONFIGS = CONFIGS
 bot.COLORS = COLORS
 bot.bypasses = {}
 bot.auto_bypass = []
+bot.bypassing = not disable_bypassing
 
 # Logging
 bot.print = _print
@@ -315,6 +321,10 @@ if __name__ == "__main__":
     if disable_auto_restart_on_crash:
         bot.info(
             f"The bot will not automatically restart if it crashes. ({bot.COLORS.item_name}{'-nar' if '-nar' in sys.argv else '--no-auto-restart'}{bot.COLORS.normal_message})"
+        )
+    if disable_bypassing:
+        bot.info(
+            f"Owner/developer bypassing is off. ({bot.COLORS.item_name}{'-nb' if '-nb' in sys.argv else '--no-bypassing'}{bot.COLORS.normal_message})"
         )
 
     def on_bot_stopped(*args, **kwargs):
