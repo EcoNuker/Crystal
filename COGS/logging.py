@@ -31,8 +31,12 @@ human_readable_map = {
 }
 
 
-async def delete_log( 
-    bot: commands.Bot, server_id: str, channel_id: str, logged: bool = False, error: Exception = None
+async def delete_log(
+    bot: commands.Bot,
+    server_id: str,
+    channel_id: str,
+    logged: bool = False,
+    error: Exception = None,
 ) -> bool:
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id
@@ -933,7 +937,13 @@ class Logging(commands.Cog):
                 )
 
                 # Add related fields
-                embed.set_thumbnail(url=event.member.display_avatar.url if event.member else event.moderator.display_avatar.url)
+                embed.set_thumbnail(
+                    url=(
+                        event.member.display_avatar.url
+                        if event.member
+                        else event.moderator.display_avatar.url
+                    )
+                )
                 if event.member:
                     embed.add_field(name="User", value=event.member.mention)
                     embed.add_field(name="User ID", value=event.member.id)
@@ -3040,7 +3050,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -3048,7 +3060,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -3056,7 +3070,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
             elif (
                 event.before.archived_by_id is not None
                 and event.after.archived_by_id is None
@@ -3084,7 +3100,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
                 if server_data.logging.allChannelEvents:
                     for channel_id in server_data.logging.allChannelEvents:
                         try:
@@ -3092,7 +3110,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
                 if server_data.logging.allEvents:
                     for channel_id in server_data.logging.allEvents:
                         try:
@@ -3100,7 +3120,9 @@ class Logging(commands.Cog):
                                 embed=embed2, silent=True
                             )
                         except Exception as e:
-                            await delete_log(self.bot, event.server_id, channel_id, error=e)
+                            await delete_log(
+                                self.bot, event.server_id, channel_id, error=e
+                            )
         else:
             embed.add_field(
                 name="Unknown Changes", value="Could not compare changes.", inline=False

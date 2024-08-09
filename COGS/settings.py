@@ -11,7 +11,6 @@ class settings(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-
     @commands.group(name="setting", aliases=["settings"])
     async def settings(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:

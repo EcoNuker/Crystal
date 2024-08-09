@@ -1,6 +1,31 @@
 import sys
 
-debug_mode = sys.argv[-1] == "-d"
+debug_mode = ("-d" in sys.argv) or ("--debug" in sys.argv)
+disable_auto_restart_on_crash = ("-nar" in sys.argv) or (
+    "--no-auto-restart" in sys.argv
+)
+
+if (
+    sys.argv[-1] == "-h"
+    or sys.argv[-1] == "--help"
+    and (len(sys.argv) == 2 if sys.argv[0] != "python" else len(sys.argv) == 3)
+):
+    print("\nCrystal Guilded Bot\n")
+    help_args = {
+        "Information": None,
+        "--help": "This help menu!",
+        "-h": "Short for --help.",
+        "Debug": None,
+        "--debug": "Turn on debugging for the Guilded bot. Not for production use.",
+        "-d": "Short for --debug.",
+        "Settings": None,
+        "--no-auto-restart": "Turn off auto-restart if the bot crashes.",
+        "-nar": "Short for --no-auto-restart",
+    }
+    for arg, value in help_args.items():
+        print(f"    {arg} - {value}" if value else f"  {arg}")
+    print("\n", end="")
+    exit(0)
 
 file_logging = False
 
@@ -17,7 +42,7 @@ from colorama import init as coloramainit
 coloramainit(autoreset=True)
 
 # Utility imports
-import json, os, glob, logging, traceback, signal, platform, sys
+import json, os, glob, logging, traceback, signal, platform, sys, time
 import logging.handlers
 from datetime import datetime, timezone
 import asyncio
@@ -283,6 +308,15 @@ if __name__ == "__main__":
     console_logger.info("\n")
     bot.info("Starting bot...")
 
+    if debug_mode:
+        bot.warn(
+            f"Debug mode is on. ({bot.COLORS.item_name}{'-d' if '-d' in sys.argv else '--debug'}{bot.COLORS.normal_message})"
+        )
+    if disable_auto_restart_on_crash:
+        bot.info(
+            f"The bot will not automatically restart if it crashes. ({bot.COLORS.item_name}{'-nar' if '-nar' in sys.argv else '--no-auto-restart'}{bot.COLORS.normal_message})"
+        )
+
     def on_bot_stopped(*args, **kwargs):
         bot.info("Bot stopped")
         console_logger.info("\n")
@@ -295,9 +329,17 @@ if __name__ == "__main__":
             signal.SIGINT, on_bot_stopped
         )  # Captures Ctrl + C, sadly can't capture console close (at least not easily)
 
-    try:
-        bot.run(CONFIGS.token)
-    except Exception as e:
-        bot.traceback(e)
-        bot.error("Bot crashed")
+    while True:
+        try:
+            bot.run(CONFIGS.token)
+        except Exception as e:
+            bot.traceback(e)
+            bot.error("Bot crashed")
+        if disable_auto_restart_on_crash:
+            break
+        else:
+            bot.info(
+                f"Attempting to restart bot in {bot.COLORS.item_name}5{bot.COLORS.normal_message} seconds"
+            )
+            time.sleep(5)
     on_bot_stopped()
