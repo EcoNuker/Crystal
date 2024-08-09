@@ -40,11 +40,11 @@ class developer(commands.Cog):
             self.bot.auto_bypass.append(user.id)
             on = True
 
-            em = embeds.Embeds.embed(
-                description=f"Toggled auto bypass for user {user.mention} - `{on}`",
-                color=guilded.Color.green(),
-            )
-            await ctx.reply(embed=em, private=ctx.message.private)
+        em = embeds.Embeds.embed(
+            description=f"Toggled auto bypass for user {user.mention} - `{on}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=em, private=ctx.message.private)
 
     @commands.command(name="load", description="Loads a cog.")
     async def load(self, ctx: commands.Context, *, cog_name: str):

@@ -198,6 +198,7 @@ async def check_bypass(
     returns bool: true means continue with operation
     """
     if ctx.author.id in ctx.bot.auto_bypass:
+        await asyncio.sleep(1) # Guilded is weird here, since it will occasionally return 404 Message Not Found
         await msg.delete()
         return True
     elif ctx.author.id in ctx.bot.owner_ids:
