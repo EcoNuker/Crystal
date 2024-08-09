@@ -24,13 +24,14 @@ if (
         "-nar": "Short for --no-auto-restart",
         "--no-bypassing": "Disable all developer bypassing.",
         "-nb": "Short for --no-bypassing",
+        "--file-logs": "Enable file logging.",
     }
     for arg, value in help_args.items():
         print(f"    {arg} - {value}" if value else f"  {arg}")
     print("\n", end="")
     exit(0)
 
-file_logging = False
+file_logging = "--file-logs" in sys.argv
 
 # Guilded imports
 import guilded
@@ -323,6 +324,10 @@ if __name__ == "__main__":
     if disable_bypassing:
         bot.info(
             f"Owner/developer bypassing is off. ({bot.COLORS.item_name}{'-nb' if '-nb' in sys.argv else '--no-bypassing'}{bot.COLORS.normal_message})"
+        )
+    if file_logging:
+        bot.info(
+            f"File logging everything in console. ({bot.COLORS.item_name}{'--file-logs'}{bot.COLORS.normal_message})"
         )
 
     def on_bot_stopped(*args, **kwargs):
