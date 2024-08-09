@@ -4,9 +4,7 @@ debug_mode = ("-d" in sys.argv) or ("--debug" in sys.argv)
 disable_auto_restart_on_crash = ("-nar" in sys.argv) or (
     "--no-auto-restart" in sys.argv
 )
-disable_bypassing = ("-nb" in sys.argv) or (
-    "--no-bypassing" in sys.argv
-)
+disable_bypassing = ("-nb" in sys.argv) or ("--no-bypassing" in sys.argv)
 
 if (
     sys.argv[-1] == "-h"

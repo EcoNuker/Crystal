@@ -230,12 +230,20 @@ class Logging(commands.Cog):
                             server_data.eventIds[eid] = data["eventType"]
                             await server_data.save()
                             data["eventData"].event_id = eid
-                        if isinstance(data["eventData"], custom_events.BotForbidden):
-                            for event_type in data["eventData"].log_type:
-                                await func_map[event_type](data["eventData"])
-                        else:
-                            await func_map[data["eventType"]](data["eventData"])
-                        del custom_events.eventqueue.events[eventId]
+                        try:
+                            if isinstance(
+                                data["eventData"], custom_events.BotForbidden
+                            ):
+                                for event_type in data["eventData"].log_type:
+                                    await func_map[event_type](data["eventData"])
+                            else:
+                                await func_map[data["eventType"]](data["eventData"])
+                            del custom_events.eventqueue.events[eventId]
+                        except (
+                            Exception
+                        ) as e:  # We can't have a single error in a poorly written function bring down the entire dispatcher...
+                            # And yes my code is poorly written and I should probably be strict typing this
+                            self.bot.traceback(e)
                     await asyncio.sleep(0.3)
             except Exception as e:
                 self.bot.warn(
@@ -969,16 +977,21 @@ class Logging(commands.Cog):
                 # Create the event embed
                 embed = embeds.Embeds.embed(
                     title=f"Message Automod Failed",
-                    url=event.message.share_url,
+                    url=(
+                        event.message.share_url
+                        if event.message
+                        else guilded.embed.EmptyEmbed
+                    ),
                     colour=guilded.Colour.red(),
                 )
 
                 # Add related fields
-                embed.add_field(
-                    name="Message Jump",
-                    value=f"[Message]({event.message.share_url})",
-                    inline=False,
-                )
+                if event.message:
+                    embed.add_field(
+                        name="Message Jump",
+                        value=f"[Message]({event.message.share_url})",
+                        inline=False,
+                    )
                 embed.add_field(
                     name="Action Attempted",
                     value=event.action,
