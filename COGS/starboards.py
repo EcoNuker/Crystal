@@ -12,6 +12,27 @@ class starboard(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    # Listeners
+    # on_message_reaction_add - Starred?
+    async def on_message_reaction_add(self, event: guilded.MessageReactionAddEvent):
+        pass
+
+    # on_message_reaction_remove - Unstarred?
+    async def on_message_reaction_remove(
+        self, event: guilded.MessageReactionRemoveEvent
+    ):
+        pass
+
+    # on_message_delete - Is it a starboard message to delete?
+    async def on_message_delete(self, event: guilded.MessageDeleteEvent):
+        pass
+
+    # on_message_update - Update starboard message contents?
+    async def on_message_update(self, event: guilded.MessageUpdateEvent):
+        pass
+
+    # Starboard Commands
+
     @commands.group(name="starboard", aliases=["starboards"])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def starboard(self, ctx: commands.Context):
@@ -41,7 +62,7 @@ class starboard(commands.Cog):
             )
             embed.add_field(
                 name="View Starboards",
-                value=f"View existing starboards in the server.\n`{prefix}starboard view [page | optional]`",
+                value=f"View existing starboards in the server.\n`{prefix}starboard view`",  # [page | optional]
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -102,7 +123,10 @@ class starboard(commands.Cog):
             )
 
             emote: guilded.Emote | False = await tools.wait_for(
-                ctx, "message_reaction_add", check=lambda r: r.message_id == msg.id
+                ctx,
+                "message_reaction_add",
+                check=lambda r: r.message_id == msg.id
+                and r.user_id == ctx.message.author_id,
             )
 
             if not emote:
@@ -157,8 +181,13 @@ class starboard(commands.Cog):
             response = response.message
             try:
                 minimum = int(response.content)
+                if minimum < 2:
+                    minimum = 2
+                if minimum > 10:
+                    minimum = 10
             except:
                 minimum = 3
+            await response.delete()
         else:
             minimum = 3
 
@@ -209,15 +238,22 @@ class starboard(commands.Cog):
         # Check if channel is already in use
         channel_in_use = await tools.channel_in_use(ctx.server, channel)
         if channel_in_use:
-            await ctx.reply(
+            await msg.edit(
                 embed=embeds.Embeds.embed(
                     title="Channel In Use",
                     description=f"This channel is already configured.",
                     color=guilded.Color.red(),
                 ),
-                private=ctx.message.private,
             )
-            return
+            bypass = await tools.check_bypass(
+                ctx,
+                msg,
+                bypassed="CHANNEL_ALREADY_CONFIGURED",
+                auto_bypassable=False,
+                delete_orig_message=False,
+            )
+            if not bypass:
+                return
 
         try:
             await channel.send(
@@ -231,19 +267,18 @@ class starboard(commands.Cog):
                 title="Missing Permissions",
                 description=f"I do not have access to send messages to {tools.channel_mention(channel)}.",
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
+            await msg.edit(embed=embed, private=ctx.message.private)
             return
 
         server_data.starboards.append(starboard)
         await server_data.save()
 
-        await ctx.reply(
+        await msg.edit(
             embed=embeds.Embeds.embed(
                 title="Starboard Added",
                 description=f"Starboard added for {tools.channel_mention(channel)} - A minimum of `{minimum}` reactions of the id `{emote.id if emote else '90001779'}` must be given.",
                 color=guilded.Color.green(),
             ),
-            private=ctx.message.private,
         )
         custom_events.eventqueue.add_event(
             custom_events.BotSettingChanged(
@@ -336,17 +371,6 @@ class starboard(commands.Cog):
                 embed=embeds.Embeds.server_only, private=ctx.message.private
             )
             return
-        if not (
-            ctx.author.server_permissions.manage_bots
-            or ctx.author.server_permissions.manage_server
-        ):
-            msg = await ctx.reply(
-                embed=embeds.Embeds.manage_bot_server_permissions,
-                private=ctx.message.private,
-            )
-            bypass = await tools.check_bypass(ctx, msg)
-            if not bypass:
-                return
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id

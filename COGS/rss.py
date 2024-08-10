@@ -150,7 +150,7 @@ class RSSFeedCog(commands.Cog):
         # Check if channel is already in use
         channel_in_use = await tools.channel_in_use(ctx.server, channel)
         if channel_in_use:
-            await ctx.reply(
+            msg = await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title="Channel In Use",
                     description=f"This channel is already configured.",
@@ -158,7 +158,11 @@ class RSSFeedCog(commands.Cog):
                 ),
                 private=ctx.message.private,
             )
-            return
+            bypass = await tools.check_bypass(
+                ctx, msg, bypassed="CHANNEL_ALREADY_CONFIGURED", auto_bypassable=False
+            )
+            if not bypass:
+                return
 
         try:
             await channel.send(

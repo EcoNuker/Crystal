@@ -230,12 +230,15 @@ async def get_yes_no(
             await msg.add_reaction(emote)
         response = await ctx.bot.wait_for(
             "message_reaction_add",
-            check=lambda r: r.message_id == msg.id and r.emote.id in daemotes,
+            check=lambda r: r.message_id == msg.id
+            and r.user_id == ctx.message.author_id
+            and r.emote.id in daemotes,
             timeout=timeout,
         )
         await msg.clear_reactions()
         return response.emote.id == 90002171
     except asyncio.TimeoutError:
+        await msg.clear_reactions()
         return False
 
 
@@ -268,6 +271,7 @@ async def check_bypass(
     msg: guilded.Message,
     bypassed: str = "PERMS",
     auto_bypassable: bool = True,
+    delete_orig_message: bool = True,
 ) -> bool:
     """
     Checks bot owner/developer bypass. Used for debugging. Will be flagged in console.
@@ -280,7 +284,8 @@ async def check_bypass(
         await asyncio.sleep(
             1
         )  # Guilded is weird here, since it will occasionally return 404 Message Not Found
-        await msg.delete()
+        if delete_orig_message:
+            await msg.delete()
         return True
     elif ctx.author.id in ctx.bot.owner_ids:
         try:
@@ -295,14 +300,24 @@ async def check_bypass(
             custom_events.eventqueue.add_overwrites(
                 {"message_ids": [msg.id, bypass.message.id]}
             )
-            await msg.delete()
+            if delete_orig_message:
+                await msg.delete()
             try:
                 await bypass.message.delete()
             except:
                 pass
             ctx.bot.bypasses[ctx.author.id] = ctx.bot.bypasses.get(ctx.author.id, [])
-            ctx.message.bypassed = bypassed
-            ctx.bot.bypasses[ctx.author.id].append(ctx.message)
+            f = False
+            for m in ctx.bot.bypasses[ctx.author.id]:
+                if m.id == ctx.message.id:
+                    f = True
+                    msg = m
+                    break
+            if not f:
+                msg = ctx.message
+                ctx.message.bypassed = []
+            msg.bypassed.append(bypassed)
+            ctx.bot.bypasses[ctx.author.id].append(msg)
             return True
         except asyncio.TimeoutError:
             return False

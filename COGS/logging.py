@@ -656,6 +656,7 @@ class Logging(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
             await server_data.save()
+        channel_in_use = await tools.channel_in_use(ctx.server, channel)
         if len(server_data.logging.setChannels.keys()) >= 20:
             embed = embeds.Embeds.embed(
                 title="Maxiumum log channels met",
@@ -673,20 +674,26 @@ class Logging(commands.Cog):
                 description=f"{tools.channel_mention(channel)} is already a `{human_readable_map[event_type]}` log channel.",
                 colour=guilded.Color.red(),
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
-            return
-        # Check if channel is already in use
-        channel_in_use = await tools.channel_in_use(ctx.server, channel)
-        if channel_in_use:
-            await ctx.reply(
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(
+                ctx, msg, bypassed="CHANNEL_ALREADY_CONFIGURED", auto_bypassable=False
+            )
+            if not bypass:
+                return
+        elif channel_in_use:
+            msg = await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title="Channel In Use",
-                    description=f"This channel is already configured as a different channel.",
+                    description=f"This channel is already configured.",
                     color=guilded.Color.red(),
                 ),
                 private=ctx.message.private,
             )
-            return
+            bypass = await tools.check_bypass(
+                ctx, msg, bypassed="CHANNEL_ALREADY_CONFIGURED", auto_bypassable=False
+            )
+            if not bypass:
+                return
         else:
             try:
                 await channel.send(
