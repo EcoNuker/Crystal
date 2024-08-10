@@ -794,8 +794,6 @@ class starboard(commands.Cog):
                 description=f"The emote used is sent above, and a minimum of `{minimum}` reactions of this emote are needed to add it to the channel {tools.channel_mention(channel)}.",
             ),
         )
-        if emote:
-            await msg.add_reaction(emote)
 
         confirmed = await tools.get_yes_no(ctx, msg)
 
