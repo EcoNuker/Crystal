@@ -352,6 +352,10 @@ class RSSFeedCog(commands.Cog):
                 tasks.append(self.check_feed(server, feed))
         await asyncio.gather(*tasks)
 
+    def cog_unload(self):
+        # Prevent orphaned task, where the task still runs while cog is unloaded or destroyed.
+        self.check_feeds.cancel()
+
     async def check_feed(self, server: documents.Server, feed: RSSFeed):
         async with aiohttp.ClientSession() as session:
             async with session.get(feed.feedURL) as response:

@@ -1,15 +1,18 @@
-import datetime
-import guilded, asyncio
-from guilded.ext import commands
+import datetime, traceback, asyncio
+
+import guilded
+from guilded.ext import commands, tasks
+
 from DATA import custom_events
 from DATA import embeds
 from DATA import tools
+
 from humanfriendly import format_timespan
+
 import documents
 from documents import serverMember, HistoryCase
-from fuzzywuzzy import process
 
-import traceback
+from fuzzywuzzy import process
 
 human_readable_map = {
     "allEvents": "All Events",
@@ -199,61 +202,65 @@ class Logging(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-        asyncio.create_task(self.custom_event_dispatcher())
+        self.custom_event_dispatcher.start()
 
+    @tasks.loop(
+        seconds=0.1
+    )  # Wait 0.1 seconds to restart this task once it stops. This task should only stop once it errors and 5 seconds are waited.
     async def custom_event_dispatcher(self):
-        while True:
-            try:
-                while True:
-                    custom_events.eventqueue.clear_old_overwrites()
-                    for eventId, data in custom_events.eventqueue.events.copy().items():
-                        func_map = {
-                            "AutomodEvent": self.on_automod,
-                            "ModeratorAction": self.on_moderator_action,
-                            "BotSettingChanged": self.on_bot_setting_change,
-                        }
-                        if isinstance(
-                            data["eventData"], custom_events.CloudBaseEvent
-                        ) and (not data["eventData"].event_id):
-                            server_data = await documents.Server.find_one(
-                                documents.Server.serverId == data["eventData"].server_id
+        try:
+            while True:
+                custom_events.eventqueue.clear_old_overwrites()
+                for eventId, data in custom_events.eventqueue.events.copy().items():
+                    func_map = {
+                        "AutomodEvent": self.on_automod,
+                        "ModeratorAction": self.on_moderator_action,
+                        "BotSettingChanged": self.on_bot_setting_change,
+                    }
+                    if isinstance(data["eventData"], custom_events.CloudBaseEvent) and (
+                        not data["eventData"].event_id
+                    ):
+                        server_data = await documents.Server.find_one(
+                            documents.Server.serverId == data["eventData"].server_id
+                        )
+                        if not server_data:
+                            server_data = documents.Server(
+                                serverId=data["eventData"].server_id
                             )
-                            if not server_data:
-                                server_data = documents.Server(
-                                    serverId=data["eventData"].server_id
-                                )
-                                await server_data.save()
-                            eids = list(server_data.eventIds.keys())
-                            eid = tools.gen_cryptographically_secure_string(20)
-                            while eid in eids:
-                                eid = tools.gen_cryptographically_secure_string(20)
-                            server_data.eventIds[eid] = data["eventType"]
                             await server_data.save()
-                            data["eventData"].event_id = eid
-                        try:
-                            if isinstance(
-                                data["eventData"], custom_events.BotForbidden
-                            ):
-                                for event_type in data["eventData"].log_type:
-                                    await func_map[event_type](data["eventData"])
-                            else:
-                                await func_map[data["eventType"]](data["eventData"])
-                            del custom_events.eventqueue.events[eventId]
-                        except (
-                            Exception
-                        ) as e:  # We can't have a single error in a poorly written function bring down the entire dispatcher...
-                            # And yes my code is poorly written and I should probably be strict typing this
-                            self.bot.traceback(e)
-                    await asyncio.sleep(0.3)
-            except Exception as e:
-                self.bot.warn(
-                    f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
-                )
-                self.bot.traceback(e)
-                self.bot.info(
-                    f"Restarting task in {self.bot.COLORS.item_name}5{self.bot.COLORS.normal_message} seconds"
-                )
-                await asyncio.sleep(5)
+                        eids = list(server_data.eventIds.keys())
+                        eid = tools.gen_cryptographically_secure_string(20)
+                        while eid in eids:
+                            eid = tools.gen_cryptographically_secure_string(20)
+                        server_data.eventIds[eid] = data["eventType"]
+                        await server_data.save()
+                        data["eventData"].event_id = eid
+                    try:
+                        if isinstance(data["eventData"], custom_events.BotForbidden):
+                            for event_type in data["eventData"].log_type:
+                                await func_map[event_type](data["eventData"])
+                        else:
+                            await func_map[data["eventType"]](data["eventData"])
+                        del custom_events.eventqueue.events[eventId]
+                    except (
+                        Exception
+                    ) as e:  # We can't have a single error in a poorly written function bring down the entire dispatcher...
+                        # And yes my code is poorly written and I should probably be strict typing this
+                        self.bot.traceback(e)
+                await asyncio.sleep(0.3)
+        except Exception as e:
+            self.bot.warn(
+                f"An error occurred in the {self.bot.COLORS.item_name}custom_event_dispatcher{self.bot.COLORS.normal_message} task: {self.bot.COLORS.item_name}{e}"
+            )
+            self.bot.traceback(e)
+            self.bot.info(
+                f"Restarting task in {self.bot.COLORS.item_name}5{self.bot.COLORS.normal_message} seconds"
+            )
+            await asyncio.sleep(5)
+
+    def cog_unload(self):
+        # Had an issue with orphaned tasks, causing events to be dispatched multiple times.
+        self.custom_event_dispatcher.cancel()
 
     @commands.group(name="logs", aliases=["log", "logging"])
     @commands.cooldown(1, 2, commands.BucketType.server)
