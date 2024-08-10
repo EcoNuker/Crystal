@@ -42,6 +42,9 @@ class starboard(commands.Cog):
         if not event.channel:
             event.channel = await event.server.getch_channel(event.channel_id)
 
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+
         for starboard in listening_starboards:
             messages = (
                 starboard.messages
@@ -69,6 +72,11 @@ class starboard(commands.Cog):
                     first=True,
                 )
             if len(msg.reactions) >= starboard.minimum:
+                mauthor = (
+                    event.message.author
+                    if event.message.author
+                    else (await self.bot.getch_user(event.message.author_id))
+                )
                 embed = embeds.Embeds.embed(description=event.message.content[:2048])
                 embed.timestamp = event.message.created_at
                 embed.set_author(
@@ -549,9 +557,9 @@ class starboard(commands.Cog):
                     )
                 )
             mauthor = (
-                event.message.author
-                if event.message.author
-                else (await self.bot.getch_user(event.message.author_id))
+                event.after.author
+                if event.after.author
+                else (await self.bot.getch_user(event.after.author_id))
             )
             embed = embeds.Embeds.embed(description=event.message.content[:2048])
             embed.timestamp = event.message.created_at
