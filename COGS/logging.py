@@ -1177,15 +1177,17 @@ class Logging(commands.Cog):
 
         # Add related fields
         embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User ID", value=event.member.id)
+        embed.add_field(name="User ID", value=event.member.id, inline=False)
         embed.add_field(
             name="Account Age",
             value=(
                 format_timespan(datetime.datetime.now() - event.member.created_at)
-                + "\n:warning: *New account!*"
-                if event.member.created_at
-                > (datetime.datetime.now() - datetime.timedelta(days=30))
-                else ""
+                + (
+                    "\n:warning: *New account!*"
+                    if event.member.created_at
+                    > (datetime.datetime.now() - datetime.timedelta(days=30))
+                    else ""
+                )
             ),
             inline=False,
         )
