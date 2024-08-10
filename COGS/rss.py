@@ -134,11 +134,11 @@ class RSSFeedCog(commands.Cog):
             server_data = documents.Server(serverId=ctx.server.id)
             await server_data.save()
 
-        if len(server_data.rssFeeds) >= 50:
+        if len(server_data.rssFeeds) >= 15:
             msg = await ctx.reply(
                 embed=embeds.Embeds.embed(
                     title="Too Many Feeds!",
-                    description=f"You can only have a maximum of `50` RSS feeds in a single server.",
+                    description=f"You can only have a maximum of `15` RSS feeds in a single server.",
                     color=guilded.Color.red(),
                 ),
                 private=ctx.message.private,
