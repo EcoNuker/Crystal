@@ -1,3 +1,5 @@
+import asyncio
+
 import guilded
 from guilded.ext import commands
 
@@ -778,6 +780,9 @@ class starboard(commands.Cog):
                     minimum = 10
             except:
                 minimum = 3
+            await asyncio.sleep(
+                1
+            )  # Make sure it's found, a newly created message can take a second.
             await response.delete()
         else:
             minimum = 3
