@@ -889,10 +889,10 @@ class AutoModeration(commands.Cog):
 
             for message in msgs:
                 await modMessage(message)  # Don't gather this!
-
+            total_time = round(time.time() - timing, 1)
             embed = embeds.Embeds.embed(
                 title="Messages Scanned",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon. This process took `{round(time.time()-timing, 1):,}` seconds.",
+                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been scanned by automod, and `{modded}` {'were' if modded != 1 else 'was'} actioned upon. This process took `{total_time:,}` second{'s' if str(total_time) != '1.0' else ''}.",
                 color=guilded.Color.green(),
             )
             await msg.edit(embed=embed)

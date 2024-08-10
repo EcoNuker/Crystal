@@ -21,8 +21,8 @@ def action_map(
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
-        "purge": "{amount} message{checkS} were deleted using purge",
-        "scan": "{amount} message{checkS} were scanned using automod",
+        "purge": "{amount} message{checkS} {checkWERE} deleted using purge",
+        "scan": "{amount} message{checkS} {checkWERE} scanned using automod",
     }
 
     def format_duration(seconds: int) -> str:
@@ -52,15 +52,21 @@ def action_map(
         res = res.format(time="an unknown duration")
 
     if "{amount}" in res and amount is not None:
+        res = res.format(amount=f"{amount:,}")
         if "{checkS}" in res:
-            res = res.format(amount=f"{amount:,}", checkS="s" if amount != 1 else "")
-        else:
-            res = res.format(amount=f"{amount:,}")
+            res = res.format(checkS="s" if amount != 1 else "")
+        if "{checkWERE}" in res:
+            res = res.format(checkWERE="were" if amount != 1 else "was")
+        if "{checkHAVE}" in res:
+            res = res.format(checkHAS="have" if amount != 1 else "has")
     elif "{amount}" in res:
+        res = res.format(amount=f"{amount:,}")
         if "{checkS}" in res:
-            res = res.format(checkS="s", amount="an unknown amount of")
-        else:
-            res = res.format(amount="an unknown amount of")
+            res = res.format(checkS="s" if amount != 1 else "")
+        if "{checkWERE}" in res:
+            res = res.format(checkWERE="were" if amount != 1 else "was")
+        if "{checkHAVE}" in res:
+            res = res.format(checkHAS="have" if amount != 1 else "has")
 
     if automod:
         res += " and the message was deleted."
