@@ -31,7 +31,7 @@ class RSSFeedCog(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if isinstance(prefix, list):
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title="RSS Feed Commands",
                 description="Setup RSS feed listeners. These listeners check every 10 minutes.\n(We also support `Atom` and `CDF` feeds).",

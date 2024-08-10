@@ -708,7 +708,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Commands",
                 description=f"The automod in this server is {':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}**",
@@ -910,7 +910,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules",
                 description=f"{self.bot.user.name}'s built-in automod modules!",
@@ -943,7 +943,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Invites",
                 description=f"{':x: **Off.' if not server_data.data.automodModules.invites else ':white_check_mark: **On.'}** Anti-invites module. Combats all Guilded, Discord, and Revolt invites.\n`{prefix}automod modules invites`",
@@ -1036,7 +1036,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Slurs",
                 description=f"{':x: **Off.' if not server_data.data.automodModules.slurs else ':white_check_mark: **On.'}** Anti-slur module. Combats racism and slurs.\n`{prefix}automod modules slurs`",
@@ -1129,7 +1129,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Modules - Anti-Profanity",
                 description=f"{':x: **Off,' if not server_data.data.automodModules.profanity else ':white_check_mark: **On.'}** Anti-profanity module. Combats all forms of profanity.\n`{prefix}automod modules profanity`",
@@ -1224,7 +1224,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings",
                 description=f"The list of settings for the automod module.\nThe automod in this server is {':x: **Off.' if not server_data.data.automodSettings.enabled else ':white_check_mark: **On.'}**",
@@ -1257,7 +1257,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings - Moderate the Owner",
                 description=f"Auto-moderating the owner's messages is {':x: **Off.' if not server_data.data.automodSettings.moderateOwner else ':white_check_mark: **On.'}**  in this server.",
@@ -1352,7 +1352,7 @@ class AutoModeration(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Settings - Moderate Bot Messages",
                 description=f"Auto-moderating bot messages is {':x: **Off' if not server_data.data.automodSettings.moderateBots else ':white_check_mark: **On'}**  in this server.",
@@ -1515,7 +1515,7 @@ class AutoModeration(commands.Cog):
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Automod Rules",
                 description=f"Automod rules management.",

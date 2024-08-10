@@ -17,9 +17,9 @@ class information(commands.Cog):
         """
         Help command
         """
-        prefixdata = await self.bot.get_prefix(ctx.message)
-        if type(prefixdata) == list:
-            prefixdata = prefixdata[0].strip()
+        prefix = await self.bot.get_prefix(ctx.message)
+        if type(prefix) == list:
+            prefix = prefix[-1].strip()
         inviteandsupport = f"\n\n[Invite](https://guilded.gg/b/{self.bot.CONFIGS.botid}) || [Support Server]({self.bot.CONFIGS.supportserverinv})"
         devcmds = [
             "load",
@@ -45,28 +45,28 @@ class information(commands.Cog):
                 name=":information_source: Information Commands",
                 value="\n".join(
                     [
-                        f"`{prefixdata}help` - The main help menu for the bot.",
-                        f"`{prefixdata}ping` - Bot latency and statistics.",
-                        f"`{prefixdata}invite` - Bot invite and support links.",
+                        f"`{prefix}help` - The main help menu for the bot.",
+                        f"`{prefix}ping` - Bot latency and statistics.",
+                        f"`{prefix}invite` - Bot invite and support links.",
                     ]
                 ),
             )
         if self.bot.extensions.get("COGS.prefix"):
             embedig.add_field(
                 name=":exclamation: View and Set Prefix",
-                value=f"Run `{prefixdata}prefix` for more information!",
+                value=f"Run `{prefix}prefix` for more information!",
             )
         if self.bot.extensions.get("COGS.moderation"):
             embedig.add_field(
                 name=":hammer_and_wrench: Moderation Commands",
                 value="\n".join(
                     [
-                        f"`{prefixdata}warn @user [reason | OPTIONAL]` - Warn a user, with an optional reason.",
-                        f"`{prefixdata}mute @user [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason. (tempmute in the future)",
-                        f"`{prefixdata}unmute @user [reason | OPTIONAL]` - Unmute a user, with an optional reason.",
-                        f"`{prefixdata}kick @user [reason | OPTIONAL]` - Kick a user, with an optional reason.",
-                        f"`{prefixdata}ban @user [reason | OPTIONAL]` - Ban a user, with an optional reason. (tempban future)",
-                        f"`{prefixdata}unban <user id> [reason | OPTIONAL]` - Unban a user, with an optional reason.",
+                        f"`{prefix}warn @user [reason | OPTIONAL]` - Warn a user, with an optional reason.",
+                        f"`{prefix}mute @user [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason. (tempmute in the future)",
+                        f"`{prefix}unmute @user [reason | OPTIONAL]` - Unmute a user, with an optional reason.",
+                        f"`{prefix}kick @user [reason | OPTIONAL]` - Kick a user, with an optional reason.",
+                        f"`{prefix}ban @user [reason | OPTIONAL]` - Ban a user, with an optional reason. (tempban future)",
+                        f"`{prefix}unban <user id> [reason | OPTIONAL]` - Unban a user, with an optional reason.",
                     ]
                 ),
                 inline=False,
@@ -74,31 +74,31 @@ class information(commands.Cog):
         if self.bot.extensions.get("COGS.logging"):
             embedig.add_field(
                 name=":memo: Logging Commands",
-                value=f"Run `{prefixdata}logging` for more information! This is a must have as it logs moderator actions and more.",
+                value=f"Run `{prefix}logging` for more information! This is a must have as it logs moderator actions and more.",
             )
         if self.bot.extensions.get("COGS.automod"):
             embedig.add_field(
                 name=":robot_face: Automod Configuration Commands",
-                value=f"Run `{prefixdata}automod` for more information!",
+                value=f"Run `{prefix}automod` for more information!",
             )
         if self.bot.extensions.get("COGS.history"):
             embedig.add_field(
                 name=":clipboard: User Moderation History Commands",
-                value=f"Run `{prefixdata}history` for more information!",
+                value=f"Run `{prefix}history` for more information!",
             )
         if self.bot.extensions.get("COGS.settings"):
             embedig.add_field(
                 name=":file_folder: Server Role Commands",
-                value=f"Run `{prefixdata}role` for more information! Set the server's mute role!",
+                value=f"Run `{prefix}role` for more information! Set the server's mute role!",
             )
             embedig.add_field(
                 name=":gear: Server Setting Commands",
-                value=f"Run `{prefixdata}settings` for more information!",
+                value=f"Run `{prefix}settings` for more information!",
             )
         if self.bot.extensions.get("COGS.rss"):
             embedig.add_field(
                 name=":newspaper: RSS Commands",
-                value=f"Run `{prefixdata}rss` for more information!",
+                value=f"Run `{prefix}rss` for more information!",
             )
         if (
             self.bot.extensions.get("COGS.developer_commands")
@@ -108,11 +108,11 @@ class information(commands.Cog):
                 name=":wow_guilded: shhh top secret dev cmds",
                 value="\n".join(
                     [
-                        f"`{prefixdata}load <cog>` - Loads a unloaded cog.",
-                        f"`{prefixdata}unload <cog>` - Unloads a loaded cog.",
-                        f"`{prefixdata}reload [cog | optional | default ALL]` - Reloads cogs.",
-                        f"`{prefixdata}eval <code>` - Run custom code. Some builtins such as `import` are disabled.",
-                        f"`{prefixdata}toggle_auto_bypass [user | optional | default command author]` - Toggle a user's auto-bypass, meaning whether they auto-bypass permissions or not.",
+                        f"`{prefix}load <cog>` - Loads a unloaded cog.",
+                        f"`{prefix}unload <cog>` - Unloads a loaded cog.",
+                        f"`{prefix}reload [cog | optional | default ALL]` - Reloads cogs.",
+                        f"`{prefix}eval <code>` - Run custom code. Some builtins such as `import` are disabled.",
+                        f"`{prefix}toggle_auto_bypass [user | optional | default command author]` - Toggle a user's auto-bypass, meaning whether they auto-bypass permissions or not.",
                     ]
                 ),
                 inline=False,

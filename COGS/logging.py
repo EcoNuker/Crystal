@@ -267,7 +267,7 @@ class Logging(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Logging Commands",
                 description=f"The logging in this server is {':white_check_mark: **On' if server_data.logging.logSettings.enabled == True else ':x: **Off'}**",
@@ -325,7 +325,7 @@ class Logging(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings",
                 description=f"The list of settings for the logging module.\nThe logging in this server is {':x: **Off.' if not server_data.logging.logSettings.enabled else ':white_check_mark: **On.'}** ",
@@ -353,7 +353,7 @@ class Logging(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"Logging Settings - Log Bot Messages",
                 description=f"Logging bot messages is {':x: **Off' if not server_data.logging.logSettings.logBotMessageChanges else ':white_check_mark: **On'}** in this server.",
@@ -642,7 +642,7 @@ class Logging(commands.Cog):
         if event_type == None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title="Invalid Log Type",
                 description=f"Invalid event type specified for this log channel. You can view a list of valid log channels using `{prefix}logs types`.",

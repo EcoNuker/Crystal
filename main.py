@@ -232,19 +232,20 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     if s:
         # Handle the prefix not being set
         if s.prefix is None:
-            return [CONFIGS.defaultprefix, CONFIGS.defaultprefix + " "]
+            return [CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
 
         # Return the apple compatible prefix
         apple_vers = generate_apple_versions(s.prefix)
         apple_vers.extend([ver + " " for ver in apple_vers])
-        return list(set(apple_vers))
+        apple_vers = [s.prefix] + list(set(apple_vers))
+        return apple_vers[::-1]
     else:
         # Create the server's document and provide default args
         s = documents.Server(serverId=message.server_id)
         await s.insert()
 
         # Return the default
-        return [CONFIGS.defaultprefix, CONFIGS.defaultprefix + " "]
+        return [CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
 
 
 bot = commands.Bot(

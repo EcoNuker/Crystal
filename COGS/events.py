@@ -37,7 +37,7 @@ class events(commands.Cog):
                 try:
                     prefix = await self.bot.get_prefix(message)
                     if type(prefix) == list:
-                        prefix = prefix[0]
+                        prefix = prefix[-1]
                     await message.reply(
                         embed=embeds.Embeds.embed(
                             title="That's Me!",
@@ -90,7 +90,7 @@ class events(commands.Cog):
             message = await default_channel.send(embed=embedig)
             prefix = await self.bot.get_prefix(message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embedig = embeds.Embeds.embed(
                 title=f"Thanks for using {self.bot.user.name}!",
                 description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me! The current prefix for this server is `{prefix}`.\n\nRun `{prefix}help` for help.",

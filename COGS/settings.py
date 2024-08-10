@@ -16,7 +16,7 @@ class settings(commands.Cog):
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title="Server Settings",
                 description=f"View and modify server settings.",
@@ -47,7 +47,7 @@ class settings(commands.Cog):
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title="Server Roles",
                 description=f"Set relevant roles for the server.",

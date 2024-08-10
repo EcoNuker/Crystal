@@ -25,7 +25,7 @@ class history(commands.Cog):
                 await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title=f"User History Commands",
                 description=f"User history is logged whenever a moderator makes an action, or when automod makes an action.",

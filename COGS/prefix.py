@@ -16,7 +16,7 @@ class prefix(commands.Cog):
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
-                prefix = prefix[0]
+                prefix = prefix[-1]
             embed = embeds.Embeds.embed(
                 title="Server Prefix",
                 description=f"The current prefix for this server is `{prefix}`.",
