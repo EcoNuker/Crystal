@@ -675,6 +675,18 @@ class Logging(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
+        # Check if channel is already in use
+        channel_in_use = await tools.channel_in_use(ctx.server, channel)
+        if channel_in_use:
+            await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="Channel In Use",
+                    description=f"This channel is already configured as a different channel.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+            return
         else:
             try:
                 await channel.send(

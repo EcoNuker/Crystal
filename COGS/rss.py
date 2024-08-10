@@ -147,24 +147,37 @@ class RSSFeedCog(commands.Cog):
             if not bypass:
                 return
 
-        # Check if channel is already in Server
-        existing_feed = next(
-            (f for f in server_data.rssFeeds if f.channelId == channel.id),
-            None,
-        )
-        if existing_feed:
+        # Check if channel is already in use
+        channel_in_use = await tools.channel_in_use(ctx.server, channel)
+        if channel_in_use:
             await ctx.reply(
                 embed=embeds.Embeds.embed(
-                    title="Feed Already Exists",
-                    description=f"This channel already has an RSS feed configured.",
+                    title="Channel In Use",
+                    description=f"This channel is already configured.",
                     color=guilded.Color.red(),
                 ),
                 private=ctx.message.private,
             )
             return
-        server_data.rssFeeds.append(feed)
 
+        try:
+            await channel.send(
+                embed=embeds.Embeds.embed(
+                    title="Starboard Channel",
+                    description=f"This is now a starboard channel.",
+                )
+            )
+        except:
+            embed = embeds.Embeds.embed(
+                title="Missing Permissions",
+                description=f"I do not have access to send messages to {tools.channel_mention(channel)}.",
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
+
+        server_data.rssFeeds.append(feed)
         await server_data.save()
+
         await ctx.reply(
             embed=embeds.Embeds.embed(
                 title="RSS Feed Added",
@@ -233,7 +246,7 @@ class RSSFeedCog(commands.Cog):
             await server_data.save()
             embed = embeds.Embeds.embed(
                 title="RSS Feed Removed",
-                description=f"RSS feed for channel {tools.channel_mention(channel)} has been removed.",
+                description=f"The RSS feed for channel {tools.channel_mention(channel)} has been removed.",
                 color=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)

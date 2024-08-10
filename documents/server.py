@@ -276,6 +276,28 @@ class RSSFeed(BaseModel):
     last_checked: Optional[tuple] = None
 
 
+class StarboardMessage(BaseModel):
+    """
+    - messageId - `str` - The message's id
+    """
+
+    messageId: str
+
+
+class Starboard(BaseModel):
+    """
+    - channelId - `str` - The channel id
+    - minimum - `int` - The minimum amount of emote to be added to starboard. Defaults to 3
+    - emote - `int` - The emote's ID, defaulting to the Star emoji. ⭐
+    - messages - `List[StarboardMessage]` - A list of starboard messages. This way, when a star is added we can count and edit message.
+    """
+
+    channelId: str
+    minimum: int = 3
+    emote: int = 90001779
+    messages: List[StarboardMessage] = list()
+
+
 # Define the server document
 class Server(Document):
     """
@@ -296,6 +318,8 @@ class Server(Document):
     logging: loggingChannels = loggingChannels()
 
     rssFeeds: List[RSSFeed] = list()
+
+    starboards: List[Starboard] = list()
 
     members: Dict[str, serverMember] = dict()
 

@@ -95,6 +95,11 @@ class information(commands.Cog):
                 name=":gear: Server Setting Commands",
                 value=f"Run `{prefix}settings` for more information!",
             )
+        if self.bot.extensions.get("COGS.starboards"):
+            embedig.add_field(
+                name=":star: Starboard Commands",
+                value=f"Run `{prefix}starboard` for more information!",
+            )
         if self.bot.extensions.get("COGS.rss"):
             embedig.add_field(
                 name=":newspaper: RSS Commands",

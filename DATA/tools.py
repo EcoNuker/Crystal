@@ -6,6 +6,31 @@ from typing import List
 
 from DATA import custom_events
 
+import documents
+
+
+async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChannel):
+    """
+    Checks if channel is in use by either starboards, rss feeds, or logging.
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server.id
+    )
+    if not server_data:
+        server_data = documents.Server(serverId=server.id)
+        await server_data.save()
+    return (
+        True
+        if next(
+            (f for f in server_data.starboards if f.channelId == channel.id),
+            next(
+                (f for f in server_data.rssFeeds if f.channelId == channel.id),
+                channel.id in list(server_data.logging.setChannels.values()),
+            ),
+        )
+        else False
+    )
+
 
 def gen_cryptographically_secure_string(size: int):
     """
@@ -186,7 +211,51 @@ async def get_response(ctx: commands.Context, timeout: int = 30) -> guilded.Mess
             "message",
             check=lambda m: m.message.author.id == ctx.author.id
             and m.message.channel.id == ctx.channel.id,
-            # and msg.id in m.message.replied_to_ids,
+            timeout=timeout,
+        )
+        return response
+    except asyncio.TimeoutError:
+        return False
+
+
+async def get_yes_no(
+    ctx: commands.Context, msg: guilded.ChatMessage, timeout: int = 30
+) -> bool:
+    """
+    Gets the response of a yes/no question using check mark and X emotes.
+    """
+    try:
+        daemotes = [90002171, 90002175]  # White Check Mark  # X
+        for emote in daemotes:
+            await msg.add_reaction(emote)
+        response = await ctx.bot.wait_for(
+            "message_reaction_add",
+            check=lambda r: r.message_id == msg.id and r.emote.id in daemotes,
+            timeout=timeout,
+        )
+        await msg.clear_reactions()
+        return response.emote.id == 90002171
+    except asyncio.TimeoutError:
+        return False
+
+
+async def wait_for(
+    ctx: commands.Context, event: str, check, timeout: int = 30
+) -> guilded.Message | bool:
+    """
+    Gets the response by waiting for a event of type event in the same channel from the same author.
+
+    Example check:
+
+    ```python
+    lambda m: m.message.author.id == ctx.author.id
+            and m.message.channel.id == ctx.channel.id
+    ```
+    """
+    try:
+        response = await ctx.bot.wait_for(
+            event.removeprefix("on_"),
+            check=check,
             timeout=timeout,
         )
         return response
