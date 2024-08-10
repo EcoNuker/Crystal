@@ -364,10 +364,16 @@ class RSSFeedCog(commands.Cog):
                     if entry.get("image"):
                         embed.set_thumbnail(url=entry.get("image"))
                     elif feed_data.feed.get("image"):
-                        embed.set_thumbnail(url=feed_data.feed.get("image"))
+                        embed.set_thumbnail(
+                            url=(
+                                feed_data.feed.get.image
+                                if not feed_data.feed.image.get("href")
+                                else feed_data.feed.image.href
+                            )
+                        )
                     if entry.get("author"):
                         embed.set_author(name=entry.get("author"))
-                    if entry.get("dc:creator"):
+                    elif entry.get("dc:creator"):
                         embed.set_author(name=entry.get("dc:creator"))
                     embed._footer["text"] += f" {feed_data.version}"
 

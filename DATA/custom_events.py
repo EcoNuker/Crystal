@@ -47,26 +47,26 @@ def action_map(
 
     if "{time}" in res and duration is not None:
         formatted_duration = format_duration(duration)
-        res = res.format(time=formatted_duration)
+        res = res.replace("{time}", formatted_duration)
     elif "{time}" in res:
-        res = res.format(time="an unknown duration")
+        res = res.replace("{time}", "an unknown duration")
 
     if "{amount}" in res and amount is not None:
-        res = res.format(amount=f"{amount:,}")
+        res = res.replace("{amount}", f"{amount:,}")
         if "{checkS}" in res:
-            res = res.format(checkS="s" if amount != 1 else "")
+            res = res.replace("{checkS}", "s" if amount != 1 else "")
         if "{checkWERE}" in res:
-            res = res.format(checkWERE="were" if amount != 1 else "was")
+            res = res.replace("{checkWERE}", "were" if amount != 1 else "was")
         if "{checkHAVE}" in res:
-            res = res.format(checkHAS="have" if amount != 1 else "has")
+            res = res.replace("{checkHAS}", "have" if amount != 1 else "has")
     elif "{amount}" in res:
-        res = res.format(amount=f"{amount:,}")
+        res = res.replace("{amount}", f"{amount:,}")
         if "{checkS}" in res:
-            res = res.format(checkS="s" if amount != 1 else "")
+            res = res.replace("{checkS}", "s" if amount != 1 else "")
         if "{checkWERE}" in res:
-            res = res.format(checkWERE="were" if amount != 1 else "was")
+            res = res.replace("{checkWERE}", "were" if amount != 1 else "was")
         if "{checkHAVE}" in res:
-            res = res.format(checkHAS="have" if amount != 1 else "has")
+            res = res.replace("{checkHAS}", "have" if amount != 1 else "has")
 
     if automod:
         res += " and the message was deleted."
