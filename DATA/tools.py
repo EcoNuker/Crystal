@@ -137,6 +137,9 @@ async def check_higher_member(
     highest_role = 0
     mems = []
     for member in members:
+        # This function seems to work without this, but it's better to handle it
+        if not isinstance(member, guilded.Member):
+            continue
         if member.is_owner():
             return [member]
         else:

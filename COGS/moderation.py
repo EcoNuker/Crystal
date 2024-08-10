@@ -10,6 +10,93 @@ from DATA import custom_events
 import documents
 
 
+async def is_banned(
+    server: guilded.Server, member: guilded.Member | guilded.User
+) -> bool:
+    """
+    Whether a user is banned or not. Checks server bans and database.
+
+    Can raise Forbidden
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server.id
+    )
+    if not server_data:
+        server_data = documents.Server(serverId=server.id)
+        await server_data.save()
+
+    bans = [ban for ban in server_data.data.bans if ban.user == member.id]
+    bans = bans[0] if len(bans) > 0 else None
+
+    if bans:
+        return True
+    else:
+        try:
+            ban = await server.fetch_ban(member)
+            return True
+        except guilded.NotFound:
+            return False
+    return False
+
+
+async def is_muted(
+    server: guilded.Server, member: guilded.Member | guilded.User
+) -> bool:
+    """
+    Whether a user is muted or not. Will check their roles and database.
+
+    Can raise Forbidden
+    """
+    server_data = await documents.Server.find_one(
+        documents.Server.serverId == server.id
+    )
+    if not server_data:
+        server_data = documents.Server(serverId=server.id)
+        await server_data.save()
+
+    mute = [mute for mute in server_data.data.mutes if mute.user == member.id]
+    mute = mute[0] if len(mute) > 0 else None
+
+    if mute:
+        return True
+
+    mute_role = None
+
+    try:
+        mute_role = (
+            await server.getch_role(server_data.data.settings.roles.mute)
+            if server_data.data.settings.roles.mute
+            else None
+        )
+    except guilded.Forbidden as e:
+        custom_events.eventqueue.add_event(
+            custom_events.BotForbidden(
+                ["ModeratorAction"],
+                e,
+                server,
+                action="Fetch Role",
+            )
+        )
+    except guilded.NotFound:
+        server_data.data.settings.roles.mute = None
+        await server_data.save()
+        custom_events.eventqueue.add_event(
+            custom_events.BotSettingChanged(
+                "The mute role was automatically set to `None` as the role appears to have been deleted.",
+                server.id,
+            )
+        )
+
+    if not mute_role:
+        return False
+
+    if isinstance(member, guilded.Member):
+        roles = member._role_ids
+        if mute_role.id in roles:
+            return True
+    return False
+
+
 async def unmute_user(
     server: guilded.Server,
     member: guilded.Member | guilded.User,
@@ -236,8 +323,8 @@ async def unban_user(
         ]  # Define list of bans without the user. Then, only save if bot has permissions.
         # User just got unprebanned.
         unbanned = True
-    else:
-        return False
+    elif not check_ban:
+        return unbanned
 
     if check_ban:
         try:
@@ -926,8 +1013,8 @@ class moderation(commands.Cog):
                 user = await ctx.server.getch_member(user_mentions[-1])
             except:
                 try:
-                    user = await self.bot.getch_user(user)
-                except guilded.NotFound:
+                    user = await self.bot.getch_user(user_mentions[-1])
+                except (guilded.NotFound, guilded.BadRequest):
                     user = None
         else:
             try:
@@ -935,7 +1022,7 @@ class moderation(commands.Cog):
             except guilded.NotFound:
                 try:
                     user = await self.bot.getch_user(user)
-                except guilded.NotFound:
+                except (guilded.NotFound, guilded.BadRequest):
                     user = None
             except guilded.BadRequest:
                 user = None
@@ -952,8 +1039,7 @@ class moderation(commands.Cog):
         if reason == "":
             reason = None
 
-        try:
-            ban = await ctx.server.fetch_ban(user)
+        if await is_banned(ctx.server, user):
             embed = embeds.Embeds.embed(
                 title="Already Banned",
                 description=f"This user is already banned!",  # TODO: overwrite existing ban, so the bot can "preban" users
@@ -961,8 +1047,6 @@ class moderation(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
-        except guilded.NotFound:
-            pass
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
         if len(higher_member) == 2:
@@ -1109,6 +1193,15 @@ class moderation(commands.Cog):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
+            return
+
+        if await is_muted(ctx.server, user):
+            embed = embeds.Embeds.embed(
+                title="Already Muted",
+                description=f"This user is already muted.",  # TODO: option to overwrite duration etc.
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
         # remove user display name or id from reason

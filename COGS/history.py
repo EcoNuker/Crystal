@@ -8,6 +8,8 @@ from DATA import embeds
 from DATA import tools
 from DATA import custom_events
 
+from COGS.moderation import is_banned, is_muted
+
 
 class history(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -88,11 +90,19 @@ class history(commands.Cog):
             try:
                 user = await ctx.server.getch_member(user_mentions[-1])
             except:
-                user = None
+                try:
+                    user = await self.bot.getch_user(user_mentions[-1])
+                except (guilded.NotFound, guilded.BadRequest):
+                    user = None
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except (guilded.NotFound, guilded.BadRequest):
+            except guilded.NotFound:
+                try:
+                    user = await self.bot.getch_user(user)
+                except (guilded.NotFound, guilded.BadRequest):
+                    user = None
+            except guilded.BadRequest:
                 user = None
         if user is None:
             await ctx.reply(
@@ -106,6 +116,9 @@ class history(commands.Cog):
         ).strip()
         if reason == "":
             reason = None
+
+        banned = await is_banned(ctx.server, user)
+        muted = await is_muted(ctx.server, user)
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
@@ -135,6 +148,15 @@ class history(commands.Cog):
             description=f"Cleared `{amount:,}` cases from user history.",
             color=guilded.Color.green(),
         )
+
+        if banned:
+            embed.add_field(
+                name="Banned", value="This user is still banned.", inline=False
+            )
+        if muted:
+            embed.add_field(
+                name="Muted", value="This user is still muted.", inline=False
+            )
 
         await server_data.save()
 
@@ -347,17 +369,28 @@ class history(commands.Cog):
             try:
                 user = await ctx.server.getch_member(user_mentions[-1])
             except:
-                user = None
+                try:
+                    user = await self.bot.getch_user(user_mentions[-1])
+                except (guilded.NotFound, guilded.BadRequest):
+                    user = None
         else:
             try:
                 user = await ctx.server.getch_member(user)
-            except (guilded.NotFound, guilded.BadRequest):
+            except guilded.NotFound:
+                try:
+                    user = await self.bot.getch_user(user)
+                except (guilded.NotFound, guilded.BadRequest):
+                    user = None
+            except guilded.BadRequest:
                 user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+
+        banned = await is_banned(ctx.server, user)
+        muted = await is_muted(ctx.server, user)
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id
@@ -377,6 +410,12 @@ class history(commands.Cog):
                 description="Wow! So empty in here! This user should keep up the great work!",
                 color=guilded.Color.green(),
             )
+            if banned:
+                embed.add_field(
+                    name="Banned", value="This user is banned.", inline=False
+                )
+            if muted:
+                embed.add_field(name="Muted", value="This user is muted.", inline=False)
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
@@ -411,6 +450,12 @@ class history(commands.Cog):
                 description="\n".join(page).strip(),
                 color=guilded.Color.blue(),
             )
+            if banned:
+                embed.add_field(
+                    name="Banned", value="This user is banned.", inline=False
+                )
+            if muted:
+                embed.add_field(name="Muted", value="This user is muted.", inline=False)
             embeds_list.append(embed)
 
         # Send the first embed
