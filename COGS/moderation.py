@@ -699,18 +699,27 @@ class moderation(commands.Cog):
         # unban member
         result = await unban_user(ctx.server, user)
 
-        embed = embeds.Embeds.embed(
-            title="User Unbanned",
-            description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
-            color=guilded.Color.green(),
-        )
-        await ctx.reply(embed=embed, private=ctx.message.private)
-
-        custom_events.eventqueue.add_event(
-            custom_events.ModeratorAction(
-                action="unban", member=user, moderator=ctx.author, reason=reason
+        if result:
+            embed = embeds.Embeds.embed(
+                title="User Unbanned",
+                description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+                color=guilded.Color.green(),
             )
-        )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+            custom_events.eventqueue.add_event(
+                custom_events.ModeratorAction(
+                    action="unban", member=user, moderator=ctx.author, reason=reason
+                )
+            )
+        else:
+            embed = embeds.Embeds.embed(
+                title="Not Banned",
+                description=f"This user isn't banned!",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
 
     @commands.command(name="ban")  # TODO: duration to make a ban a tempban
     async def ban(self, ctx: commands.Context, user: str, *, reason: str = None):
