@@ -234,11 +234,23 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
         if s.prefix is None:
             return [CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
 
-        # Return the apple compatible prefix
-        apple_vers = generate_apple_versions(s.prefix)
-        apple_vers.extend([ver + " " for ver in apple_vers])
-        apple_vers = [s.prefix] + list(set(apple_vers))
-        return apple_vers[::-1]
+        # Generate Apple compatible versions and combine with spaces first
+        combined_vers = [
+            ver + " " for ver in generate_apple_versions(s.prefix)
+        ] + generate_apple_versions(s.prefix)
+
+        deduped_vers = []
+        seen = set()
+        for ver in combined_vers:
+            if ver not in seen:
+                deduped_vers.append(ver)
+                seen.add(ver)
+
+        if s.prefix in deduped_vers:
+            deduped_vers.remove(s.prefix)
+        deduped_vers.append(s.prefix)
+
+        return deduped_vers
     else:
         # Create the server's document and provide default args
         s = documents.Server(serverId=message.server_id)
