@@ -279,9 +279,13 @@ class RSSFeed(BaseModel):
 class StarboardMessage(BaseModel):
     """
     - messageId - `str` - The message's id
+    - starboardMessageId - `Optional[str]` - The id of the message the bot sent in the starboard channel
+    - reactionCount - `int` - The amount of reactions. This is based on reaction_add and reaction_remove events, until guilded API allows fetching reactions
     """
 
     messageId: str
+    starboardMessageId: Optional[str] = None
+    reactionCount: int = 0
 
 
 class Starboard(BaseModel):

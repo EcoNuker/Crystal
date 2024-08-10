@@ -13,23 +13,192 @@ class starboard(commands.Cog):
         self.bot = bot
 
     # Listeners
+
     # on_message_reaction_add - Starred?
     async def on_message_reaction_add(self, event: guilded.MessageReactionAddEvent):
-        pass
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
+
+        starboards = server_data.starboards
+        emote_id = event.emote.id
+
+        listening_starboards = [
+            starboard for starboard in starboards if starboard.emote == emote_id
+        ]
+
+        if listening_starboards == []:
+            return
+
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+
+        for starboard in listening_starboards:
+            messages = (
+                starboard.messages
+            )  # TODO: fetch reactions. WHENEVER GUILDED API ADDS THIS FEATURE. In the meantime, we'll have to be inaccurate and hope we receive every reaction add event.
+            msg = next(
+                (
+                    message
+                    for message in messages
+                    if message.messageId == event.message_id
+                ),
+                None,
+            )
+            server_data.starboards.remove(starboard)
+            if msg:
+                starboard.messages.remove(msg)
+                msg.reactionCount += 1
+            else:
+                msg = documents.StarboardMessage(
+                    messageId=event.message_id, reactionCount=1
+                )
+            starboard.messages.append(msg)
+            server_data.starboards.append(starboard)
+            if msg.reactionCount >= starboard.minimum:  # TODO: error checking
+                mauthor = (
+                    event.message.author
+                    if event.message.author
+                    else (await self.bot.getch_user(event.message.author_id))
+                )
+                embed = embeds.Embeds.embed(description=event.message.content[:2048])
+                embed.timestamp = event.message.created_at
+                embed.set_author(
+                    name=mauthor.name,
+                    icon_url=(
+                        mauthor.avatar.url
+                        if mauthor.avatar
+                        else mauthor.default_avatar.url
+                    ),
+                )
+                send = False
+                try:
+                    starboard_channel: guilded.ChatChannel = (
+                        await event.server.getch_channel(starboard.channelId)
+                    )
+                except guilded.NotFound:
+                    pass  # TODO
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            action="Fetch Starboard Channel",
+                        )
+                    )
+                if msg.starboardMessageId:
+                    try:
+                        to_update = await starboard_channel.fetch_message(
+                            msg.starboardMessageId
+                        )
+                    except guilded.NotFound:
+                        send = True
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Fetch Message",
+                            )
+                        )
+                    if not send:
+                        await to_update.edit(
+                            f"⭐ **{msg.reactionCount}** | [JUMP]({event.message.jump_url})",
+                            embed=embed,
+                        )
+                else:
+                    send = True
+                if send:
+                    try:
+                        await starboard_channel.send(
+                            f"⭐ **{msg.reactionCount}** | [JUMP]({event.message.jump_url})",
+                            embed=embed,
+                        )
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Send Message",
+                            )
+                        )
+
+        await server_data.save()
+
+    # on_bulk_message_reaction_remove - Mass unstarred?
+    async def on_bulk_message_reaction_remove(
+        self, event: guilded.BulkMessageReactionRemoveEvent
+    ):
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
+
+        starboards = server_data.starboards
+        emote_id = event.emote.id
+
+        listening_starboards = [
+            starboard for starboard in starboards if starboard.emote == emote_id
+        ]
+
+        # This event may or may not return emote. Emote is returned if a single emote is mass removed.
+        # Instead, check all messages in starboards for a matching id, then if matched, check if the starboard emote was removed. If emote is not None, and it's not the starboard emote, it wasn't removed.
 
     # on_message_reaction_remove - Unstarred?
     async def on_message_reaction_remove(
         self, event: guilded.MessageReactionRemoveEvent
     ):
-        pass
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
+
+        starboards = server_data.starboards
+        emote_id = event.emote.id
+
+        listening_starboards = [
+            starboard for starboard in starboards if starboard.emote == emote_id
+        ]
+
+        if listening_starboards == []:
+            return
 
     # on_message_delete - Is it a starboard message to delete?
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
-        pass
+        if not event.server:
+            event.server = await self.bot.getch_server(event.server_id)
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
 
     # on_message_update - Update starboard message contents?
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
-        pass
+        if not event.server:
+            event.server = await self.bot.getch_server(event.server_id)
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
 
     # Starboard Commands
 
@@ -100,7 +269,7 @@ class starboard(commands.Cog):
                 channel = await ctx.server.fetch_channel(channel)
             except (guilded.NotFound, guilded.BadRequest):
                 channel = None
-        if channel is None:
+        if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private
             )

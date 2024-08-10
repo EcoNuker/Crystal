@@ -9,6 +9,12 @@ from DATA import custom_events
 import documents
 
 
+def channel_is_messageable(channel: guilded.abc.ServerChannel):
+    return isinstance(channel, guilded.abc.ServerChannel) and isinstance(
+        channel, guilded.abc.Messageable
+    )
+
+
 async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChannel):
     """
     Checks if channel is in use by either starboards, rss feeds, or logging.

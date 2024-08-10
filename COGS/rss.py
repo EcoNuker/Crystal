@@ -90,7 +90,7 @@ class RSSFeedCog(commands.Cog):
                 channel = await ctx.server.fetch_channel(channel)
             except (guilded.NotFound, guilded.BadRequest):
                 channel = None
-        if channel is None:
+        if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private
             )

@@ -139,7 +139,7 @@ class developer(commands.Cog):
         else:
             if cog_name in self.bot.extensions:
                 try:
-                    self.bot.unload_extension(cog)
+                    self.bot.unload_extension(cog_name)
                     self.bot.print(
                         f"{self.bot.COLORS.cog_logs}[COGS] {self.bot.COLORS.normal_message}Unloaded cog {self.bot.COLORS.item_name}{cog_name}"
                     )
