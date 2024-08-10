@@ -16,6 +16,244 @@ class starboard(commands.Cog):
 
     # on_message_reaction_add - Starred?
     async def on_message_reaction_add(self, event: guilded.MessageReactionAddEvent):
+        # We're going to limit what reactions we listen for. We don't care about bots here.
+        if not event.member:
+            event.member = await self.bot.getch_user(event.user_id)
+        if event.member.bot:
+            return
+
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
+
+        starboards = server_data.starboards
+        emote_id = event.emote.id
+
+        listening_starboards = [
+            starboard for starboard in starboards if starboard.emote == emote_id
+        ]
+
+        if listening_starboards == []:
+            return
+
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+
+        for starboard in listening_starboards:
+            messages = (
+                starboard.messages
+            )  # TODO: fetch reactions. WHENEVER GUILDED API ADDS THIS FEATURE. In the meantime, we'll have to be inaccurate and hope we receive every reaction add event.
+            msg = next(
+                (
+                    message
+                    for message in messages
+                    if message.messageId == event.message_id
+                ),
+                None,
+            )
+            if msg:
+                if event.user_id in msg.reactions:
+                    continue
+                server_data.starboards.remove(starboard)
+                starboard.messages.remove(msg)
+                msg.reactions.append(event.user_id)
+            else:
+                server_data.starboards.remove(starboard)
+                msg = documents.StarboardMessage(
+                    messageId=event.message_id,
+                    starboardMessageId=None,
+                    reactions=[event.user_id],
+                    first=True,
+                )
+            if len(msg.reactions) >= starboard.minimum:
+                embed = embeds.Embeds.embed(description=event.message.content[:2048])
+                embed.timestamp = event.message.created_at
+                embed.set_author(
+                    name=mauthor.name,
+                    icon_url=(
+                        mauthor.avatar.url
+                        if mauthor.avatar
+                        else mauthor.default_avatar.url
+                    ),
+                )
+                send = False
+                try:
+                    starboard_channel: guilded.ChatChannel = (
+                        await event.server.getch_channel(starboard.channelId)
+                    )
+                except guilded.NotFound:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotSettingChanged(
+                            f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                            event.server_id,
+                        )
+                    )
+                    await server_data.save()
+                    continue
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            action="Fetch Starboard Channel",
+                        )
+                    )
+                if msg.starboardMessageId:
+                    try:
+                        to_update = await starboard_channel.fetch_message(
+                            msg.starboardMessageId
+                        )
+                    except guilded.NotFound:
+                        send = True
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Fetch Message",
+                            )
+                        )
+                    if not send:
+                        await to_update.edit(
+                            f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
+                            embed=embed,
+                        )
+                else:
+                    send = True
+                if send:
+                    try:
+                        mid = await starboard_channel.send(
+                            f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
+                            embed=embed,
+                        )
+                        msg.starboardMessageId = mid
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Send Message",
+                            )
+                        )
+            if msg.first:
+                msg.first = False
+                await event.message.reply(
+                    f"Welcome to the {starboard_channel.mention} starboard! You have **{len(msg.reactions)}** <:{event.emote.name}:{starboard.emote}>s!"
+                )
+            starboard.messages.append(msg)
+            server_data.starboards.append(starboard)
+            await server_data.save()
+
+    # on_bulk_message_reaction_remove - Mass unstarred?
+    async def on_bulk_message_reaction_remove(
+        self, event: guilded.BulkMessageReactionRemoveEvent
+    ):
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == event.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=event.server.id)
+            await server_data.save()
+
+        starboards = server_data.starboards
+
+        # This event may or may not return emote. Emote is returned if a single emote is mass removed.
+        # Instead, check all messages in starboards for a matching id, then if matched, check if the starboard emote was removed. If emote is not None, and it's not the starboard emote, it wasn't removed.
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+
+        for starboard in starboards:
+            messages = (
+                starboard.messages
+            )  # TODO: fetch reactions. WHENEVER GUILDED API ADDS THIS FEATURE. In the meantime, we'll have to be inaccurate and hope we receive every reaction add event.
+            msg = next(
+                (
+                    message
+                    for message in messages
+                    if message.messageId == event.message_id
+                ),
+                None,
+            )
+            if msg:
+                if (
+                    event.emote and event.emote.id != starboard.emote
+                ):  # Only a single emote was bulk removed, and it isn't relevant.
+                    continue
+                server_data.starboards.remove(starboard)
+                starboard.messages.remove(msg)
+                msg.reactions = []
+            else:
+                continue  # Don't worry about creating it here. Obviously we missed when the reaction was added, but if another reaction is added it was created,
+            if (
+                len(msg.reactions) < starboard.minimum
+            ):  # If the emote truly was removed, obviously it'll be exactly 0.
+                # delete if it exists.
+                try:
+                    starboard_channel: guilded.ChatChannel = (
+                        await event.server.getch_channel(starboard.channelId)
+                    )
+                except guilded.NotFound:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotSettingChanged(
+                            f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                            event.server_id,
+                        )
+                    )
+                    await server_data.save()
+                    continue
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            action="Fetch Starboard Channel",
+                        )
+                    )
+                if msg.starboardMessageId:
+                    try:
+                        to_delete = await starboard_channel.fetch_message(
+                            msg.starboardMessageId
+                        )
+                        await to_delete.delete()
+                        msg.starboardMessageId = None
+                    except guilded.NotFound:
+                        pass
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Fetch Message",  # I can't think of a case where deleting the bot's own message would cause Forbidden.
+                            )
+                        )
+            starboard.messages.append(msg)
+            server_data.starboards.append(starboard)
+            await server_data.save()
+
+    # on_message_reaction_remove - Unstarred?
+    async def on_message_reaction_remove(
+        self, event: guilded.MessageReactionRemoveEvent
+    ):
+        # We're going to limit what reactions we listen for. We don't care about bots here.
+        if not event.member:
+            event.member = await self.bot.getch_user(event.user_id)
+        if event.member.bot:
+            return
+
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id
         )
@@ -51,17 +289,15 @@ class starboard(commands.Cog):
                 ),
                 None,
             )
-            server_data.starboards.remove(starboard)
             if msg:
+                if event.user_id not in msg.reactions:
+                    continue
+                server_data.starboards.remove(starboard)
                 starboard.messages.remove(msg)
-                msg.reactionCount += 1
+                msg.reactions.remove(event.user_id)
             else:
-                msg = documents.StarboardMessage(
-                    messageId=event.message_id, reactionCount=1
-                )
-            starboard.messages.append(msg)
-            server_data.starboards.append(starboard)
-            if msg.reactionCount >= starboard.minimum:  # TODO: error checking
+                continue  # Don't worry about creating it here. Obviously we missed when the reaction was added, but if another reaction is added it was created,
+            if len(msg.reactions) >= starboard.minimum:  # This shouldn't change.
                 mauthor = (
                     event.message.author
                     if event.message.author
@@ -83,7 +319,14 @@ class starboard(commands.Cog):
                         await event.server.getch_channel(starboard.channelId)
                     )
                 except guilded.NotFound:
-                    pass  # TODO
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotSettingChanged(
+                            f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                            event.server_id,
+                        )
+                    )
+                    await server_data.save()
+                    continue
                 except guilded.Forbidden as e:
                     custom_events.eventqueue.add_event(
                         custom_events.BotForbidden(
@@ -112,17 +355,18 @@ class starboard(commands.Cog):
                         )
                     if not send:
                         await to_update.edit(
-                            f"⭐ **{msg.reactionCount}** | [JUMP]({event.message.jump_url})",
+                            f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                         )
                 else:
                     send = True
                 if send:
                     try:
-                        await starboard_channel.send(
-                            f"⭐ **{msg.reactionCount}** | [JUMP]({event.message.jump_url})",
+                        mid = await starboard_channel.send(
+                            f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                         )
+                        msg.starboardMessageId = mid
                     except guilded.Forbidden as e:
                         custom_events.eventqueue.add_event(
                             custom_events.BotForbidden(
@@ -133,50 +377,52 @@ class starboard(commands.Cog):
                                 action="Send Message",
                             )
                         )
-
-        await server_data.save()
-
-    # on_bulk_message_reaction_remove - Mass unstarred?
-    async def on_bulk_message_reaction_remove(
-        self, event: guilded.BulkMessageReactionRemoveEvent
-    ):
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=event.server.id)
+            elif len(msg.reactions) < starboard.minimum:
+                # delete if it exists.
+                try:
+                    starboard_channel: guilded.ChatChannel = (
+                        await event.server.getch_channel(starboard.channelId)
+                    )
+                except guilded.NotFound:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotSettingChanged(
+                            f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                            event.server_id,
+                        )
+                    )
+                    await server_data.save()
+                    continue
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            action="Fetch Starboard Channel",
+                        )
+                    )
+                if msg.starboardMessageId:
+                    try:
+                        to_delete = await starboard_channel.fetch_message(
+                            msg.starboardMessageId
+                        )
+                        await to_delete.delete()
+                        msg.starboardMessageId = None
+                    except guilded.NotFound:
+                        pass
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction", "BotSettingChanged"],
+                                e,
+                                event.server,
+                                channel=starboard_channel,
+                                action="Fetch Message",  # I can't think of a case where deleting the bot's own message would cause Forbidden.
+                            )
+                        )
+            starboard.messages.append(msg)
+            server_data.starboards.append(starboard)
             await server_data.save()
-
-        starboards = server_data.starboards
-        emote_id = event.emote.id
-
-        listening_starboards = [
-            starboard for starboard in starboards if starboard.emote == emote_id
-        ]
-
-        # This event may or may not return emote. Emote is returned if a single emote is mass removed.
-        # Instead, check all messages in starboards for a matching id, then if matched, check if the starboard emote was removed. If emote is not None, and it's not the starboard emote, it wasn't removed.
-
-    # on_message_reaction_remove - Unstarred?
-    async def on_message_reaction_remove(
-        self, event: guilded.MessageReactionRemoveEvent
-    ):
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=event.server.id)
-            await server_data.save()
-
-        starboards = server_data.starboards
-        emote_id = event.emote.id
-
-        listening_starboards = [
-            starboard for starboard in starboards if starboard.emote == emote_id
-        ]
-
-        if listening_starboards == []:
-            return
 
     # on_message_delete - Is it a starboard message to delete?
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -189,6 +435,69 @@ class starboard(commands.Cog):
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
 
+        starboards = server_data.starboards
+
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+
+        for starboard in starboards:
+            msg = next(
+                (
+                    message
+                    for message in starboard.messages
+                    if message.messageId == event.message_id
+                ),
+                None,
+            )
+            if not msg:
+                continue  # The message isn't in starboard.
+            server_data.starboards.remove(starboard)
+            starboard.messages.remove(
+                msg
+            )  # Feel free to completely remove the message.
+            try:
+                starboard_channel: guilded.ChatChannel = (
+                    await event.server.getch_channel(starboard.channelId)
+                )
+            except guilded.NotFound:
+                custom_events.eventqueue.add_event(
+                    custom_events.BotSettingChanged(
+                        f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                        event.server_id,
+                    )
+                )
+                await server_data.save()
+                continue
+            except guilded.Forbidden as e:
+                custom_events.eventqueue.add_event(
+                    custom_events.BotForbidden(
+                        ["ModeratorAction", "BotSettingChanged"],
+                        e,
+                        event.server,
+                        action="Fetch Starboard Channel",
+                    )
+                )
+            server_data.starboards.append(starboard)
+            if msg.starboardMessageId:
+                try:
+                    to_delete = await starboard_channel.fetch_message(
+                        msg.starboardMessageId
+                    )
+                    await to_delete.delete()
+                except guilded.NotFound:
+                    pass
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            channel=starboard_channel,
+                            action="Fetch Message",  # I can't think of a case where deleting the bot's own message would cause Forbidden.
+                        )
+                    )
+            await server_data.save()
+
     # on_message_update - Update starboard message contents?
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
         if not event.server:
@@ -199,6 +508,110 @@ class starboard(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
+
+        starboards = server_data.starboards
+
+        for (
+            starboard
+        ) in (
+            starboards
+        ):  # We don't actually need to update the database for this. Unless we need to resend the message.
+            msg = next(
+                (
+                    message
+                    for message in starboard.messages
+                    if message.messageId == event.after.id
+                ),
+                None,
+            )
+            if not msg:
+                continue  # The message isn't in starboard.
+            try:
+                starboard_channel: guilded.ChatChannel = (
+                    await event.server.getch_channel(starboard.channelId)
+                )
+            except guilded.NotFound:
+                custom_events.eventqueue.add_event(
+                    custom_events.BotSettingChanged(
+                        f"A deleted channel (ID `{starboard.channelId}`) was automatically removed as a starboard channel, as it no longer exists.",
+                        event.server_id,
+                    )
+                )
+                await server_data.save()
+                continue
+            except guilded.Forbidden as e:
+                custom_events.eventqueue.add_event(
+                    custom_events.BotForbidden(
+                        ["ModeratorAction", "BotSettingChanged"],
+                        e,
+                        event.server,
+                        action="Fetch Starboard Channel",
+                    )
+                )
+            mauthor = (
+                event.message.author
+                if event.message.author
+                else (await self.bot.getch_user(event.message.author_id))
+            )
+            embed = embeds.Embeds.embed(description=event.message.content[:2048])
+            embed.timestamp = event.message.created_at
+            embed.set_author(
+                name=mauthor.name,
+                icon_url=(
+                    mauthor.avatar.url if mauthor.avatar else mauthor.default_avatar.url
+                ),
+            )
+            send = False
+            if msg.starboardMessageId:
+                try:
+                    to_update = await starboard_channel.fetch_message(
+                        msg.starboardMessageId
+                    )
+                    full_emote = to_update.content.split(" **")[0]
+                    await to_update.edit(
+                        f"{full_emote} **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
+                        embed=embed,
+                    )
+                except guilded.NotFound:
+                    server_data.starboards.remove(starboard)
+                    starboard.messages.remove(msg)
+                    msg.starboardMessageId = None
+                    send = True
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            channel=starboard_channel,
+                            action="Fetch Message",  # I can't think of a case where deleting the bot's own message would cause Forbidden.
+                        )
+                    )
+            if (
+                send and len(msg.reactions) >= starboard.minimum
+            ):  # This shouldn't have changed, but it's better to check.
+                # Uh oh, we don't know the emote name here. Here, we will default to a star.
+                # The star will be replaced if a reaction is added or removed.
+                # TODO: fetch reactions when guilded API supports
+                try:
+                    mid = await starboard_channel.send(
+                        f"⭐ **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
+                        embed=embed,
+                    )
+                    msg.starboardMessageId = mid
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction", "BotSettingChanged"],
+                            e,
+                            event.server,
+                            channel=starboard_channel,
+                            action="Send Message",
+                        )
+                    )
+                starboard.messages.append(msg)
+                server_data.starboards.append(starboard)
+                await server_data.save()
 
     # Starboard Commands
 
@@ -330,14 +743,15 @@ class starboard(commands.Cog):
                     ),
                 )
                 return
-
+            EMOTE_FORMATTED = f"Starboard Emote: <:{emote.name}:{emote.id}>"
         else:
             emote = None  # Defaults to star
+            EMOTE_FORMATTED = "Starboard Emote: ⭐"
 
         await msg.edit(
             embed=embeds.Embeds.embed(
                 title="Minimum Reactions",
-                description="How many minimum reactions should there be to be added to starboard?\nDefault is 3 if no valid number is provided.\nMinimum 2, maximum 10.",
+                description="How many minimum reactions should there be to be added to starboard? Default is 3 if no valid number is provided.\nMinimum 2, maximum 10.",
             )
         )
         response = await tools.wait_for(
@@ -361,9 +775,10 @@ class starboard(commands.Cog):
             minimum = 3
 
         await msg.edit(
+            content=EMOTE_FORMATTED,
             embed=embeds.Embeds.embed(
                 title="Confirm Starboard Settings",
-                description=f"The emote used will be {f'the emote I reacted with' if emote else '⭐'}, and a minimum of `{minimum}` reactions of this emote are needed to add it to the channel {tools.channel_mention(channel)}.",
+                description=f"The emote used is sent above, and a minimum of `{minimum}` reactions of this emote are needed to add it to the channel {tools.channel_mention(channel)}.",
             ),
         )
         if emote:
