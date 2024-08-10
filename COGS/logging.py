@@ -298,9 +298,8 @@ class Logging(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
-        elif ctx.invoked_subcommand.name != "types":
-            # Every other subcommand requires a fill to determine permissions
-            await ctx.server.fill_roles()
+
+        await ctx.server.fill_roles()
 
         # Check my permissions
         me = await ctx.server.getch_member(self.bot.user_id)

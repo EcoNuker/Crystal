@@ -72,6 +72,7 @@ class events(commands.Cog):
             except:
                 pass
         try:
+            await event.server.fill_roles()
             me = await event.server.getch_member(self.bot.user_id)
             default_channel = await event.server.fetch_default_channel()
             embedig = embeds.Embeds.embed(

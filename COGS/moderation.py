@@ -380,6 +380,7 @@ class moderation(commands.Cog):
                                 await ban_user(
                                     server, member, ban.endsAt, reason=ban.reason
                                 )
+                                await server.fill_roles()
                                 me = await server.getch_member(self.bot.user_id)
                                 custom_events.eventqueue.add_event(
                                     custom_events.ModeratorAction(

@@ -734,10 +734,8 @@ class AutoModeration(commands.Cog):
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
-        else:
-            # All subcommands will need to check permissions, therefore fill roles
-            await ctx.server.fill_roles()
 
+        await ctx.server.fill_roles()
         # Check my permissions
         me = await ctx.server.getch_member(self.bot.user_id)
         if not me.server_permissions.receive_all_events:

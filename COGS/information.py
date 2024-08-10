@@ -19,7 +19,7 @@ class information(commands.Cog):
         """
         prefixdata = await self.bot.get_prefix(ctx.message)
         if type(prefixdata) == list:
-            prefixdata = prefixdata[0]
+            prefixdata = prefixdata[0].strip()
         inviteandsupport = f"\n\n[Invite](https://guilded.gg/b/{self.bot.CONFIGS.botid}) || [Support Server]({self.bot.CONFIGS.supportserverinv})"
         devcmds = [
             "load",
@@ -28,6 +28,7 @@ class information(commands.Cog):
             "eval",
             "toggle_auto_bypass",
         ]
+        await ctx.server.fill_roles()
         me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(
             title="Command Help",
@@ -138,6 +139,7 @@ class information(commands.Cog):
         description="Check if the bot is online, as well as the latency of it!",
     )
     async def pong(self, ctx: commands.Context):
+        await ctx.server.fill_roles()
         me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(title="🏓 Pong")
         embedig.add_field(
