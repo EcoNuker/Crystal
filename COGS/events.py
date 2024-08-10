@@ -72,10 +72,16 @@ class events(commands.Cog):
             except:
                 pass
         try:
+            me = await event.server.getch_member(self.bot.user_id)
             default_channel = await event.server.fetch_default_channel()
             embedig = embeds.Embeds.embed(
                 title=f"Thanks for using {self.bot.user.name}!",
-                description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me!",
+                description=f"I see you invited me, {event.member.mention}!\nThanks for inviting me!"
+                + (
+                    "\n**Unfortunately, I do not have the 'Receive All Socket Events' permission and I can not function. Please add this permission to me.**"
+                    if not me.server_permissions.receive_all_events
+                    else ""
+                ),
                 color=guilded.Color.green(),
             )
             embedig.set_footer(text="Hope you enjoy!")

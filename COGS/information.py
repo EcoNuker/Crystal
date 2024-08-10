@@ -28,9 +28,15 @@ class information(commands.Cog):
             "eval",
             "toggle_auto_bypass",
         ]
+        me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(
             title="Command Help",
-            description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - len(devcmds)}`\n**Here are all the bot's commands.**{inviteandsupport}",
+            description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - len(devcmds)}`\n**Here are all the bot's commands.**{inviteandsupport}"
+            + (
+                "\n**Unfortunately, I do not have the 'Receive All Socket Events' permission and I can not function. Please add this permission to me.**"
+                if not me.server_permissions.receive_all_events
+                else ""
+            ),
             color=guilded.Color.dark_purple(),
         )
         if self.bot.extensions.get("COGS.information"):
@@ -132,10 +138,16 @@ class information(commands.Cog):
         description="Check if the bot is online, as well as the latency of it!",
     )
     async def pong(self, ctx: commands.Context):
+        me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(title="🏓 Pong")
         embedig.add_field(
             name="Bot Latency",
-            value=f"`{round(self.bot.latency*1000, 3)}` ms",
+            value=f"`{round(self.bot.latency*1000, 3)}` ms"
+            + (
+                "\n**Unfortunately, I do not have the 'Receive All Socket Events' permission and I can not function. Please add this permission to me.**"
+                if not me.server_permissions.receive_all_events
+                else ""
+            ),
             inline=False,
         )
         await ctx.reply(embed=embedig, private=ctx.message.private)

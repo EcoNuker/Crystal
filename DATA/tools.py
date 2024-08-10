@@ -192,7 +192,10 @@ async def get_response(ctx: commands.Context, timeout: int = 30) -> guilded.Mess
 
 
 async def check_bypass(
-    ctx: commands.Context, msg: guilded.Message, bypassed: str = "PERMS"
+    ctx: commands.Context,
+    msg: guilded.Message,
+    bypassed: str = "PERMS",
+    auto_bypassable: bool = True,
 ) -> bool:
     """
     Checks bot owner/developer bypass. Used for debugging. Will be flagged in console.
@@ -201,7 +204,7 @@ async def check_bypass(
     """
     if not ctx.bot.bypassing:
         return False
-    if ctx.author.id in ctx.bot.auto_bypass:
+    if (ctx.author.id in ctx.bot.auto_bypass) and auto_bypassable:
         await asyncio.sleep(
             1
         )  # Guilded is weird here, since it will occasionally return 404 Message Not Found

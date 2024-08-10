@@ -738,6 +738,19 @@ class AutoModeration(commands.Cog):
             # All subcommands will need to check permissions, therefore fill roles
             await ctx.server.fill_roles()
 
+        # Check my permissions
+        me = await ctx.server.getch_member(self.bot.user_id)
+        if not me.server_permissions.receive_all_events:
+            embed = embeds.Embeds.embed(
+                title="WARNING",
+                description="**Unfortunately, I do not have the 'Receive All Socket Events' permission. I cannot receive most events.**",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(
+                embed=embed,
+                private=ctx.message.private,
+            )
+
     @automod.command(name="scan")
     async def scan(self, ctx: commands.Context, *, amount, private: bool = False):
         # check permissions

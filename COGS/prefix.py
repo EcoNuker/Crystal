@@ -51,6 +51,23 @@ class prefix(commands.Cog):
             if not bypass:
                 return
 
+        me = await ctx.server.getch_member(self.bot.user_id)
+        if not me.server_permissions.receive_all_events:
+            embed = embeds.Embeds.embed(
+                title="WARNING",
+                description="**Unfortunately, I do not have the 'Receive All Socket Events' permission. Setting the prefix will make me unable to respond to your commands.**",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(
+                embed=embed,
+                private=ctx.message.private,
+            )
+            bypass = tools.check_bypass(
+                ctx, msg, bypassed="BOT_MISSING_PERMS", auto_bypassable=False
+            )
+            if not bypass:
+                return
+
         prefix = prefix.strip()
         if len(prefix) > 15:
             embed = embeds.Embeds.embed(

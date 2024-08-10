@@ -302,6 +302,19 @@ class Logging(commands.Cog):
             # Every other subcommand requires a fill to determine permissions
             await ctx.server.fill_roles()
 
+        # Check my permissions
+        me = await ctx.server.getch_member(self.bot.user_id)
+        if not me.server_permissions.receive_all_events:
+            embed = embeds.Embeds.embed(
+                title="WARNING",
+                description="**Unfortunately, I do not have the 'Receive All Socket Events' permission. I cannot receive most events.**",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(
+                embed=embed,
+                private=ctx.message.private,
+            )
+
     @logs.group(name="settings", aliases=["setting"])
     async def settings(self, ctx: commands.Context):
         if ctx.invoked_subcommand is None:
@@ -651,7 +664,7 @@ class Logging(commands.Cog):
                 colour=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg, "amount")
+            bypass = await tools.check_bypass(ctx, msg, "AMOUNT")
             if not bypass:
                 return
         elif server_data.logging.setChannels.get(channel.id):
@@ -810,11 +823,18 @@ class Logging(commands.Cog):
                 )
 
                 # Add related fields
-                embed.add_field(
-                    name="Message Jump",
-                    value=f"[Message]({event.message.share_url})",
-                    inline=False,
-                )
+                if event.message:
+                    embed.add_field(
+                        name="Message Jump",
+                        value=f"[Message]({event.message.share_url})",
+                        inline=False,
+                    )
+                if event.channel:
+                    embed.add_field(
+                        name="Channel",
+                        value=tools.channel_mention(event.channel),
+                        inline=False,
+                    )
                 embed.add_field(
                     name="Action Attempted",
                     value=event.action,
@@ -990,6 +1010,12 @@ class Logging(commands.Cog):
                     embed.add_field(
                         name="Message Jump",
                         value=f"[Message]({event.message.share_url})",
+                        inline=False,
+                    )
+                if event.channel:
+                    embed.add_field(
+                        name="Channel",
+                        value=tools.channel_mention(event.channel),
                         inline=False,
                     )
                 embed.add_field(
@@ -1223,11 +1249,12 @@ class Logging(commands.Cog):
 
         # Set related fields
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name="User ID", value=user.id)
+        embed.add_field(name="User ID", value=user.id, inline=False)
         if user.created_at:
             embed.add_field(
                 name="Account Age",
                 value=format_timespan(datetime.datetime.now() - user.created_at),
+                inline=False,
             )
 
         # Push the event to the listening channels
@@ -1428,8 +1455,8 @@ class Logging(commands.Cog):
 
         # Add related fields
         embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User ID", value=event.member.id)
-        embed.add_field(name="Banned by", value=event.ban.author.mention)
+        embed.add_field(name="User ID", value=event.member.id, inline=False)
+        embed.add_field(name="Banned by", value=event.ban.author.mention, inline=False)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
         if event.member.created_at:  # Add the account's creation date if it exists
             embed.add_field(
@@ -1437,6 +1464,7 @@ class Logging(commands.Cog):
                 value=format_timespan(
                     datetime.datetime.now() - event.member.created_at
                 ),
+                inline=False,
             )
 
         # Push the event to the listening channels
@@ -1495,8 +1523,10 @@ class Logging(commands.Cog):
 
         # Add related fields
         embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name="User ID", value=user.id)
-        embed.add_field(name="Banned by", value=event.ban.author.mention)
+        embed.add_field(name="User ID", value=user.id, inline=False)
+        embed.add_field(name="Banned by", value=event.ban.author.mention, inline=False)
+        # Apparently this isn't a thing... WTF Guilded
+        # embed.add_field(name="Unbanned by", value=event.ban., inline=False)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
         if user.created_at:  # Add the account's creation date if it exists
             embed.add_field(

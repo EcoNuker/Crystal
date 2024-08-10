@@ -202,11 +202,13 @@ class serverBan(BaseModel):
     - user - `str` - The muted user's id.
     - endsAt - `Optional[int]` - When the punishment ends, if tempban. TODO: check this and remove in a task in moderation cog
     - reason - `Optional[str]` - The reason for the ban.
+    - ban_entry - `bool` - Whether there is a ban entry for the user when banned. Used to check if a unban was done while bot was offline.
     """
 
     user: str
     endsAt: Optional[int] = None
     reason: Optional[str] = None
+    ban_entry: bool = True
 
 
 class serverData(BaseModel):

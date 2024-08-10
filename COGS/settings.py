@@ -167,10 +167,23 @@ class settings(commands.Cog):
                         }
                     ]
                 }
-            )  # TODO: remove overwrites if error
-            # Doable by catching below and removing, then raising again
-            await me.add_role(mute_role)
-            await me.remove_role(mute_role)
+            )
+            try:
+                await me.add_role(mute_role)
+                await me.remove_role(mute_role)
+            except guilded.Forbidden:
+                custom_events.eventqueue.add_overwrites(
+                    {
+                        "role_changes": [
+                            {
+                                "user_id": me.id,
+                                "server_id": me.server_id,
+                                "amount": -2,  # We remove the 2 overwrites as it's errored
+                            }
+                        ]
+                    }
+                )
+                raise
         else:
             mute_role = role  # None
 

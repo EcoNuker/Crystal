@@ -66,10 +66,9 @@ async def unmute_user(
         return False
 
     if mute:
-        server_data.data.mutes = [
-            mute for mute in server_data.data.mutes if mute.user != member.id
-        ]
-        await server_data.save()
+        new_mutes = [mute for mute in server_data.data.mutes if mute.user != member.id]
+    else:
+        new_mutes = server_data.data.mutes.copy()
 
     if in_server:
         try:
@@ -83,9 +82,26 @@ async def unmute_user(
                         }
                     ]
                 }
-            )  # TODO: remove overwrites if error
-            # Doable by catching below and removing, then raising again
-            await member.remove_roles(*mute_roles)
+            )
+            exc = None
+            for role in mute_roles:
+                try:
+                    await member.remove_role(role)
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_overwrites(
+                        {
+                            "role_changes": [
+                                {
+                                    "user_id": member.id,
+                                    "server_id": member.server_id,
+                                    "amount": -1,  # Remove 1 from overwrites
+                                }
+                            ]
+                        }
+                    )
+                    exc = e
+            if exc is not None:
+                raise exc
         except guilded.Forbidden as e:
             custom_events.eventqueue.add_event(
                 custom_events.BotForbidden(
@@ -93,10 +109,12 @@ async def unmute_user(
                     e,
                     server,
                     action="Remove Mute Role",
-                    note="Are my roles above the mute role?",
+                    note="Are my roles above the mute role? Please put my role at the top.",
                 )
             )
             return False
+    server_data.data.mutes = new_mutes
+    await server_data.save()
     return True
 
 
@@ -147,10 +165,6 @@ async def mute_user(
     if not mute_role:
         return False
 
-    mute = documents.serverMute(user=member.id, muteRole=mute_role.id, endsAt=endsAt)
-    server_data.data.mutes.append(mute)
-    await server_data.save()
-
     if in_server:
         try:
             custom_events.eventqueue.add_overwrites(
@@ -163,9 +177,22 @@ async def mute_user(
                         }
                     ]
                 }
-            )  # TODO: remove overwrites if error
-            # Doable by catching below and removing, then raising again
-            await member.add_role(mute_role)
+            )
+            try:
+                await member.add_role(mute_role)
+            except guilded.Forbidden:
+                custom_events.eventqueue.add_overwrites(
+                    {
+                        "role_changes": [
+                            {
+                                "user_id": member.id,
+                                "server_id": member.server_id,
+                                "amount": -1,  # Remove 1 from overwrites
+                            }
+                        ]
+                    }
+                )
+                raise
         except guilded.Forbidden as e:
             custom_events.eventqueue.add_event(
                 custom_events.BotForbidden(
@@ -173,16 +200,18 @@ async def mute_user(
                     e,
                     server,
                     action="Add Mute Role",
-                    note="Are my roles above the mute role?",
+                    note="Are my roles above the mute role? Please put my role at the top.",
                 )
             )
             return False
+    mute = documents.serverMute(user=member.id, muteRole=mute_role.id, endsAt=endsAt)
+    server_data.data.mutes.append(mute)
+    await server_data.save()
     return True
 
 
 async def unban_user(
-    server: guilded.Server,
-    user: guilded.User,
+    server: guilded.Server, user: guilded.User, check_ban: bool = True
 ) -> bool:
     """
     False if unban failed, otherwise True
@@ -202,34 +231,42 @@ async def unban_user(
     unbanned = False
 
     if bans:
-        server_data.data.bans = [
+        new_bans = [
             ban for ban in server_data.data.bans if bans.user != user.id
-        ]
-        await server_data.save()
+        ]  # Define list of bans without the user. Then, only save if bot has permissions.
         # User just got unprebanned.
         unbanned = True
-
-    try:
-        ban = await server.fetch_ban(user)
-    except guilded.NotFound:
-        if unbanned:
-            return True
+    else:
         return False
 
-    try:
-        await ban.revoke()
-    except guilded.Forbidden as e:
-        custom_events.eventqueue.add_event(
-            custom_events.BotForbidden(
-                ["ModeratorAction"],
-                e,
-                server,
-                action="Unban User",
-                # note="Are my roles above the mute role?",
+    if check_ban:
+        try:
+            ban = await server.fetch_ban(user)
+        except guilded.NotFound:
+            server_data.data.bans = new_bans
+            await server_data.save()
+            return unbanned
+
+        try:
+            await ban.revoke()
+        except guilded.Forbidden as e:
+            custom_events.eventqueue.add_event(
+                custom_events.BotForbidden(
+                    ["ModeratorAction"],
+                    e,
+                    server,
+                    action="Unban User",
+                    # note="Are my roles above the mute role?",
+                )
             )
-        )
-        return False
-    return True
+            return False
+        server_data.data.bans = new_bans
+        await server_data.save()
+        return True
+    else:
+        server_data.data.bans = new_bans
+        await server_data.save()
+        return unbanned
 
 
 async def ban_user(
@@ -251,12 +288,6 @@ async def ban_user(
         server_data = documents.Server(serverId=server.id)
         await server_data.save()
 
-    ban = documents.serverBan(user=member.id, endsAt=endsAt, reason=reason)
-    server_data.data.bans.append(
-        ban
-    )  # The ban is added regardless of if the user is in the server.
-    await server_data.save()
-
     if in_server:
         try:
             await member.ban(reason=reason)
@@ -271,6 +302,24 @@ async def ban_user(
                 )
             )
             return False
+
+    async def maybe():
+        try:
+            ban = await server.fetch_ban(member)
+        except:
+            return False
+        return True
+
+    ban = documents.serverBan(
+        user=member.id,
+        endsAt=endsAt,
+        reason=reason,
+        ban_entry=True if in_server else (await maybe()),
+    )
+    server_data.data.bans.append(
+        ban
+    )  # The ban is added regardless of if the user is in the server.
+    await server_data.save()
     return True
 
 
@@ -279,7 +328,71 @@ class moderation(commands.Cog):
         self.bot = bot
         self.cooldowns = {"purge": {}}
 
-    # Remute if they leave and rejoin.
+    # Remute/preban if they somehow joined a server while bot was offline. Should run every on_ready
+    @commands.Cog.listener("on_ready")
+    async def on_ready(self):
+        for server in self.bot.servers:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=server.id)
+                await server_data.save()
+
+            members = await server.fetch_members()
+
+            for member in members:
+                mutes = server_data.data.mutes.copy()
+                server_data.data.mutes = [
+                    mute for mute in server_data.data.mutes if mute.user != member.id
+                ]
+                bans = server_data.data.bans
+                server_data.data.bans = [
+                    ban for ban in server_data.data.bans if ban.user != member.id
+                ]
+                await server_data.save()
+                for mute in mutes:
+                    if mute.user == member.id:
+                        try:
+                            await mute_user(server, member, mute.endsAt)
+                        except guilded.Forbidden as e:
+                            custom_events.eventqueue.add_event(
+                                custom_events.BotForbidden(
+                                    ["ModeratorAction"],
+                                    e,
+                                    server,
+                                    action="Add Mute Role",
+                                    note="Are my roles above the mute role? Please put my role at the top.",
+                                )
+                            )
+                        break  # We found, don't need to keep iterating
+                for ban in bans:
+                    if ban.user == member.id:
+                        try:
+                            if (
+                                ban.ban_entry
+                            ):  # There was a ban entry created/existing when the user was banned.
+                                await unban_user(
+                                    server, member, check_ban=False
+                                )  # Therefore, they were unbanned, otherwise how did they join?
+                                # Assuming the on_ban_delete errored or didn't fire, or the bot was offline
+                            else:  # They were prebanned, and didn't have a existing ban entry.
+                                await ban_user(
+                                    server, member, ban.endsAt, reason=ban.reason
+                                )
+                        except guilded.Forbidden as e:
+                            custom_events.eventqueue.add_event(
+                                custom_events.BotForbidden(
+                                    ["ModeratorAction"],
+                                    e,
+                                    server,
+                                    action="Ban User",
+                                    note="Could not preban user.",
+                                )
+                            )
+                        break  # We found, don't need to keep iterating
+
+    # Remute/preban if they leave and rejoin.
     @commands.Cog.listener("on_member_join")
     async def on_member_join(self, event: guilded.MemberJoinEvent):
         server_data = await documents.Server.find_one(
@@ -289,14 +402,60 @@ class moderation(commands.Cog):
             server_data = documents.Server(serverId=event.server_id)
             await server_data.save()
 
-        for mute in server_data.data.mutes.copy():
-            if mute.user == event.member.id:
-                await mute_user(event.server, event.member, mute.endsAt)
-
+        mutes = server_data.data.mutes.copy()
         server_data.data.mutes = [
             mute for mute in server_data.data.mutes if mute.user != event.member.id
         ]
+        bans = server_data.data.bans
+        server_data.data.bans = [
+            ban for ban in server_data.data.bans if ban.user != event.member.id
+        ]
         await server_data.save()
+        for mute in mutes:
+            if mute.user == event.member.id:
+                try:
+                    await mute_user(event.server, event.member, mute.endsAt)
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction"],
+                            e,
+                            event.server,
+                            action="Add Mute Role",
+                            note="Are my roles above the mute role? Please put my role at the top.",
+                        )
+                    )
+                break  # We found, don't need to keep iterating
+        for ban in bans:
+            if ban.user == event.member.id:
+                try:
+                    if (
+                        ban.ban_entry
+                    ):  # There was a ban entry created/existing when the user was banned.
+                        await unban_user(
+                            event.server, event.member, check_ban=False
+                        )  # Therefore, they were unbanned, otherwise how did they join?
+                        # Assuming the on_ban_delete errored or didn't fire, or the bot was offline
+                    else:  # They were prebanned, and didn't have a existing ban entry.
+                        await ban_user(
+                            event.server, event.member, ban.endsAt, reason=ban.reason
+                        )
+                except guilded.Forbidden as e:
+                    custom_events.eventqueue.add_event(
+                        custom_events.BotForbidden(
+                            ["ModeratorAction"],
+                            e,
+                            event.server,
+                            action="Ban User",
+                            note="Could not preban user.",
+                        )
+                    )
+                break  # We found, don't need to keep iterating
+
+    # If someone unbans via the ban stuff, unban them from database too.
+    @commands.Cog.listener("on_ban_delete")
+    async def on_ban_delete(self, event: guilded.BanDeleteEvent):
+        await unban_user(event.server, event.ban.user, check_ban=False)
 
     @commands.command(name="purge")
     async def purge(self, ctx: commands.Context, *, amount, private: bool = False):
@@ -317,7 +476,7 @@ class moderation(commands.Cog):
                     description=f"Please wait `{rounded:,}` second{'s' if rounded != 1 else ''} before trying again.",
                 )
                 msg = await ctx.reply(embed=embedig, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg, "cooldown")
+                bypass = await tools.check_bypass(ctx, msg, "COOLDOWN")
                 if not bypass:
                     return
         if ctx.server is None:
@@ -360,7 +519,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg, "amount")
+            bypass = await tools.check_bypass(ctx, msg, "AMOUNT")
             if not bypass:
                 return
             if amount - 1 > 1000:
@@ -379,7 +538,7 @@ class moderation(commands.Cog):
                     color=guilded.Color.red(),
                 )
                 msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg, "amount")
+                bypass = await tools.check_bypass(ctx, msg, "AMOUNT")
                 if not bypass:
                     raise tools.BypassFailed()
                 newlimit += 50
@@ -502,7 +661,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
         elif higher_member[0].id != ctx.author.id:
@@ -512,7 +671,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
 
@@ -533,7 +692,22 @@ class moderation(commands.Cog):
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=embed, private=True)
-        await ctx.message.delete()
+        custom_events.eventqueue.add_overwrites({"message_ids": [ctx.message.id]})
+        try:
+            await ctx.message.delete()
+        except guilded.Forbidden as e:
+            custom_events.eventqueue.add_event(
+                custom_events.BotForbidden(
+                    ["ModeratorAction"],
+                    e,
+                    ctx.server,
+                    channel=ctx.channel,
+                    message=ctx.message,
+                    action="Delete Message",
+                )
+            )
+        except guilded.NotFound:
+            pass
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
@@ -601,7 +775,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
         elif higher_member[0].id != ctx.author.id:
@@ -611,7 +785,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
 
@@ -675,19 +849,6 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # We can unban users who were prebanned.
-
-        # try:
-        #     ban = await ctx.server.fetch_ban(user)
-        # except guilded.NotFound:
-        #     embed = embeds.Embeds.embed(
-        #         title="Not Banned",
-        #         description=f"This user isn't banned!",
-        #         color=guilded.Color.red(),
-        #     )
-        #     await ctx.reply(embed=embed, private=ctx.message.private)
-        #     return
 
         # remove user display name or id from reason
         reason = tools.remove_first_prefix(
@@ -801,7 +962,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
         elif higher_member[0].id != ctx.author.id:
@@ -811,7 +972,7 @@ class moderation(commands.Cog):
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
-            bypass = await tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
             if not bypass:
                 return
 
@@ -825,8 +986,13 @@ class moderation(commands.Cog):
         )
 
         embed = embeds.Embeds.embed(
-            title="User Banned",
-            description=f"Successfully banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Banned",
+            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            + (
+                "\n**Pre-Ban** - The user will be banned if they join, as I cannot ban someone not in the server."
+                if not isinstance(user, guilded.Member)
+                else ""
+            ),
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=embed, private=ctx.message.private)
@@ -947,21 +1113,21 @@ class moderation(commands.Cog):
             if len(higher_member) == 2:
                 embed = embeds.Embeds.embed(
                     title="You Can't Do That!",
-                    description=f"You cannot ban this user, as you are equals in role hierachy.",
+                    description=f"You cannot mute this user, as you are equals in role hierachy.",
                     color=guilded.Color.red(),
                 )
                 msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
+                bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
                 if not bypass:
                     return
             elif higher_member[0].id != ctx.author.id:
                 embed = embeds.Embeds.embed(
                     title="You Can't Do That!",
-                    description=f"You cannot ban this user, as they are higher than you in role hierachy.",
+                    description=f"You cannot mute this user, as they are higher than you in role hierachy.",
                     color=guilded.Color.red(),
                 )
                 msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
+                bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
                 if not bypass:
                     return
 
@@ -1047,31 +1213,6 @@ class moderation(commands.Cog):
             reason = None
 
         if isinstance(user, guilded.Member):
-
-            higher_member = await tools.check_higher_member(
-                ctx.server, [ctx.author, user]
-            )
-            if len(higher_member) == 2:
-                embed = embeds.Embeds.embed(
-                    title="You Can't Do That!",
-                    description=f"You cannot ban this user, as you are equals in role hierachy.",
-                    color=guilded.Color.red(),
-                )
-                msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
-                if not bypass:
-                    return
-            elif higher_member[0].id != ctx.author.id:
-                embed = embeds.Embeds.embed(
-                    title="You Can't Do That!",
-                    description=f"You cannot ban this user, as they are higher than you in role hierachy.",
-                    color=guilded.Color.red(),
-                )
-                msg = await ctx.reply(embed=embed, private=ctx.message.private)
-                bypass = await tools.check_bypass(ctx, msg)
-                if not bypass:
-                    return
-
             # unmute member
             await unmute_user(ctx.server, user)
         else:
