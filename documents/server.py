@@ -187,7 +187,6 @@ class serverSettings(BaseModel):
 
 class serverMute(BaseModel):
     """
-    TODO: when a user rejoins, if they are muted, the mute role should be automatically applied.
     - user - `str` - The muted user's id.
     - muteRole - `int` - The muted role given to the user. By default, the bot should attempt to remove this role first on unmute, but also try to remove the new mute role if exists. This should be overwritten if the user leaves and rejoins, to apply the new mute role.
     - endsAt - `Optional[int]` - When the punishment ends, if tempmute. TODO: check this and remove in a task in moderation cog
@@ -198,6 +197,18 @@ class serverMute(BaseModel):
     endsAt: Optional[int] = None
 
 
+class serverBan(BaseModel):
+    """
+    - user - `str` - The muted user's id.
+    - endsAt - `Optional[int]` - When the punishment ends, if tempban. TODO: check this and remove in a task in moderation cog
+    - reason - `Optional[str]` - The reason for the ban.
+    """
+
+    user: str
+    endsAt: Optional[int] = None
+    reason: Optional[str] = None
+
+
 class serverData(BaseModel):
     """
     - automodRules - `List[automodRule]` - The server's automod rules
@@ -205,6 +216,7 @@ class serverData(BaseModel):
     - automodModules - `automoderatorModules` - Automod default modules
     - settings - `serverSettings` - The server's settings.
     - mutes - `List[serverMute]` - The server's current saved mutes.
+    - bans - `List[serverBan]` - The server's current saved bans.
     """
 
     automodRules: List[automodRule] = list()
@@ -216,6 +228,8 @@ class serverData(BaseModel):
     settings: serverSettings = serverSettings()
 
     mutes: List[serverMute] = list()
+
+    bans: List[serverBan] = list()
 
 
 class HistoryCase(BaseModel):

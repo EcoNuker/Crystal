@@ -147,6 +147,8 @@ async def check_higher_member(
                 mems = [member]
             elif top_role and highest_role == top_role.position:
                 mems.append(member)
+    if mems == []:
+        return [member]
     return mems
 
 
