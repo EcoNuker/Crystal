@@ -11,6 +11,7 @@ def action_map(
 ) -> str:
     actions = {
         "kick": "The user was kicked",
+        "preban": "The user was pre-banned",
         "ban": "The user was banned",
         "unban": "The user was unbanned",
         "unmute": "The user was unmuted",
@@ -198,6 +199,7 @@ class ModeratorAction(CloudBaseEvent):
         assert action in [
             "kick",
             "unban",
+            "preban",
             "ban",
             "unmute",
             "mute",

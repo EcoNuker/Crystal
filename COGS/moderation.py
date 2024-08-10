@@ -380,6 +380,15 @@ class moderation(commands.Cog):
                                 await ban_user(
                                     server, member, ban.endsAt, reason=ban.reason
                                 )
+                                me = await server.getch_member(self.bot.user_id)
+                                custom_events.eventqueue.add_event(
+                                    custom_events.ModeratorAction(
+                                        action="ban",
+                                        member=member,
+                                        moderator=me,
+                                        reason="The user was prebanned. You may check their history for more information.",
+                                    )
+                                )
                         except guilded.Forbidden as e:
                             custom_events.eventqueue.add_event(
                                 custom_events.BotForbidden(
@@ -999,7 +1008,10 @@ class moderation(commands.Cog):
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
-                action="ban", member=user, moderator=ctx.author, reason=reason
+                action="ban" if isinstance(user, guilded.Member) else "preban",
+                member=user,
+                moderator=ctx.author,
+                reason=reason,
             )
         )
 
