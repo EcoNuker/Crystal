@@ -153,7 +153,7 @@ class starboard(commands.Cog):
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                         )
-                        msg.starboardMessageId = mid
+                        msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
                         custom_events.eventqueue.add_event(
                             custom_events.BotForbidden(
@@ -399,7 +399,7 @@ class starboard(commands.Cog):
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                         )
-                        msg.starboardMessageId = mid
+                        msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
                         custom_events.eventqueue.add_event(
                             custom_events.BotForbidden(
@@ -643,7 +643,7 @@ class starboard(commands.Cog):
                         f"⭐ **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
                         embed=embed,
                     )
-                    msg.starboardMessageId = mid
+                    msg.starboardMessageId = mid.id
                 except guilded.Forbidden as e:
                     custom_events.eventqueue.add_event(
                         custom_events.BotForbidden(
