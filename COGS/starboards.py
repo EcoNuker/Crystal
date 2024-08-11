@@ -38,6 +38,16 @@ class starboard(commands.Cog):
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
 
+        if next(
+            (
+                starboard
+                for starboard in server_data.starboards
+                if starboard.channelId == event.channel_id
+            ),
+            None,
+        ):
+            return
+
         starboards = server_data.starboards
         emote_id = event.emote.id
 
@@ -197,6 +207,16 @@ class starboard(commands.Cog):
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
 
+        if next(
+            (
+                starboard
+                for starboard in server_data.starboards
+                if starboard.channelId == event.channel_id
+            ),
+            None,
+        ):
+            return
+
         starboards = server_data.starboards
 
         # This event may or may not return emote. Emote is returned if a single emote is mass removed.
@@ -295,6 +315,16 @@ class starboard(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
+
+        if next(
+            (
+                starboard
+                for starboard in server_data.starboards
+                if starboard.channelId == event.channel_id
+            ),
+            None,
+        ):
+            return
 
         starboards = server_data.starboards
         emote_id = event.emote.id
@@ -487,6 +517,16 @@ class starboard(commands.Cog):
         if not event.channel:
             event.channel = await event.server.getch_channel(event.channel_id)
 
+        if next(
+            (
+                starboard
+                for starboard in server_data.starboards
+                if starboard.channelId == event.channel_id
+            ),
+            None,
+        ):
+            return
+
         for starboard in starboards:
             msg = next(
                 (
@@ -556,6 +596,16 @@ class starboard(commands.Cog):
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
             await server_data.save()
+
+        if next(
+            (
+                starboard
+                for starboard in server_data.starboards
+                if starboard.channelId == event.channel_id
+            ),
+            None,
+        ):
+            return
 
         starboards = server_data.starboards
 
