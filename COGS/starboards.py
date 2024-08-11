@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, time
 
 import guilded
 from guilded.ext import commands
@@ -154,6 +154,7 @@ class starboard(commands.Cog):
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                             hide_preview_urls=[event.message.jump_url],
+                            silent=True,
                         )
                         msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
@@ -325,7 +326,9 @@ class starboard(commands.Cog):
                 msg.reactions.remove(event.user_id)
             else:
                 continue  # Don't worry about creating it here. Obviously we missed when the reaction was added, but if another reaction is added it was created,
-            if len(msg.reactions) >= starboard.minimum:  # This shouldn't change.
+            if (
+                len(msg.reactions) >= starboard.minimum - 1
+            ):  # We'll allow a 1 user grace. This message can stay in starboard if 1 short, since it reached threshold.
                 mauthor = (
                     event.message.author
                     if event.message.author
@@ -405,6 +408,7 @@ class starboard(commands.Cog):
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
                             hide_preview_urls=[event.message.jump_url],
+                            silent=True,
                         )
                         msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
@@ -417,7 +421,9 @@ class starboard(commands.Cog):
                                 action="Send Message",
                             )
                         )
-            elif len(msg.reactions) < starboard.minimum:
+            elif (
+                len(msg.reactions) < starboard.minimum - 1
+            ):  # The grace is over. Delete it!!!
                 # delete if it exists.
                 try:
                     starboard_channel: guilded.ChatChannel = (
@@ -651,6 +657,7 @@ class starboard(commands.Cog):
                         f"⭐ **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
                         embed=embed,
                         hide_preview_urls=[event.after.jump_url],
+                        silent=True,
                     )
                     msg.starboardMessageId = mid.id
                 except guilded.Forbidden as e:
