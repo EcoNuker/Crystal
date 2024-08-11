@@ -17,6 +17,7 @@ class starboard(commands.Cog):
     # Listeners
 
     # on_message_reaction_add - Starred?
+    @commands.Cog.listener()
     async def on_message_reaction_add(self, event: guilded.MessageReactionAddEvent):
         # We're going to limit what reactions we listen for. We don't care about bots here.
         if not event.member:
@@ -163,7 +164,7 @@ class starboard(commands.Cog):
                                 action="Send Message",
                             )
                         )
-            if msg.first:
+            if msg.first and len(msg.reactions) >= starboard.minimum:
                 msg.first = False
                 await event.message.reply(
                     f"Welcome to the {starboard_channel.mention} starboard! You have **{len(msg.reactions)}** <:{event.emote.name}:{starboard.emote}>s!"
@@ -173,6 +174,7 @@ class starboard(commands.Cog):
             await server_data.save()
 
     # on_bulk_message_reaction_remove - Mass unstarred?
+    @commands.Cog.listener()
     async def on_bulk_message_reaction_remove(
         self, event: guilded.BulkMessageReactionRemoveEvent
     ):
@@ -265,6 +267,7 @@ class starboard(commands.Cog):
             await server_data.save()
 
     # on_message_reaction_remove - Unstarred?
+    @commands.Cog.listener()
     async def on_message_reaction_remove(
         self, event: guilded.MessageReactionRemoveEvent
     ):
@@ -455,6 +458,7 @@ class starboard(commands.Cog):
             await server_data.save()
 
     # on_message_delete - Is it a starboard message to delete?
+    @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
         if not event.server:
             event.server = await self.bot.getch_server(event.server_id)
@@ -529,6 +533,7 @@ class starboard(commands.Cog):
             await server_data.save()
 
     # on_message_update - Update starboard message contents?
+    @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
         if not event.server:
             event.server = await self.bot.getch_server(event.server_id)
