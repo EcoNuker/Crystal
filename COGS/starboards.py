@@ -588,8 +588,8 @@ class starboard(commands.Cog):
                 if event.after.author
                 else (await self.bot.getch_user(event.after.author_id))
             )
-            embed = embeds.Embeds.embed(description=event.message.content[:2048])
-            embed.timestamp = event.message.created_at
+            embed = embeds.Embeds.embed(description=event.after.content[:2048])
+            embed.timestamp = event.after.created_at
             embed.set_author(
                 name=mauthor.name,
                 icon_url=(
