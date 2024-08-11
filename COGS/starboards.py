@@ -144,6 +144,7 @@ class starboard(commands.Cog):
                         await to_update.edit(
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
+                            hide_preview_urls=[event.message.jump_url],
                         )
                 else:
                     send = True
@@ -152,6 +153,7 @@ class starboard(commands.Cog):
                         mid = await starboard_channel.send(
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
+                            hide_preview_urls=[event.message.jump_url],
                         )
                         msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
@@ -390,6 +392,7 @@ class starboard(commands.Cog):
                         await to_update.edit(
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
+                            hide_preview_urls=[event.message.jump_url],
                         )
                 else:
                     send = True
@@ -398,6 +401,7 @@ class starboard(commands.Cog):
                         mid = await starboard_channel.send(
                             f"<:{event.emote.name}:{starboard.emote}> **{len(msg.reactions)}** | [JUMP]({event.message.jump_url})",
                             embed=embed,
+                            hide_preview_urls=[event.message.jump_url],
                         )
                         msg.starboardMessageId = mid.id
                     except guilded.Forbidden as e:
@@ -616,6 +620,7 @@ class starboard(commands.Cog):
                     await to_update.edit(
                         f"{full_emote} **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
                         embed=embed,
+                        hide_preview_urls=[event.after.jump_url],
                     )
                 except guilded.NotFound:
                     server_data.starboards.remove(starboard)
@@ -642,6 +647,7 @@ class starboard(commands.Cog):
                     mid = await starboard_channel.send(
                         f"⭐ **{len(msg.reactions)}** | [JUMP]({event.after.jump_url})",
                         embed=embed,
+                        hide_preview_urls=[event.after.jump_url],
                     )
                     msg.starboardMessageId = mid.id
                 except guilded.Forbidden as e:
