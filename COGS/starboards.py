@@ -19,10 +19,16 @@ class starboard(commands.Cog):
     # on_message_reaction_add - Starred?
     @commands.Cog.listener()
     async def on_message_reaction_add(self, event: guilded.MessageReactionAddEvent):
-        # We're going to limit what reactions we listen for. We don't care about bots here.
+        # We're going to limit what reactions/messages we listen for. We don't care about bots here.
         if not event.member:
             event.member = await self.bot.getch_user(event.user_id)
         if event.member.bot:
+            return
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+        if event.message.private:
             return
 
         server_data = await documents.Server.find_one(
@@ -41,12 +47,6 @@ class starboard(commands.Cog):
 
         if listening_starboards == []:
             return
-
-        if not event.channel:
-            event.channel = await event.server.getch_channel(event.channel_id)
-
-        if not event.message:
-            event.message = await event.channel.fetch_message(event.message_id)
 
         for starboard in listening_starboards:
             messages = (
@@ -168,9 +168,12 @@ class starboard(commands.Cog):
                         )
             if msg.first and len(msg.reactions) >= starboard.minimum:
                 msg.first = False
-                await event.message.reply(
-                    f"Welcome to the {starboard_channel.mention} starboard! You have **{len(msg.reactions)}** <:{event.emote.name}:{starboard.emote}>s!"
-                )
+                try:
+                    await event.message.reply(
+                        f"Welcome to the {starboard_channel.mention} starboard! You have **{len(msg.reactions)}** <:{event.emote.name}:{starboard.emote}>s!"
+                    )
+                except:
+                    pass
             starboard.messages.append(msg)
             server_data.starboards.append(starboard)
             await server_data.save()
@@ -180,6 +183,12 @@ class starboard(commands.Cog):
     async def on_bulk_message_reaction_remove(
         self, event: guilded.BulkMessageReactionRemoveEvent
     ):
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+        if event.message.private:
+            return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id
         )
@@ -191,12 +200,6 @@ class starboard(commands.Cog):
 
         # This event may or may not return emote. Emote is returned if a single emote is mass removed.
         # Instead, check all messages in starboards for a matching id, then if matched, check if the starboard emote was removed. If emote is not None, and it's not the starboard emote, it wasn't removed.
-        if not event.channel:
-            event.channel = await event.server.getch_channel(event.channel_id)
-
-        if not event.message:
-            event.message = await event.channel.fetch_message(event.message_id)
-
         for starboard in starboards:
             messages = (
                 starboard.messages
@@ -278,6 +281,12 @@ class starboard(commands.Cog):
             event.member = await self.bot.getch_user(event.user_id)
         if event.member.bot:
             return
+        if not event.channel:
+            event.channel = await event.server.getch_channel(event.channel_id)
+        if not event.message:
+            event.message = await event.channel.fetch_message(event.message_id)
+        if event.message.private:
+            return
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id
@@ -295,12 +304,6 @@ class starboard(commands.Cog):
 
         if listening_starboards == []:
             return
-
-        if not event.channel:
-            event.channel = await event.server.getch_channel(event.channel_id)
-
-        if not event.message:
-            event.message = await event.channel.fetch_message(event.message_id)
 
         for starboard in listening_starboards:
             messages = (
