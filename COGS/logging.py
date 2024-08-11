@@ -1488,20 +1488,28 @@ class Logging(commands.Cog):
                 event.ban.user.display_avatar.url
                 if event.ban.user.display_avatar
                 else event.ban.user.default_avatar.url
-            ) or (
+            )
+            or (
                 event.member.display_avatar.url
                 if event.member.display_avatar
                 else event.member.default_avatar.url
             )
         )
-        embed.add_field(name="User ID", value=event.ban.user.id or event.member.id, inline=False)
-        embed.add_field(name="Banned by", value=event.ban.author.mention or event.member.mention, inline=False)
+        embed.add_field(
+            name="User ID", value=event.ban.user.id or event.member.id, inline=False
+        )
+        embed.add_field(
+            name="Banned by",
+            value=event.ban.author.mention or event.member.mention,
+            inline=False,
+        )
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
         if event.member.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
                 value=format_timespan(
-                    datetime.datetime.now() - (event.ban.user.created_at or event.member.created_at)
+                    datetime.datetime.now()
+                    - (event.ban.user.created_at or event.member.created_at)
                 )
                 + (
                     "\n:warning: *New account!*"
