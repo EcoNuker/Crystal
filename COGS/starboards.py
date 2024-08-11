@@ -599,7 +599,7 @@ class starboard(commands.Cog):
             image = next(
                 (
                     attach
-                    for attach in event.message.attachments
+                    for attach in event.after.attachments
                     if attach.file_type == "image"
                 ),
                 None,
