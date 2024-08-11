@@ -601,7 +601,7 @@ class starboard(commands.Cog):
             (
                 starboard
                 for starboard in server_data.starboards
-                if starboard.channelId == event.channel_id
+                if starboard.channelId == event.after.channel_id
             ),
             None,
         ):
