@@ -62,8 +62,8 @@ from DATA.log_colors import COLORS
 from DATA.apple_normalizer import generate_apple_versions
 
 # Configure directories
-cogspath = "COGS\\"
-cogspathpy = [os.path.basename(f) for f in glob.glob(f".\\{cogspath}*.py")]
+cogspath = os.path.join("COGS", "")
+cogspathpy = [os.path.basename(f) for f in glob.glob(os.path.join(cogspath, "*.py"))]
 cogs = [f"{cogspath[:-1]}." + os.path.splitext(f)[0] for f in cogspathpy]
 logs_dir = "logs"
 errors_dir = os.path.join(logs_dir, "errors")
