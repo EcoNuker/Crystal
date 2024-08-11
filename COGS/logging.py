@@ -1474,30 +1474,34 @@ class Logging(commands.Cog):
             pass
         else:
             return
-        if not event.member:
-            await (await self.bot.getch_server(event.server_id)).getch_member(
-                event.ban.user.id
-            )
 
         # Create the event embed
         embed = embeds.Embeds.embed(
-            title=f"{event.member.mention} Banned",
+            title=f"{event.ban.user.mention} Banned",
             url=event.member.profile_url,
             colour=guilded.Colour.red(),
         )
 
         # Add related fields
-        embed.set_thumbnail(url=event.member.display_avatar.url)
-        embed.add_field(name="User ID", value=event.member.id, inline=False)
+        embed.set_thumbnail(
+            url=(
+                event.ban.user.display_avatar.url
+                if event.ban.user.display_avatar
+                else event.ban.user.default_avatar.url
+            )
+        )
+        embed.add_field(name="User ID", value=event.ban.user.id, inline=False)
         embed.add_field(name="Banned by", value=event.ban.author.mention, inline=False)
         embed.add_field(name="Reason", value=event.ban.reason, inline=False)
         if event.member.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
-                value=format_timespan(datetime.datetime.now() - event.member.created_at)
+                value=format_timespan(
+                    datetime.datetime.now() - event.ban.user.created_at
+                )
                 + (
                     "\n:warning: *New account!*"
-                    if event.member.created_at
+                    if event.ban.user.created_at
                     > (datetime.datetime.now() - datetime.timedelta(days=30))
                     else ""
                 ),
