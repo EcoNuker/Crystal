@@ -89,6 +89,16 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
+                image = next(
+                    (
+                        attach
+                        for attach in event.message.attachments
+                        if attach.file_type == "image"
+                    ),
+                    None,
+                )
+                if image:
+                    embed.set_image(url=image)
                 send = False
                 try:
                     starboard_channel: guilded.ChatChannel = (
@@ -323,6 +333,16 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
+                image = next(
+                    (
+                        attach
+                        for attach in event.message.attachments
+                        if attach.file_type == "image"
+                    ),
+                    None,
+                )
+                if image:
+                    embed.set_image(url=image)
                 send = False
                 try:
                     starboard_channel: guilded.ChatChannel = (
@@ -571,6 +591,16 @@ class starboard(commands.Cog):
                     mauthor.avatar.url if mauthor.avatar else mauthor.default_avatar.url
                 ),
             )
+            image = next(
+                (
+                    attach
+                    for attach in event.message.attachments
+                    if attach.file_type == "image"
+                ),
+                None,
+            )
+            if image:
+                embed.set_image(url=image)
             send = False
             if msg.starboardMessageId:
                 try:
