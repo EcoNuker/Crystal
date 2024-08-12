@@ -1,15 +1,47 @@
 import guilded
 from guilded.ext import commands
+from guilded.ext.commands.converters import Greedy
 import asyncio
 import glob
 from os import path
 from sys import modules
 from DATA import embeds
+from DATA import tools
 
 
 class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @commands.command(name="test")
+    async def test(
+        self,
+        ctx: commands.Context,
+        user: str = None,
+        timespan: Greedy[tools.TimespanConverter] = [0],
+        *,
+        reason: str,
+    ):
+        user: str | guilded.Member | None | guilded.User
+        ts = 0
+        for times in timespan:
+            ts += times
+        user_mentions = ctx.message.raw_user_mentions
+        ouser = user
+        if len(user_mentions) > 0:
+            try:
+                user = await self.bot.getch_user(user_mentions[-1])
+            except guilded.NotFound:
+                user = None
+        else:
+            try:
+                user = await self.bot.getch_user(user)
+            except (guilded.NotFound, guilded.BadRequest):
+                user = None
+        if user is None:
+            reason = ouser + " " + reason
+            user = ctx.author
+        await ctx.send(f"{user.mention} - {ts:,}s - {reason}")
 
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
     async def tab(self, ctx: commands.Context, user: str = None):

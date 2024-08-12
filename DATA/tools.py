@@ -1,12 +1,26 @@
 import string, secrets, asyncio
+
 import guilded
 from guilded.ext import commands
+from guilded.ext.commands.converters import Converter
+
+from DATA.TIMESPAN_PARSER import parse as parse_timespan
 
 from typing import List
 
 from DATA import custom_events
 
 import documents
+
+
+class TimespanConverter(Converter[float]):
+    """Converts to a :class:`float`.
+
+    Attempts to parse a huamn timespan such as "5d", "3h5m"
+    """
+
+    async def convert(self, ctx: commands.Context, argument: str):
+        return parse_timespan(argument, raise_exception=True)
 
 
 def channel_is_messageable(channel: guilded.abc.ServerChannel):
