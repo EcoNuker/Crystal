@@ -159,6 +159,12 @@ async def unmute_user(
         )
 
     if mute_roles == []:
+        if mute:
+            new_mutes = [
+                mute for mute in server_data.data.mutes if mute.user != member.id
+            ]
+            server_data.data.mutes = new_mutes
+            await server_data.save()
         return False
 
     if mute:
@@ -167,7 +173,7 @@ async def unmute_user(
         new_mutes = server_data.data.mutes.copy()
 
     if in_server:
-        croles = member._role_ids
+        croles = member._role_ids.copy()
         try:
             custom_events.eventqueue.add_overwrites(
                 {
@@ -212,9 +218,13 @@ async def unmute_user(
             return False
         if member._role_ids == croles:
             # No roles were removed
+            if mute:
+                server_data.data.mutes = new_mutes
+                await server_data.save()
             return False if not mute else True
-    server_data.data.mutes = new_mutes
-    await server_data.save()
+    if mute:
+        server_data.data.mutes = new_mutes
+        await server_data.save()
     return True
 
 
@@ -439,7 +449,7 @@ class moderation(commands.Cog):
         self.endsAt_check.start()
 
     # Check endsAt for bans and mutes.
-    @tasks.loop(minutes=1)
+    @tasks.loop(seconds=10)
     async def endsAt_check(self):
         for server in self.bot.servers:
             server_data = await documents.Server.find_one(
