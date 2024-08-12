@@ -23,6 +23,7 @@ def action_map(
         "tempban": "The user was temporarily banned for {time}",
         "tempmute": "The user was temporarily muted for {time}",
         "warn": "The user was warned",
+        "note": "A note was added to the user",
         "purge": "{amount} message{checkS} {checkWERE} deleted using purge",
         "scan": "{amount} message{checkS} {checkWERE} scanned using automod",
     }
@@ -217,6 +218,7 @@ class ModeratorAction(CloudBaseEvent):
             "tempban",
             "tempmute",
             "warn",
+            "note",
             "purge",
             "scan",
             "clear_history",

@@ -777,10 +777,10 @@ class AutoModeration(commands.Cog):
             )
             return
         await ctx.server.fill_roles()
-        if not ctx.author.server_permissions.read_messages:
+        if not ctx.author.server_permissions.manage_messages:
             msg = await ctx.reply(
                 embed=embeds.Embeds.missing_permissions(
-                    "Read Messages", manage_bot_server=False
+                    "Manage Messages", manage_bot_server=False
                 ),
                 private=ctx.message.private,
             )

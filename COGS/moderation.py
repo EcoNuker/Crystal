@@ -881,6 +881,87 @@ class moderation(commands.Cog):
             )
         )
 
+    @commands.command(name="warn")
+    async def note(
+        self, ctx: commands.Context, user: tools.UserConverter, *, note: str
+    ):
+        # define typehinting here since pylance/python extensions apparently suck
+        user: guilded.User | guilded.Member | None
+        note: str
+
+        # check permissions
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+        await ctx.server.fill_roles()
+        if not ctx.author.server_permissions.manage_messages:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.missing_permissions(
+                    "Manage Messages", manage_bot_server=False
+                ),
+                private=ctx.message.private,
+            )
+            bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        if user is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
+
+        higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
+        if len(higher_member) == 2:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot add a note to this user, as you are equals in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
+            if not bypass:
+                return
+        elif higher_member[0].id != ctx.author.id:
+            embed = embeds.Embeds.embed(
+                title="You Can't Do That!",
+                description=f"You cannot add a note to this user, as they are higher than you in role hierachy.",
+                color=guilded.Color.red(),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="HIERACHY")
+            if not bypass:
+                return
+
+        embed = embeds.Embeds.embed(
+            title="Added a Note",
+            description=f"Successfully added a note to `{user.name}` that says:\n`{note}`",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=embed, private=ctx.message.private)
+
+        custom_events.eventqueue.add_event(
+            custom_events.ModeratorAction(
+                action="note", member=user, moderator=ctx.author, reason=note
+            )
+        )
+
     @commands.command(name="kick")
     async def kick(
         self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
