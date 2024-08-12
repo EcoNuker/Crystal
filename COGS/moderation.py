@@ -1,7 +1,9 @@
-import guilded
-import asyncio
+import guilded, asyncio, time
+
 from guilded.ext import commands, tasks
-import time
+from guilded.ext.commands.converters import Greedy
+
+from humanfriendly import format_timespan
 
 from DATA import tools
 from DATA import embeds
@@ -1135,12 +1137,18 @@ class moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
-    @commands.command(name="ban")  # TODO: duration to make a ban a tempban
+    @commands.command(name="ban")
     async def ban(
-        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+        self,
+        ctx: commands.Context,
+        user: tools.UserConverter,
+        duration: Greedy[tools.TimespanConverter],
+        *,
+        reason: str = None,
     ):
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None
+        duration: float = sum(duration) if duration else 0
         reason: str | None
 
         # check permissions
@@ -1191,10 +1199,23 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
+        if duration < 60:
+            embed = embeds.Embeds.min_duration(60)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
+            if not bypass:
+                return
+        if duration > 94608000:  # 3 years
+            embed = embeds.Embeds.max_duration(94608000)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
+            if not bypass:
+                return
+
         if await is_banned(ctx.server, user):
             embed = embeds.Embeds.embed(
                 title="Already Banned",
-                description=f"This user is already banned!",  # TODO: overwrite existing ban, so the bot can "preban" users
+                description=f"This user is already banned!",  # TODO: overwrite existing ban option such as duration etc
                 color=guilded.Color.red(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
@@ -1226,7 +1247,7 @@ class moderation(commands.Cog):
         await ban_user(
             ctx.server,
             user,
-            endsAt=None,
+            endsAt=None if duration < 1 else round(time.time() + duration),
             in_server=isinstance(user, guilded.Member),
             reason=reason,
         )
@@ -1241,11 +1262,26 @@ class moderation(commands.Cog):
             ),
             color=guilded.Color.green(),
         )
+        if duration >= 1:
+            embed.add_field(
+                name="Tempban",
+                value=(
+                    f"The user was banned for {format_timespan(duration)}, and will be automatically unbanned."
+                    if isinstance(user, guilded.Member)
+                    else f"The user was pre-banned for {format_timespan(duration)} and will be automatically unbanned when the time is up, regardless of if the user joined the server."
+                ),
+            )
         await ctx.reply(embed=embed, private=ctx.message.private)
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
-                action="ban" if isinstance(user, guilded.Member) else "preban",
+                action=(
+                    ("ban" if isinstance(user, guilded.Member) else "preban")
+                    if duration < 1
+                    else (
+                        "tempban" if isinstance(user, guilded.Member) else "pretempban"
+                    )
+                ),
                 member=user,
                 moderator=ctx.author,
                 reason=reason,
@@ -1254,10 +1290,16 @@ class moderation(commands.Cog):
 
     @commands.command(name="mute")  # TODO: duration to make a mute a tempmute
     async def mute(
-        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+        self,
+        ctx: commands.Context,
+        user: tools.UserConverter,
+        duration: Greedy[tools.TimespanConverter],
+        *,
+        reason: str = None,
     ):
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None
+        duration: float = sum(duration) if duration else 0
         reason: str | None
 
         # check permissions
@@ -1275,6 +1317,19 @@ class moderation(commands.Cog):
                 private=ctx.message.private,
             )
             bypass = await tools.check_bypass(ctx, msg)
+            if not bypass:
+                return
+
+        if duration < 60:
+            embed = embeds.Embeds.min_duration(60)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
+            if not bypass:
+                return
+        if duration > 94608000:  # 3 years
+            embed = embeds.Embeds.max_duration(94608000)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
             if not bypass:
                 return
 
@@ -1375,9 +1430,18 @@ class moderation(commands.Cog):
                     return
 
             # mute member
-            await mute_user(ctx.server, user, endsAt=None)
+            await mute_user(
+                ctx.server,
+                user,
+                endsAt=None if duration < 1 else round(time.time() + duration),
+            )
         else:
-            await mute_user(ctx.server, user, endsAt=None, in_server=False)
+            await mute_user(
+                ctx.server,
+                user,
+                endsAt=None if duration < 1 else round(time.time() + duration),
+                in_server=False,
+            )
 
         embed = embeds.Embeds.embed(
             title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Muted",
@@ -1389,11 +1453,28 @@ class moderation(commands.Cog):
             ),
             color=guilded.Color.green(),
         )
+        if duration >= 1:
+            embed.add_field(
+                name="Tempmute",
+                value=(
+                    f"The user was muted for {format_timespan(duration)}, and will be automatically unmuted."
+                    if isinstance(user, guilded.Member)
+                    else f"The user was pre-muted for {format_timespan(duration)} and will be automatically unmuted when the time is up, regardless of if the user joined the server."
+                ),
+            )
         await ctx.reply(embed=embed, private=ctx.message.private)
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
-                action="mute" if isinstance(user, guilded.Member) else "premute",
+                action=(
+                    ("mute" if isinstance(user, guilded.Member) else "premute")
+                    if duration < 1
+                    else (
+                        "tempmute"
+                        if isinstance(user, guilded.Member)
+                        else "pretempmute"
+                    )
+                ),
                 member=user,
                 moderator=ctx.author,
                 reason=reason,

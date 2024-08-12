@@ -62,10 +62,11 @@ class information(commands.Cog):
                 value="\n".join(
                     [
                         f"`{prefix}warn @user [reason | OPTIONAL]` - Warn a user, with an optional reason.",
-                        f"`{prefix}mute @user [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason. (tempmute in the future)",
+                        f"`{prefix}note @user <note>` - Adds a note to a user, that can be viewed in user history.",
+                        f"`{prefix}mute @user [duration | OPTIONAL] [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason and duration. If duration is not given, it is assumed to be indefinite.",
                         f"`{prefix}unmute @user [reason | OPTIONAL]` - Unmute a user, with an optional reason.",
                         f"`{prefix}kick @user [reason | OPTIONAL]` - Kick a user, with an optional reason.",
-                        f"`{prefix}ban @user [reason | OPTIONAL]` - Ban a user, with an optional reason. (tempban future)",
+                        f"`{prefix}ban @user [duration | OPTIONAL] [reason | OPTIONAL]` - Ban a user, with an optional reason and duration. If duration is not given, it is assumed to be indefinite.",
                         f"`{prefix}unban <user id> [reason | OPTIONAL]` - Unban a user, with an optional reason.",
                     ]
                 ),

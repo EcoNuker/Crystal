@@ -4,6 +4,8 @@ import datetime
 from main import bot
 from typing import List
 
+from humanfriendly import format_timespan
+
 
 class EmbedsData:
     def __init__(self):
@@ -102,6 +104,26 @@ class EmbedsData:
     @property
     def invalid_channel(self):
         return self._invalid_channel.set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    def min_duration(self, dur: float):
+        return guilded.Embed(
+            title="Duration Too Short",
+            description=f"The duration should be longer than {format_timespan(dur)}!",
+            color=guilded.Color.red(),
+        ).set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    def max_duration(self, dur: float):
+        return guilded.Embed(
+            title="Duration Too Long",
+            description=f"The duration should be shorter than {format_timespan(dur)}!",
+            color=guilded.Color.red(),
+        ).set_footer(
             text=f"{self.bot_name} v{bot.version}",
             # icon_url=IMAGE_BOT_LOGO,
         )
