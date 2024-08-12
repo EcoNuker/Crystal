@@ -804,6 +804,20 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
         if len(higher_member) == 2:
@@ -898,6 +912,20 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
         if len(higher_member) == 2:
@@ -978,6 +1006,20 @@ class moderation(commands.Cog):
                 private=ctx.message.private,
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         # unban member
         result = await unban_user(ctx.server, user)
@@ -1053,6 +1095,20 @@ class moderation(commands.Cog):
                 private=ctx.message.private,
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         if await is_banned(ctx.server, user):
             embed = embeds.Embeds.embed(
@@ -1188,6 +1244,20 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         if await is_muted(ctx.server, user):
             embed = embeds.Embeds.embed(
@@ -1280,6 +1350,20 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+        if user.id == ctx.author.id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.moderate_self, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_SELF")
+            if not bypass:
+                return
+        if user.id == self.bot.user_id:
+            msg = await ctx.reply(
+                embed=embeds.Embeds.whyme, private=ctx.message.private
+            )
+            bypass = await tools.check_bypass(ctx, msg, bypassed="MODERATE_THE_BOT")
+            if not bypass:
+                return
 
         await unmute_user(ctx.server, user, in_server=isinstance(user, guilded.Member))
 

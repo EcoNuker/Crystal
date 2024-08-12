@@ -29,6 +29,16 @@ class EmbedsData:
             description="This command can only be run in servers!",
             color=guilded.Color.red(),
         )
+        self._whyme = guilded.Embed(
+            title="WHY ME :(",
+            description="hey pls dont do that to me...",
+            color=guilded.Color.red(),
+        )
+        self._moderate_self = guilded.Embed(
+            title="Invalid User",
+            description="You can't moderate yourself.",
+            color=guilded.Color.red(),
+        )
         self._owner_only = guilded.Embed(
             title="Owner Only",
             description="This command can only be run as owner!",
@@ -38,6 +48,20 @@ class EmbedsData:
             title="You're Missing Permissions!",
             description=f"You need the `Manage Server` or `Manage Bots` permission.",
             color=guilded.Color.red(),
+        )
+
+    @property
+    def whyme(self):
+        return self._whyme.set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
+        )
+
+    @property
+    def moderate_self(self):
+        return self._moderate_self.set_footer(
+            text=f"{self.bot_name} v{bot.version}",
+            # icon_url=IMAGE_BOT_LOGO,
         )
 
     @property
