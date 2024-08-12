@@ -460,6 +460,19 @@ class moderation(commands.Cog):
                         await unmute_user(
                             server, member, in_server=isinstance(member, guilded.Member)
                         )
+                        if isinstance(
+                            member, guilded.User
+                        ):  # guilded.Member is a inheritor of guilded.User, therefore it will be caught here
+                            # This will filter out the ID only
+                            me = await server.getch_member(self.bot.user_id)
+                            custom_events.eventqueue.add_event(
+                                custom_events.ModeratorAction(
+                                    action="unmute",
+                                    moderator=me,
+                                    member=member,
+                                    reason=f"The duration of their tempmute has ended.",
+                                )
+                            )
                     except guilded.Forbidden as e:
                         custom_events.eventqueue.add_event(
                             custom_events.BotForbidden(
@@ -478,6 +491,17 @@ class moderation(commands.Cog):
                         except guilded.NotFound:
                             member = ban.user  # Deleted user?
                         await unban_user(server, member)
+                        if isinstance(member, guilded.User):
+                            # This will filter out the ID only
+                            me = await server.getch_member(self.bot.user_id)
+                            custom_events.eventqueue.add_event(
+                                custom_events.ModeratorAction(
+                                    action="unban",
+                                    moderator=me,
+                                    member=member,
+                                    reason=f"The duration of their tempban has ended.",
+                                )
+                            )
                     except guilded.Forbidden as e:
                         custom_events.eventqueue.add_event(
                             custom_events.BotForbidden(
@@ -519,6 +543,20 @@ class moderation(commands.Cog):
                     if mute.user == member.id:
                         try:
                             await mute_user(server, member, mute.endsAt)
+                            me = await server.getch_member(self.bot.user_id)
+                            custom_events.eventqueue.add_event(
+                                custom_events.ModeratorAction(
+                                    action="mute" if not mute.endsAt else "tempmute",
+                                    moderator=me,
+                                    member=member,
+                                    duration=(
+                                        round(mute.endsAt - time.time())
+                                        if mute.endsAt
+                                        else 0
+                                    ),
+                                    reason=f"User joined while still muted. (Premute, or rejoined while muted)",
+                                )
+                            )
                         except guilded.Forbidden as e:
                             custom_events.eventqueue.add_event(
                                 custom_events.BotForbidden(
@@ -540,11 +578,11 @@ class moderation(commands.Cog):
                                     server, member, check_ban=False
                                 )  # Therefore, they were unbanned, otherwise how did they join?
                                 # Assuming the on_ban_delete errored or didn't fire, or the bot was offline
+                                # Obviously they were unbanned manually, therefore don't fire ModeratorAction
                             else:  # They were prebanned, and didn't have a existing ban entry.
                                 await ban_user(
                                     server, member, ban.endsAt, reason=ban.reason
                                 )
-                                await server.fill_roles()
                                 me = await server.getch_member(self.bot.user_id)
                                 custom_events.eventqueue.add_event(
                                     custom_events.ModeratorAction(
@@ -1291,7 +1329,7 @@ class moderation(commands.Cog):
             )
         )
 
-    @commands.command(name="mute")  # TODO: duration to make a mute a tempmute
+    @commands.command(name="mute")
     async def mute(
         self,
         ctx: commands.Context,
@@ -1533,28 +1571,42 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        await unmute_user(ctx.server, user, in_server=isinstance(user, guilded.Member))
-
-        embed = embeds.Embeds.embed(
-            title=f"User Unmuted",
-            description=f"Successfully unmuted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
-            + (
-                "\n**Pre-Mute** - The user will no longer be muted when they join the server."
-                if not isinstance(user, guilded.Member)
-                else ""
-            ),
-            color=guilded.Color.green(),
+        result = await unmute_user(
+            ctx.server, user, in_server=isinstance(user, guilded.Member)
         )
-        await ctx.reply(embed=embed, private=ctx.message.private)
 
-        custom_events.eventqueue.add_event(
-            custom_events.ModeratorAction(
-                action="unmute" if isinstance(user, guilded.Member) else "unpremute",
-                member=user,
-                moderator=ctx.author,
-                reason=reason,
+        if result:
+
+            embed = embeds.Embeds.embed(
+                title=f"User Unmuted",
+                description=f"Successfully unmuted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                + (
+                    "\n**Pre-Mute** - The user will no longer be muted when they join the server."
+                    if not isinstance(user, guilded.Member)
+                    else ""
+                ),
+                color=guilded.Color.green(),
             )
-        )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+
+            custom_events.eventqueue.add_event(
+                custom_events.ModeratorAction(
+                    action=(
+                        "unmute" if isinstance(user, guilded.Member) else "unpremute"
+                    ),
+                    member=user,
+                    moderator=ctx.author,
+                    reason=reason,
+                )
+            )
+        else:
+            embed = embeds.Embeds.embed(
+                title="Not Muted",
+                description=f"This user isn't muted!",
+                color=guilded.Color.red(),
+            )
+            await ctx.reply(embed=embed, private=ctx.message.private)
+            return
 
 
 def setup(bot):

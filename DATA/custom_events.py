@@ -168,7 +168,7 @@ class ModeratorAction(CloudBaseEvent):
         self,
         action: str,
         moderator: guilded.Member,
-        member: guilded.Member | None = None,
+        member: guilded.Member | guilded.User | None = None,
         channel: guilded.ChatChannel | None = None,
         duration: int = 0,
         amount: int = 0,

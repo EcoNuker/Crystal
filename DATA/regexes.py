@@ -395,9 +395,7 @@ faig
 faigt
 fannyfucker
 fanyy
-fart
 fartknocker
-fat
 fatass
 fcuk
 fcuker

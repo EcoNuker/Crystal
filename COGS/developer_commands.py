@@ -13,23 +13,6 @@ class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="test")
-    async def test(
-        self,
-        ctx: commands.Context,
-        user: tools.UserConverter,
-        timespan: Greedy[tools.TimespanConverter] = [0],
-        *,
-        reason: str,
-    ):
-        user: guilded.Member | None | guilded.User
-        ts = 0
-        for times in timespan:
-            ts += times
-        if user is None:
-            user = ctx.author
-        await ctx.send(f"{user.mention} - {ts:,}s - {reason}")
-
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
     async def tab(self, ctx: commands.Context, user: tools.UserConverter):
         if not ctx.author.id in self.bot.owner_ids:
