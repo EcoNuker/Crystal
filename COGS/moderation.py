@@ -1179,7 +1179,7 @@ class moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
-    @commands.command(name="ban")
+    @commands.command(name="ban", aliases=["tempban"])
     async def ban(
         self,
         ctx: commands.Context,
@@ -1242,7 +1242,16 @@ class moderation(commands.Cog):
                 return
 
         if duration == 0:
-            pass
+            if ctx.invoked_with == "tempban":
+                msg = await ctx.reply(
+                    embed=embeds.Embeds.missing_argument("duration"),
+                    private=ctx.message.private,
+                )
+                bypass = await tools.check_bypass(
+                    ctx, msg, bypassed="ALIAS_MANDATORY_ARGUMENT"
+                )
+                if not bypass:
+                    return
         elif duration < 60:
             embed = embeds.Embeds.min_duration(60)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
@@ -1314,6 +1323,7 @@ class moderation(commands.Cog):
                     if isinstance(user, guilded.Member)
                     else f"The user was pre-banned for {format_timespan(duration)} and will be automatically unbanned when the time is up, regardless of if the user joined the server."
                 ),
+                inline=False,
             )
         await ctx.reply(embed=embed, private=ctx.message.private)
 
@@ -1333,7 +1343,7 @@ class moderation(commands.Cog):
             )
         )
 
-    @commands.command(name="mute")
+    @commands.command(name="mute", aliases=["tempmute"])
     async def mute(
         self,
         ctx: commands.Context,
@@ -1366,7 +1376,16 @@ class moderation(commands.Cog):
                 return
 
         if duration == 0:
-            pass
+            if ctx.invoked_with == "tempmute":
+                msg = await ctx.reply(
+                    embed=embeds.Embeds.missing_argument("duration"),
+                    private=ctx.message.private,
+                )
+                bypass = await tools.check_bypass(
+                    ctx, msg, bypassed="ALIAS_MANDATORY_ARGUMENT"
+                )
+                if not bypass:
+                    return
         elif duration < 60:
             embed = embeds.Embeds.min_duration(60)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
@@ -1508,6 +1527,7 @@ class moderation(commands.Cog):
                     if isinstance(user, guilded.Member)
                     else f"The user was pre-muted for {format_timespan(duration)} and will be automatically unmuted when the time is up, regardless of if the user joined the server."
                 ),
+                inline=False,
             )
         await ctx.reply(embed=embed, private=ctx.message.private)
 
