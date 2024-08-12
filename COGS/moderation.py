@@ -1334,10 +1334,11 @@ class moderation(commands.Cog):
             embed.add_field(
                 name="Change Duration",
                 value=(
-                    f"Would you like to add change the duration of this ban so that they're banned for another {format_timespan(duration)}?"
+                    f"Would you like to add change the duration of this ban so that they're banned for {format_timespan(duration)} starting now?"
                     if duration >= 1
                     else "Would you like to make this ban indefinite?"
                 ),
+                inline=False,
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             response = await tools.get_yes_no(ctx, msg)
@@ -1620,10 +1621,11 @@ class moderation(commands.Cog):
             embed.add_field(
                 name="Change Duration",
                 value=(
-                    f"Would you like to add change the duration of this mute so that they're muted for another {format_timespan(duration)}?"
+                    f"Would you like to add change the duration of this mute so that they're muted for {format_timespan(duration)} starting now?"
                     if duration >= 1
                     else "Would you like to make this mute indefinite?"
                 ),
+                inline=False,
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             response = await tools.get_yes_no(ctx, msg)
