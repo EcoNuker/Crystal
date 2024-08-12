@@ -1199,13 +1199,15 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        if duration < 60:
+        if duration == 0:
+            pass
+        elif duration < 60:
             embed = embeds.Embeds.min_duration(60)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
             if not bypass:
                 return
-        if duration > 94608000:  # 3 years
+        elif duration > 94608000:  # 3 years
             embed = embeds.Embeds.max_duration(94608000)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
@@ -1285,6 +1287,7 @@ class moderation(commands.Cog):
                 member=user,
                 moderator=ctx.author,
                 reason=reason,
+                duration=duration if duration > 1 else 0,
             )
         )
 
@@ -1320,13 +1323,15 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        if duration < 60:
+        if duration == 0:
+            pass
+        elif duration < 60:
             embed = embeds.Embeds.min_duration(60)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
             if not bypass:
                 return
-        if duration > 94608000:  # 3 years
+        elif duration > 94608000:  # 3 years
             embed = embeds.Embeds.max_duration(94608000)
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
             bypass = await tools.check_bypass(ctx, msg, bypassed="DURATION")
@@ -1478,6 +1483,7 @@ class moderation(commands.Cog):
                 member=user,
                 moderator=ctx.author,
                 reason=reason,
+                duration=duration if duration > 1 else 0,
             )
         )
 

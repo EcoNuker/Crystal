@@ -1,6 +1,8 @@
 import guilded
 import string, secrets, time
 
+from humanfriendly import format_timespan
+
 from DATA import tools
 
 from typing import List
@@ -31,28 +33,10 @@ def action_map(
         "scan": "{amount} message{checkS} {checkWERE} scanned using automod",
     }
 
-    def format_duration(seconds: int) -> str:
-        # Format the duration into days, hours, minutes, and seconds
-        days, seconds = divmod(seconds, 86400)
-        hours, seconds = divmod(seconds, 3600)
-        minutes, seconds = divmod(seconds, 60)
-
-        parts = []
-        if days > 0:
-            parts.append(f"{days}d")
-        if hours > 0:
-            parts.append(f"{hours}h")
-        if minutes > 0:
-            parts.append(f"{minutes}m")
-        if seconds > 0 or not parts:
-            parts.append(f"{seconds}s")
-
-        return " ".join(parts)
-
     res = actions.get(action, "UNKNOWN")
 
     if "{time}" in res and duration is not None:
-        formatted_duration = format_duration(duration)
+        formatted_duration = format_timespan(duration)
         res = res.replace("{time}", formatted_duration)
     elif "{time}" in res:
         res = res.replace("{time}", "an unknown duration")
