@@ -881,7 +881,7 @@ class moderation(commands.Cog):
             )
         )
 
-    @commands.command(name="warn")
+    @commands.command(name="note")
     async def note(
         self, ctx: commands.Context, user: tools.UserConverter, *, note: str
     ):

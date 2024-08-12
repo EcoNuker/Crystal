@@ -1520,6 +1520,15 @@ class Logging(commands.Cog):
                 except Exception as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
+        if server_data.logging.moderatorAction:
+            for channel_id in server_data.logging.moderatorAction:
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except Exception as e:
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
+
         if server_data.logging.allMemberEvents:
             for channel_id in server_data.logging.allMemberEvents:
                 try:
@@ -1591,6 +1600,15 @@ class Logging(commands.Cog):
         # Push the event to the listening channels
         if server_data.logging.moderatorAction:
             for channel_id in server_data.logging.moderatorAction:
+                try:
+                    await self.bot.get_partial_messageable(channel_id).send(
+                        embed=embed, silent=True
+                    )
+                except Exception as e:
+                    await delete_log(self.bot, event.server_id, channel_id, error=e)
+
+        if server_data.logging.membershipChange:
+            for channel_id in server_data.logging.membershipChange:
                 try:
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
