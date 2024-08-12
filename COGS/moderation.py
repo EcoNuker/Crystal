@@ -14,9 +14,11 @@ import documents
 
 async def is_banned(
     server: guilded.Server, member: guilded.Member | guilded.User
-) -> bool:
+) -> bool | documents.serverBan | guilded.MemberBan:
     """
     Whether a user is banned or not. Checks server bans and database.
+
+    Will return True or serverBan if the db entry exists, or a guilded.MemberBan object if the ban was found.
 
     Can raise Forbidden
     """
@@ -27,15 +29,15 @@ async def is_banned(
         server_data = documents.Server(serverId=server.id)
         await server_data.save()
 
-    bans = [ban for ban in server_data.data.bans if ban.user == member.id]
-    bans = bans[0] if len(bans) > 0 else None
+    ban = [ban for ban in server_data.data.bans if ban.user == member.id]
+    ban = ban[0] if len(ban) > 0 else None
 
-    if bans:
-        return True
+    if ban:
+        return ban
     else:
         try:
             ban = await server.fetch_ban(member)
-            return True
+            return ban
         except guilded.NotFound:
             return False
     return False
@@ -43,9 +45,11 @@ async def is_banned(
 
 async def is_muted(
     server: guilded.Server, member: guilded.Member | guilded.User
-) -> bool:
+) -> bool | documents.serverMute:
     """
     Whether a user is muted or not. Will check their roles and database.
+
+    Will return True or serverMute if db exists.
 
     Can raise Forbidden
     """
@@ -60,7 +64,7 @@ async def is_muted(
     mute = mute[0] if len(mute) > 0 else None
 
     if mute:
-        return True
+        return mute
 
     mute_role = None
 
@@ -233,6 +237,7 @@ async def mute_user(
     member: guilded.Member | guilded.User,
     endsAt: int = None,
     in_server: bool = True,
+    override_role: int = None,
 ) -> bool:
     """
     False if mute failed, otherwise True
@@ -247,11 +252,17 @@ async def mute_user(
         await server_data.save()
 
     try:
-        mute_role = (
-            await server.getch_role(server_data.data.settings.roles.mute)
-            if server_data.data.settings.roles.mute
-            else None
-        )
+        if override_role:
+            try:
+                mute_role = await server.getch_role(override_role)
+            except (guilded.NotFound, guilded.BadRequest):
+                override_role = None
+        if not override_role:
+            mute_role = (
+                await server.getch_role(server_data.data.settings.roles.mute)
+                if server_data.data.settings.roles.mute
+                else None
+            )
     except guilded.Forbidden as e:
         custom_events.eventqueue.add_event(
             custom_events.BotForbidden(
@@ -548,7 +559,7 @@ class moderation(commands.Cog):
                 server_data.data.mutes = [
                     mute for mute in server_data.data.mutes if mute.user != member.id
                 ]
-                bans = server_data.data.bans
+                bans = server_data.data.bans.copy()
                 server_data.data.bans = [
                     ban for ban in server_data.data.bans if ban.user != member.id
                 ]
@@ -568,7 +579,7 @@ class moderation(commands.Cog):
                                         if mute.endsAt
                                         else 0
                                     ),
-                                    reason=f"User joined while still muted. (Premute, or rejoined while muted)",
+                                    reason=f"User was still muted. (Mute role was missing)",
                                 )
                             )
                         except guilded.Forbidden as e:
@@ -632,7 +643,7 @@ class moderation(commands.Cog):
         server_data.data.mutes = [
             mute for mute in server_data.data.mutes if mute.user != event.member.id
         ]
-        bans = server_data.data.bans
+        bans = server_data.data.bans.copy()
         server_data.data.bans = [
             ban for ban in server_data.data.bans if ban.user != event.member.id
         ]
@@ -641,6 +652,18 @@ class moderation(commands.Cog):
             if mute.user == event.member.id:
                 try:
                     await mute_user(event.server, event.member, mute.endsAt)
+                    me = await event.server.getch_member(self.bot.user_id)
+                    custom_events.eventqueue.add_event(
+                        custom_events.ModeratorAction(
+                            action="mute" if not mute.endsAt else "tempmute",
+                            moderator=me,
+                            member=event.member,
+                            duration=(
+                                round(mute.endsAt - time.time()) if mute.endsAt else 0
+                            ),
+                            reason=f"User was still muted while they joined the server.",
+                        )
+                    )
                 except guilded.Forbidden as e:
                     custom_events.eventqueue.add_event(
                         custom_events.BotForbidden(
@@ -665,6 +688,15 @@ class moderation(commands.Cog):
                     else:  # They were prebanned, and didn't have a existing ban entry.
                         await ban_user(
                             event.server, event.member, ban.endsAt, reason=ban.reason
+                        )
+                        me = await event.server.getch_member(self.bot.user_id)
+                        custom_events.eventqueue.add_event(
+                            custom_events.ModeratorAction(
+                                action="ban",
+                                member=event.member,
+                                moderator=me,
+                                reason="The user was prebanned. You may check their history for more information.",
+                            )
                         )
                 except guilded.Forbidden as e:
                     custom_events.eventqueue.add_event(
@@ -1275,13 +1307,104 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        if await is_banned(ctx.server, user):
+        alr_banned = await is_banned(ctx.server, user)
+        if isinstance(alr_banned, documents.serverBan):
+            if (
+                alr_banned.endsAt and round(alr_banned.endsAt - time.time()) < 3
+            ):  # Less than 3 seconds left in ban.
+                alr_banned = False
+        if alr_banned:
             embed = embeds.Embeds.embed(
                 title="Already Banned",
-                description=f"This user is already banned!",  # TODO: overwrite existing ban option such as duration etc
+                description=f"This user is already banned"
+                + (
+                    " indefinitely."
+                    if (not isinstance(alr_banned, documents.serverBan))
+                    or not alr_banned.endsAt
+                    else f" for {format_timespan(round(alr_banned.endsAt-time.time()))}."
+                ),  # TODO: option to overwrite duration etc.
                 color=guilded.Color.red(),
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            if duration < 1 and (
+                (not isinstance(alr_banned, documents.serverBan))
+                or not alr_banned.endsAt
+            ):  # no duration and already indefinite
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            embed.add_field(
+                name="Change Duration",
+                value=(
+                    f"Would you like to add change the duration of this ban so that they're banned for another {format_timespan(duration)}?"
+                    if duration >= 1
+                    else "Would you like to make this ban indefinite?"
+                ),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            response = await tools.get_yes_no(ctx, msg)
+            if not response:
+                return
+            else:
+                server_data = await documents.Server.find_one(
+                    documents.Server.serverId == ctx.server.id
+                )
+                if not server_data:
+                    server_data = documents.Server(serverId=ctx.server.id)
+                    await server_data.save()
+                ban_copy = server_data.data.bans.copy()
+                server_data.data.bans = [
+                    ban for ban in server_data.data.bans if ban.user != user.id
+                ]
+                await server_data.save()
+                try:
+                    await ban_user(
+                        ctx.server,
+                        user,
+                        endsAt=duration if duration >= 1 else None,
+                        in_server=isinstance(user, guilded.Member),
+                    )
+                except:
+                    server_data.data.bans = ban_copy
+                    await server_data.save()
+                    raise
+                embed = embeds.Embeds.embed(
+                    title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Banned",
+                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                    + (
+                        "\n**Pre-Ban** - The user will be banned if they join the server."
+                        if not isinstance(user, guilded.Member)
+                        else ""
+                    ),
+                    color=guilded.Color.green(),
+                )
+                if duration >= 1:
+                    embed.add_field(
+                        name="Tempban",
+                        value=(
+                            f"The user was banned for {format_timespan(duration)}, and will be automatically unbanned."
+                            if isinstance(user, guilded.Member)
+                            else f"The user was pre-banned for {format_timespan(duration)} and will be automatically unbanned when the time is up, regardless of if the user joined the server."
+                        ),
+                        inline=False,
+                    )
+                await msg.edit(embed=embed)
+
+                custom_events.eventqueue.add_event(
+                    custom_events.ModeratorAction(
+                        action=(
+                            ("ban" if isinstance(user, guilded.Member) else "preban")
+                            if duration < 1
+                            else (
+                                "tempban"
+                                if isinstance(user, guilded.Member)
+                                else "pretempban"
+                            )
+                        ),
+                        member=user,
+                        moderator=ctx.author,
+                        reason=reason,
+                        duration=duration if duration > 1 else 0,
+                    )
+                )
             return
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
@@ -1471,13 +1594,105 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        if await is_muted(ctx.server, user):
+        alr_muted = await is_muted(ctx.server, user)
+        if isinstance(alr_muted, documents.serverMute):
+            if (
+                alr_muted.endsAt and round(alr_muted.endsAt - time.time()) < 3
+            ):  # Less than 3 seconds left in mute.
+                alr_muted = False
+        if alr_muted:
             embed = embeds.Embeds.embed(
                 title="Already Muted",
-                description=f"This user is already muted.",  # TODO: option to overwrite duration etc.
+                description=f"This user is already muted"
+                + (
+                    " indefinitely."
+                    if (not isinstance(alr_muted, documents.serverMute))
+                    or not alr_muted.endsAt
+                    else f" for {format_timespan(round(alr_muted.endsAt-time.time()))}."
+                ),  # TODO: option to overwrite duration etc.
                 color=guilded.Color.red(),
             )
-            await ctx.reply(embed=embed, private=ctx.message.private)
+            if duration < 1 and (
+                (not isinstance(alr_muted, documents.serverMute))
+                or not alr_muted.endsAt
+            ):  # no duration and already indefinite
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+            embed.add_field(
+                name="Change Duration",
+                value=(
+                    f"Would you like to add change the duration of this mute so that they're muted for another {format_timespan(duration)}?"
+                    if duration >= 1
+                    else "Would you like to make this mute indefinite?"
+                ),
+            )
+            msg = await ctx.reply(embed=embed, private=ctx.message.private)
+            response = await tools.get_yes_no(ctx, msg)
+            if not response:
+                return
+            else:
+                mute_copy = server_data.data.mutes.copy()
+                server_data.data.mutes = [
+                    mute for mute in server_data.data.mutes if mute.user != user.id
+                ]
+                await server_data.save()
+                try:
+                    if isinstance(alr_muted, documents.serverMute):
+                        await mute_user(
+                            ctx.server,
+                            user,
+                            endsAt=duration if duration >= 1 else None,
+                            in_server=isinstance(user, guilded.Member),
+                            override_role=alr_muted.muteRole,
+                        )
+                    else:
+                        await mute_user(
+                            ctx.server,
+                            user,
+                            endsAt=duration if duration >= 1 else None,
+                            in_server=isinstance(user, guilded.Member),
+                        )
+                except:
+                    server_data.data.mutes = mute_copy
+                    await server_data.save()
+                    raise
+                embed = embeds.Embeds.embed(
+                    title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Muted",
+                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                    + (
+                        "\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
+                        if not isinstance(user, guilded.Member)
+                        else ""
+                    ),
+                    color=guilded.Color.green(),
+                )
+                if duration >= 1:
+                    embed.add_field(
+                        name="Tempmute",
+                        value=(
+                            f"The user was muted for {format_timespan(duration)}, and will be automatically unmuted."
+                            if isinstance(user, guilded.Member)
+                            else f"The user was pre-muted for {format_timespan(duration)} and will be automatically unmuted when the time is up, regardless of if the user joined the server."
+                        ),
+                        inline=False,
+                    )
+                await msg.edit(embed=embed)
+                custom_events.eventqueue.add_event(
+                    custom_events.ModeratorAction(
+                        action=(
+                            ("mute" if isinstance(user, guilded.Member) else "premute")
+                            if duration < 1
+                            else (
+                                "tempmute"
+                                if isinstance(user, guilded.Member)
+                                else "pretempmute"
+                            )
+                        ),
+                        member=user,
+                        moderator=ctx.author,
+                        reason=reason,
+                        duration=duration if duration > 1 else 0,
+                    )
+                )
             return
 
         if isinstance(user, guilded.Member):
