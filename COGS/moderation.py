@@ -968,6 +968,16 @@ class moderation(commands.Cog):
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
+        if user.bot:
+            await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="Invalid User",
+                    description="You can't unban a bot, as they can't be banned!",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+            return
 
         # unban member
         result = await unban_user(ctx.server, user)
@@ -1031,6 +1041,16 @@ class moderation(commands.Cog):
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
+            )
+            return
+        if user.bot:
+            await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="Invalid User",
+                    description="You can't ban a bot!",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
             )
             return
 
