@@ -167,6 +167,7 @@ async def unmute_user(
         new_mutes = server_data.data.mutes.copy()
 
     if in_server:
+        croles = member._role_ids
         try:
             custom_events.eventqueue.add_overwrites(
                 {
@@ -209,6 +210,9 @@ async def unmute_user(
                 )
             )
             return False
+        if member._role_ids == croles:
+            # No roles were removed
+            return False if not mute else True
     server_data.data.mutes = new_mutes
     await server_data.save()
     return True
