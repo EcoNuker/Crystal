@@ -1183,11 +1183,17 @@ class Logging(commands.Cog):
         embed.add_field(
             name="Account Age",
             value=(
-                format_timespan(datetime.datetime.now() - event.member.created_at)
+                format_timespan(
+                    datetime.datetime.now(datetime.timezone.utc)
+                    - event.member.created_at
+                )
                 + (
                     "\n:warning: *New account!*"
                     if event.member.created_at
-                    > (datetime.datetime.now() - datetime.timedelta(days=30))
+                    > (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - datetime.timedelta(days=30)
+                    )
                     else ""
                 )
             ),
@@ -1256,11 +1262,16 @@ class Logging(commands.Cog):
         if user.created_at:
             embed.add_field(
                 name="Account Age",
-                value=format_timespan(datetime.datetime.now() - user.created_at)
+                value=format_timespan(
+                    datetime.datetime.now(datetime.timezone.utc) - user.created_at
+                )
                 + (
                     "\n:warning: *New account!*"
                     if user.created_at
-                    > (datetime.datetime.now() - datetime.timedelta(days=30))
+                    > (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - datetime.timedelta(days=30)
+                    )
                     else ""
                 ),
                 inline=False,
@@ -1484,13 +1495,16 @@ class Logging(commands.Cog):
             embed.add_field(
                 name="Account created",
                 value=format_timespan(
-                    datetime.datetime.now()
+                    datetime.datetime.now(datetime.timezone.utc)
                     - (event.ban.user.created_at or event.member.created_at)
                 )
                 + (
                     "\n:warning: *New account!*"
                     if event.ban.user.created_at
-                    > (datetime.datetime.now() - datetime.timedelta(days=30))
+                    > (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - datetime.timedelta(days=30)
+                    )
                     else ""
                 ),
                 inline=False,
@@ -1560,11 +1574,16 @@ class Logging(commands.Cog):
         if user.created_at:  # Add the account's creation date if it exists
             embed.add_field(
                 name="Account created",
-                value=format_timespan(datetime.datetime.now() - user.created_at)
+                value=format_timespan(
+                    datetime.datetime.now(datetime.timezone.utc) - user.created_at
+                )
                 + (
                     "\n:warning: *New account!*"
                     if user.created_at
-                    > (datetime.datetime.now() - datetime.timedelta(days=30))
+                    > (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - datetime.timedelta(days=30)
+                    )
                     else ""
                 ),
             )
