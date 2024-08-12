@@ -900,14 +900,22 @@ class moderation(commands.Cog):
         if result:
             embed = embeds.Embeds.embed(
                 title="User Unbanned",
-                description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+                description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                + (
+                    "\n**Pre-Ban** - The user will no longer be banned when they join the server."
+                    if not isinstance(user, guilded.Member)
+                    else ""
+                ),
                 color=guilded.Color.green(),
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
             custom_events.eventqueue.add_event(
                 custom_events.ModeratorAction(
-                    action="unban", member=user, moderator=ctx.author, reason=reason
+                    action="unban" if isinstance(user, guilded.Member) else "unpreban",
+                    member=user,
+                    moderator=ctx.author,
+                    reason=reason,
                 )
             )
         else:
@@ -995,7 +1003,7 @@ class moderation(commands.Cog):
             title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Banned",
             description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
             + (
-                "\n**Pre-Ban** - The user will be banned if they join, as I cannot ban someone not in the server."
+                "\n**Pre-Ban** - The user will be banned if they join the server."
                 if not isinstance(user, guilded.Member)
                 else ""
             ),
@@ -1126,11 +1134,11 @@ class moderation(commands.Cog):
             await mute_user(ctx.server, user, endsAt=None, in_server=False)
 
         embed = embeds.Embeds.embed(
-            title="User Muted",
-            description=f"Successfully muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Muted",
+            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
             + (
-                "\nThe user isn't in the server, but will be muted if they join during their mute duration."
-                if not hasattr(user, "server")
+                "\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
+                if not isinstance(user, guilded.Member)
                 else ""
             ),
             color=guilded.Color.green(),
@@ -1139,7 +1147,10 @@ class moderation(commands.Cog):
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
-                action="mute", member=user, moderator=ctx.author, reason=reason
+                action="mute" if isinstance(user, guilded.Member) else "premute",
+                member=user,
+                moderator=ctx.author,
+                reason=reason,
             )
         )
 
@@ -1178,11 +1189,11 @@ class moderation(commands.Cog):
         await unmute_user(ctx.server, user, in_server=isinstance(user, guilded.Member))
 
         embed = embeds.Embeds.embed(
-            title="User Unmuted",
+            title=f"User Unmuted",
             description=f"Successfully unmuted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
             + (
-                "\nThe user isn't in the server, but will no longer be muted if they join."
-                if not hasattr(user, "server")
+                "\n**Pre-Mute** - The user will no longer be muted when they join the server."
+                if not isinstance(user, guilded.Member)
                 else ""
             ),
             color=guilded.Color.green(),
@@ -1191,7 +1202,10 @@ class moderation(commands.Cog):
 
         custom_events.eventqueue.add_event(
             custom_events.ModeratorAction(
-                action="unmute", member=user, moderator=ctx.author, reason=reason
+                action="unmute" if isinstance(user, guilded.Member) else "unpremute",
+                member=user,
+                moderator=ctx.author,
+                reason=reason,
             )
         )
 
