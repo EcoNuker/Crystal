@@ -1360,7 +1360,7 @@ class moderation(commands.Cog):
                     await ban_user(
                         ctx.server,
                         user,
-                        endsAt=duration if duration >= 1 else None,
+                        endsAt=round(duration + time.time()) if duration >= 1 else None,
                         in_server=isinstance(user, guilded.Member),
                     )
                 except:
@@ -1642,7 +1642,9 @@ class moderation(commands.Cog):
                         await mute_user(
                             ctx.server,
                             user,
-                            endsAt=duration if duration >= 1 else None,
+                            endsAt=(
+                                round(duration + time.time()) if duration >= 1 else None
+                            ),
                             in_server=isinstance(user, guilded.Member),
                             override_role=alr_muted.muteRole,
                         )
@@ -1650,7 +1652,9 @@ class moderation(commands.Cog):
                         await mute_user(
                             ctx.server,
                             user,
-                            endsAt=duration if duration >= 1 else None,
+                            endsAt=(
+                                round(duration + time.time()) if duration >= 1 else None
+                            ),
                             in_server=isinstance(user, guilded.Member),
                         )
                 except:
