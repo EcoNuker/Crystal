@@ -22,7 +22,7 @@ class developer(commands.Cog):
         *,
         reason: str,
     ):
-        user: str | guilded.Member | None | guilded.User
+        user: guilded.Member | None | guilded.User
         ts = 0
         for times in timespan:
             ts += times
@@ -31,7 +31,7 @@ class developer(commands.Cog):
         await ctx.send(f"{user.mention} - {ts:,}s - {reason}")
 
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
-    async def tab(self, ctx: commands.Context, user: str = None):
+    async def tab(self, ctx: commands.Context, user: tools.UserConverter):
         if not ctx.author.id in self.bot.owner_ids:
             return
 
@@ -44,19 +44,8 @@ class developer(commands.Cog):
             return
 
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None | guilded.User
+        user: guilded.Member | None | guilded.User
 
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await self.bot.getch_user(user_mentions[-1])
-            except guilded.NotFound:
-                user = None
-        else:
-            try:
-                user = await self.bot.getch_user(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                user = None
         if user is None:
             user = ctx.author
 

@@ -58,13 +58,12 @@ class history(commands.Cog):
             await ctx.server.fill_roles()
 
     @history.command(name="clear", aliases=[])
-    async def _clear(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def _clear(
+        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
         reason: str | None
-
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
 
         # check permissions
         if ctx.server is None:
@@ -84,38 +83,11 @@ class history(commands.Cog):
             if not bypass:
                 return
 
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                try:
-                    user = await self.bot.getch_user(user_mentions[-1])
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-            except guilded.BadRequest:
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
 
         banned = await is_banned(ctx.server, user)
         muted = await is_muted(ctx.server, user)
@@ -338,9 +310,11 @@ class history(commands.Cog):
         await ctx.reply(embed=embed, private=ctx.message.private)
 
     @history.command(name="view", aliases=[])
-    async def _view(self, ctx: commands.Context, user: str, page_num: int = 1):
+    async def _view(
+        self, ctx: commands.Context, user: tools.UserConverter, page_num: int = 1
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
 
         # check permissions
         if ctx.server is None:
@@ -363,26 +337,6 @@ class history(commands.Cog):
             if not bypass:
                 return
 
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                try:
-                    user = await self.bot.getch_user(user_mentions[-1])
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-            except guilded.BadRequest:
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private

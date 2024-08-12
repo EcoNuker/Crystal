@@ -95,7 +95,7 @@ class settings(commands.Cog):
             await ctx.server.fill_roles()
 
     @role.command(name="mute")
-    async def _mute(self, ctx: commands.Context, *, role: str = None):
+    async def _mute(self, ctx: commands.Context, *, role: tools.RoleConverter):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -116,19 +116,8 @@ class settings(commands.Cog):
             )
 
         if role:
-            # get the role from message
-            role_mentions = ctx.message.raw_role_mentions
-            if len(role_mentions) > 0:
-                try:
-                    mute_role = await ctx.server.getch_role(role_mentions[-1])
-                except:
-                    mute_role = None
-            else:
-                try:
-                    mute_role = await ctx.server.getch_role(role)
-                except (guilded.NotFound, guilded.BadRequest):
-                    mute_role = None
-            if (mute_role is None) or (not mute_role.is_assignable):
+            mute_role = role
+            if not mute_role.is_assignable:
                 await ctx.reply(
                     embed=embeds.Embeds.invalid_role, private=ctx.message.private
                 )

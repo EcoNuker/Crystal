@@ -590,7 +590,9 @@ class Logging(commands.Cog):
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
     @logs.command(name="set")  # set channels
-    async def _set(self, ctx: commands.Context, channel: str, *, event_type: str):
+    async def _set(
+        self, ctx: commands.Context, channel: tools.ChannelConverter, *, event_type: str
+    ):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -609,31 +611,14 @@ class Logging(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: str | guilded.ChatChannel | None
+        channel: guilded.abc.ServerChannel | None
         event_type: str | None
 
-        # combine all args and get full arguments
-        event_type = channel + " " + event_type
-
-        # get the channel from message
-        channel_mentions = ctx.message.raw_channel_mentions
-        if len(channel_mentions) > 0:
-            channel = await ctx.server.fetch_channel(channel_mentions[-1])
-        else:
-            try:
-                channel = await ctx.server.fetch_channel(channel)
-            except (guilded.NotFound, guilded.BadRequest):
-                channel = None
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private
             )
             return
-
-        # remove channel display name or id from reason
-        event_type = tools.remove_first_prefix(
-            event_type, [channel.id, "<#" + channel.id + ">"]
-        ).strip()
 
         unhuman_readable_map = {v.lower(): k for k, v in human_readable_map.items()}
 
@@ -732,7 +717,7 @@ class Logging(commands.Cog):
             return
 
     @logs.command(name="delete")  # delete channels
-    async def _delete(self, ctx: commands.Context, channel: str):
+    async def _delete(self, ctx: commands.Context, channel: tools.ChannelConverter):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -751,18 +736,9 @@ class Logging(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: str | guilded.ChatChannel | None
+        channel: guilded.abc.ServerChannel | None
 
-        # get the channel from message
-        channel_mentions = ctx.message.raw_channel_mentions
-        if len(channel_mentions) > 0:
-            channel = await ctx.server.fetch_channel(channel_mentions[-1])
-        else:
-            try:
-                channel = await ctx.server.fetch_channel(channel)
-            except (guilded.NotFound, guilded.BadRequest):
-                channel = None
-        if channel is None:
+        if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private
             )

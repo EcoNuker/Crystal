@@ -699,9 +699,11 @@ class moderation(commands.Cog):
                     del self.cooldowns["purge"][channel_id]
 
     @commands.command(name="warn")
-    async def warn(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def warn(
+        self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -722,33 +724,11 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
         if len(higher_member) == 2:
@@ -813,9 +793,11 @@ class moderation(commands.Cog):
         )
 
     @commands.command(name="kick")
-    async def kick(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def kick(
+        self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -836,33 +818,11 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
 
         higher_member = await tools.check_higher_member(ctx.server, [ctx.author, user])
         if len(higher_member) == 2:
@@ -903,9 +863,11 @@ class moderation(commands.Cog):
         )
 
     @commands.command(name="unban")
-    async def unban(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def unban(
+        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -926,33 +888,11 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await self.bot.getch_user(user_mentions[-1])
-            except:
-                user = None
-        else:
-            try:
-                user = await self.bot.getch_user(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
 
         # unban member
         result = await unban_user(ctx.server, user)
@@ -980,9 +920,11 @@ class moderation(commands.Cog):
             return
 
     @commands.command(name="ban")  # TODO: duration to make a ban a tempban
-    async def ban(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def ban(
+        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -1003,41 +945,11 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                try:
-                    user = await self.bot.getch_user(user_mentions[-1])
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-            except guilded.BadRequest:
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
-
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
 
         if await is_banned(ctx.server, user):
             embed = embeds.Embeds.embed(
@@ -1101,9 +1013,11 @@ class moderation(commands.Cog):
         )
 
     @commands.command(name="mute")  # TODO: duration to make a mute a tempmute
-    async def mute(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def mute(
+        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -1166,29 +1080,6 @@ class moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                try:
-                    user = await self.bot.getch_user(user)
-                except guilded.NotFound:
-                    user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except guilded.NotFound:
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-            except guilded.BadRequest:
-                user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
@@ -1204,15 +1095,7 @@ class moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
-
         if isinstance(user, guilded.Member):
-
             higher_member = await tools.check_higher_member(
                 ctx.server, [ctx.author, user]
             )
@@ -1261,9 +1144,11 @@ class moderation(commands.Cog):
         )
 
     @commands.command(name="unmute")
-    async def unmute(self, ctx: commands.Context, user: str, *, reason: str = None):
+    async def unmute(
+        self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
+    ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: str | guilded.Member | None
+        user: guilded.User | guilded.Member | None
         reason: str | None
 
         # check permissions
@@ -1284,45 +1169,13 @@ class moderation(commands.Cog):
             if not bypass:
                 return
 
-        # combine all args and get full reason with username
-        reason = (user + " " + reason) if reason else ""
-
-        # get the user from message
-        user_mentions = ctx.message.raw_user_mentions
-        if len(user_mentions) > 0:
-            try:
-                user = await ctx.server.getch_member(user_mentions[-1])
-            except:
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
-        else:
-            try:
-                user = await ctx.server.getch_member(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                try:
-                    user = await self.bot.getch_user(user)
-                except (guilded.NotFound, guilded.BadRequest):
-                    user = None
         if user is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_user, private=ctx.message.private
             )
             return
 
-        # remove user display name or id from reason
-        reason = tools.remove_first_prefix(
-            reason, [user.id, "<@" + user.id + ">"]
-        ).strip()
-        if reason == "":
-            reason = None
-
-        if isinstance(user, guilded.Member):
-            # unmute member
-            await unmute_user(ctx.server, user)
-        else:
-            await mute_user(ctx.server, user, in_server=False)
+        await unmute_user(ctx.server, user, in_server=isinstance(user, guilded.Member))
 
         embed = embeds.Embeds.embed(
             title="User Unmuted",

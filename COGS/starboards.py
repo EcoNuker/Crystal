@@ -763,7 +763,7 @@ class starboard(commands.Cog):
             await ctx.server.fill_roles()
 
     @starboard.command(name="add", aliases=["create"])
-    async def _add(self, ctx: commands.Context, channel: str):
+    async def _add(self, ctx: commands.Context, channel: tools.ChannelConverter):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -782,17 +782,8 @@ class starboard(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: str | guilded.ChatChannel | None
+        channel: guilded.abc.ServerChannel | None
 
-        # get the channel from message
-        channel_mentions = ctx.message.raw_channel_mentions
-        if len(channel_mentions) > 0:
-            channel = await ctx.server.fetch_channel(channel_mentions[-1])
-        else:
-            try:
-                channel = await ctx.server.fetch_channel(channel)
-            except (guilded.NotFound, guilded.BadRequest):
-                channel = None
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private
@@ -807,7 +798,6 @@ class starboard(commands.Cog):
         custom_emote = await tools.get_yes_no(ctx, msg)
 
         if custom_emote:
-
             await msg.edit(
                 embed=embeds.Embeds.embed(
                     title="Custom Emote",
@@ -984,7 +974,7 @@ class starboard(commands.Cog):
         )
 
     @starboard.command(name="remove", aliases=["delete"])
-    async def _remove(self, ctx: commands.Context, channel: str):
+    async def _remove(self, ctx: commands.Context, channel: tools.ChannelConverter):
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1003,17 +993,8 @@ class starboard(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: str | guilded.ChatChannel | None
+        channel: guilded.abc.ServerChannel | None
 
-        # get the channel from message
-        channel_mentions = ctx.message.raw_channel_mentions
-        if len(channel_mentions) > 0:
-            channel = await ctx.server.fetch_channel(channel_mentions[-1])
-        else:
-            try:
-                channel = await ctx.server.fetch_channel(channel)
-            except (guilded.NotFound, guilded.BadRequest):
-                channel = None
         if channel is None:
             await ctx.reply(
                 embed=embeds.Embeds.invalid_channel, private=ctx.message.private

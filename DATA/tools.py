@@ -74,6 +74,33 @@ class ChannelConverter(Converter[Optional[guilded.abc.ServerChannel]]):
         return result
 
 
+class MemberConverter(Converter[Optional[guilded.Member]]):
+    """Converts to a :class:`~guilded.Member`.
+
+    This function will return None if not found.
+
+    The lookup strategy is as follows (in order):
+
+    1. Lookup by ID (`id`) (Handles mentions)
+    """
+
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> Optional[guilded.Member]:
+        if argument.startswith("<@") and argument.endswith(">"):
+            argument = argument.removeprefix("<@").removesuffix(">")
+        match = _GENERIC_ID_REGEX.match(argument)
+        result = None
+        user_id = None
+        if match:
+            user_id = match.group(1)
+            try:
+                result = await ctx.server.getch_member(user_id)
+            except (guilded.NotFound, guilded.BadRequest):
+                result = None
+        return result
+
+
 class UserConverter(Converter[Optional[Union[guilded.User, guilded.Member]]]):
     """Converts to a Union[:class:`~guilded.User`, :class:`~guilded.Member`].
 
