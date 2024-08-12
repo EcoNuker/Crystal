@@ -2,15 +2,108 @@ import string, secrets, asyncio
 
 import guilded
 from guilded.ext import commands
-from guilded.ext.commands.converters import Converter
+from guilded.ext.commands.converters import (
+    Converter,
+    _INT_ID_REGEX,
+    _GENERIC_ID_REGEX,
+    _UUID_REGEX,
+)
 
 from DATA.TIMESPAN_PARSER import parse as parse_timespan
 
-from typing import List
+from typing import List, Union, Optional
 
 from DATA import custom_events
 
 import documents
+
+
+class RoleConverter(Converter[Optional[guilded.Role]]):
+    """Converts to a :class:`~guilded.Role`.
+
+    This function will return None if not found.
+
+    The lookup strategy is as follows (in order):
+
+    1. Lookup by ID (`id`) (Handles mentions)
+    """
+
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> Optional[guilded.Role]:
+        if argument.startswith("<@&") and argument.endswith(">"):
+            argument = argument.removeprefix("<@&").removesuffix(">")
+        match = _INT_ID_REGEX.match(argument)
+        result = None
+        role_id = None
+        if match:
+            role_id = match.group(1)
+            try:
+                result = await ctx.server.getch_role(role_id)
+            except (guilded.NotFound, guilded.BadRequest):
+                pass
+
+        return result
+
+
+class ChannelConverter(Converter[Optional[guilded.abc.ServerChannel]]):
+    """Converts to a :class:`~guilded.abc.ServerChannel`.
+
+    This function will return None if not found.
+
+    The lookup strategy is as follows (in order):
+
+    1. Lookup by ID (`uuid`) (Handles mentions)
+    """
+
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> Optional[guilded.abc.ServerChannel]:
+        if argument.startswith("<#") and argument.endswith(">"):
+            argument = argument.removeprefix("<#").removesuffix(">")
+        match = _UUID_REGEX.match(argument)
+        result = None
+        channel_id = None
+        if match:
+            channel_id = match.group(1)
+            try:
+                result = await ctx.server.getch_channel(channel_id)
+            except (guilded.NotFound, guilded.BadRequest):
+                pass
+
+        return result
+
+
+class UserConverter(Converter[Optional[Union[guilded.User, guilded.Member]]]):
+    """Converts to a Union[:class:`~guilded.User`, :class:`~guilded.Member`].
+
+    This function will return None if not found.
+
+    The lookup strategy is as follows (in order):
+
+    1. Lookup by ID (`id`) (Handles mentions)
+    """
+
+    async def convert(
+        self, ctx: commands.Context, argument: str
+    ) -> Optional[Union[guilded.User, guilded.Member]]:
+        if argument.startswith("<@") and argument.endswith(">"):
+            argument = argument.removeprefix("<@").removesuffix(">")
+        match = _GENERIC_ID_REGEX.match(argument)
+        result = None
+        user_id = None
+        if match:
+            user_id = match.group(1)
+            try:
+                result = await ctx.server.getch_member(user_id)
+            except guilded.NotFound:
+                try:
+                    result = await ctx.bot.getch_user(user_id)
+                except (guilded.NotFound, guilded.BadRequest):
+                    result = None
+            except guilded.BadRequest:
+                result = None
+        return result
 
 
 class TimespanConverter(Converter[float]):

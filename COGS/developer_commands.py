@@ -17,7 +17,7 @@ class developer(commands.Cog):
     async def test(
         self,
         ctx: commands.Context,
-        user: str = None,
+        user: tools.UserConverter,
         timespan: Greedy[tools.TimespanConverter] = [0],
         *,
         reason: str,
@@ -26,20 +26,7 @@ class developer(commands.Cog):
         ts = 0
         for times in timespan:
             ts += times
-        user_mentions = ctx.message.raw_user_mentions
-        ouser = user
-        if len(user_mentions) > 0:
-            try:
-                user = await self.bot.getch_user(user_mentions[-1])
-            except guilded.NotFound:
-                user = None
-        else:
-            try:
-                user = await self.bot.getch_user(user)
-            except (guilded.NotFound, guilded.BadRequest):
-                user = None
         if user is None:
-            reason = ouser + " " + reason
             user = ctx.author
         await ctx.send(f"{user.mention} - {ts:,}s - {reason}")
 
