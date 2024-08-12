@@ -1,6 +1,6 @@
 import guilded
 import asyncio
-from guilded.ext import commands
+from guilded.ext import commands, tasks
 import time
 
 from DATA import tools
@@ -99,7 +99,7 @@ async def is_muted(
 
 async def unmute_user(
     server: guilded.Server,
-    member: guilded.Member | guilded.User,
+    member: guilded.Member | guilded.User | str,
     in_server: bool = True,
 ) -> bool:
     """
@@ -113,6 +113,13 @@ async def unmute_user(
     if not server_data:
         server_data = documents.Server(serverId=server.id)
         await server_data.save()
+
+    if type(member) == str:
+        server_data.data.mutes = [
+            mute for mute in server_data.data.mutes if mute.user != member
+        ]
+        await server_data.save()
+        return
 
     mute = [mute for mute in server_data.data.mutes if mute.user == member.id]
     mute = mute[0] if len(mute) > 0 else None
@@ -298,7 +305,9 @@ async def mute_user(
 
 
 async def unban_user(
-    server: guilded.Server, user: guilded.User, check_ban: bool = True
+    server: guilded.Server,
+    user: guilded.User | guilded.Member | str,
+    check_ban: bool = True,
 ) -> bool:
     """
     False if unban failed, otherwise True
@@ -311,6 +320,13 @@ async def unban_user(
     if not server_data:
         server_data = documents.Server(serverId=server.id)
         await server_data.save()
+
+    if type(user) == str:
+        server_data.data.bans = [
+            ban for ban in server_data.data.bans if ban.user != user
+        ]
+        await server_data.save()
+        return
 
     bans = [ban for ban in server_data.data.bans if ban.user == user.id]
     bans = bans[0] if len(bans) > 0 else None
@@ -414,6 +430,65 @@ class moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.cooldowns = {"purge": {}}
+        self.endsAt_check.start()
+
+    # Check endsAt for bans and mutes.
+    @tasks.loop(minutes=1)
+    async def endsAt_check(self):
+        for server in self.bot.servers:
+            server_data = await documents.Server.find_one(
+                documents.Server.serverId == server.id
+            )
+            if not server_data:
+                server_data = documents.Server(serverId=server.id)
+                await server_data.save()
+
+            mutes = server_data.data.mutes
+            bans = server_data.data.bans
+            for mute in mutes:
+                if mute.endsAt and mute.endsAt <= time.time():
+                    try:
+                        try:
+                            member = await server.getch_member(mute.user)
+                        except guilded.NotFound:
+                            try:
+                                member = await self.bot.getch_user(mute.user)
+                            except guilded.NotFound:
+                                member = mute.user  # Deleted user?
+                        await unmute_user(
+                            server, member, in_server=isinstance(member, guilded.Member)
+                        )
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction"],
+                                e,
+                                server,
+                                action="Remove Mute Role",
+                                note="Are my roles above the mute role? Please put my role at the top.",
+                            )
+                        )
+            for ban in bans:
+                if ban.endsAt and ban.endsAt <= time.time():
+                    try:
+                        try:
+                            member = await self.bot.getch_user(ban.user)
+                        except guilded.NotFound:
+                            member = ban.user  # Deleted user?
+                        await unban_user(server, member)
+                    except guilded.Forbidden as e:
+                        custom_events.eventqueue.add_event(
+                            custom_events.BotForbidden(
+                                ["ModeratorAction"],
+                                e,
+                                server,
+                                action="Unban User",
+                                note="Could not unban user.",
+                            )
+                        )
+
+    def cog_unload(self):
+        self.endsAt_check.cancel()
 
     # Remute/preban if they somehow joined a server while bot was offline. Should run every on_ready
     @commands.Cog.listener("on_ready")
