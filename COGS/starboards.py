@@ -37,7 +37,7 @@ class starboard(commands.Cog):
         matches = self.image_regex.findall(message_content)
         replacement_counter = 1
         for url in matches:
-            replacement = f"[IMAGE_{replacement_counter}]({url})"
+            replacement = f"[ATTACHMENT_{replacement_counter}]({url})"
             message_content = message_content.replace(f"![]({url})", replacement)
             replacement_counter += 1
 
