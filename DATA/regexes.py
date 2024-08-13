@@ -258,7 +258,7 @@ invites_exclusions = {
         "/EcoNuker",
         "/API-Official",
         "/api",
-        "/u/",
+        "/u",
     ],
     "discord": [],
     "revolt": ["/posts", "/tracker"],
