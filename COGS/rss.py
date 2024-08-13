@@ -77,8 +77,8 @@ class RSSFeedCog(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
-        feed_url: str
+        channel: guilded.abc.ServerChannel | None = channel
+        feed_url: str = feed_url
 
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
@@ -202,7 +202,7 @@ class RSSFeedCog(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
+        channel: guilded.abc.ServerChannel | None = channel
 
         if channel is None:
             await ctx.reply(

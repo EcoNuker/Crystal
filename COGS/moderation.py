@@ -864,8 +864,8 @@ class moderation(commands.Cog):
         self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.Member | None
-        reason: str | None
+        user: guilded.Member | None = user
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -972,8 +972,8 @@ class moderation(commands.Cog):
         self, ctx: commands.Context, user: tools.UserConverter, *, note: str
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
-        note: str
+        user: guilded.User | guilded.Member | None = user
+        note: str = note
 
         # check permissions
         if ctx.server is None:
@@ -1053,8 +1053,8 @@ class moderation(commands.Cog):
         self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.Member | None
-        reason: str | None
+        user: guilded.Member | None = user
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -1137,8 +1137,8 @@ class moderation(commands.Cog):
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
-        reason: str | None
+        user: guilded.User | guilded.Member | None = user
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -1231,9 +1231,9 @@ class moderation(commands.Cog):
         reason: str = None,
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
+        user: guilded.User | guilded.Member | None = user
         duration: float = sum(duration) if duration else 0
-        reason: str | None
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -1487,9 +1487,9 @@ class moderation(commands.Cog):
         reason: str = None,
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
+        user: guilded.User | guilded.Member | None = user
         duration: float = sum(duration) if duration else 0
-        reason: str | None
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -1785,8 +1785,8 @@ class moderation(commands.Cog):
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
-        reason: str | None
+        user: guilded.User | guilded.Member | None = user
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:

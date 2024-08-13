@@ -611,8 +611,8 @@ class Logging(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
-        event_type: str | None
+        channel: guilded.abc.ServerChannel | None = channel
+        event_type: str | None = event_type
 
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
@@ -736,7 +736,7 @@ class Logging(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
+        channel: guilded.abc.ServerChannel | None = channel
 
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(

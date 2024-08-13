@@ -27,7 +27,7 @@ class developer(commands.Cog):
             return
 
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.Member | None | guilded.User
+        user: guilded.Member | None | guilded.User = user
 
         if user is None:
             user = ctx.author

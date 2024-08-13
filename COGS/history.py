@@ -438,15 +438,33 @@ class history(commands.Cog):
         for page_number, page in enumerate(pages, start=1):
             embed = embeds.Embeds.embed(
                 title=f"{user.name}'s Case History (Page {page_number}/{len(pages)})",
-                description="\n".join(page).strip() + "\n**--------------**",
+                description="\n".join(page).strip() + "\n\n**--------------**",
                 color=guilded.Color.blue(),
             )
             if banned:
                 embed.add_field(
-                    name="Banned", value="This user is banned.", inline=False
+                    name="Banned",
+                    value="This user is banned"
+                    + (
+                        " indefinitely."
+                        if (not isinstance(banned, documents.serverBan))
+                        or not banned.endsAt
+                        else f" for {format_timespan(round(banned.endsAt-time.time()))}."
+                    ),
+                    inline=False,
                 )
             if muted:
-                embed.add_field(name="Muted", value="This user is muted.", inline=False)
+                embed.add_field(
+                    name="Muted",
+                    value="This user is muted"
+                    + (
+                        " indefinitely."
+                        if (not isinstance(muted, documents.serverMute))
+                        or not muted.endsAt
+                        else f" for {format_timespan(round(muted.endsAt-time.time()))}."
+                    ),
+                    inline=False,
+                )
             embeds_list.append(embed)
 
         # Send the first embed
