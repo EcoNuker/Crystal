@@ -149,6 +149,16 @@ def channel_is_messageable(channel: guilded.abc.ServerChannel):
     )
 
 
+def shorten(s: str, max_len: int, max_remove: int = 50, add_ellipsis: bool = True):
+    new_s = s[: (max_len if not add_ellipsis else max_len - 1)]
+    to_remove = new_s.split(" ")[-1]
+    if len(to_remove) <= max_remove:
+        new_s = new_s.removesuffix(" " + to_remove)
+    if add_ellipsis:
+        new_s += "…"
+    return new_s
+
+
 async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChannel):
     """
     Checks if channel is in use by either starboards, rss feeds, or logging.

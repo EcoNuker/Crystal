@@ -1058,19 +1058,23 @@ class Logging(commands.Cog):
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if isinstance(event, custom_events.ModeratorAction):
-            if event.action in [
-                "kick",
-                "ban",
-                "preban",
-                "pretempban",
-                "mute",
-                "premute",
-                "pretempmute",
-                "tempban",
-                "tempmute",
-                "warn",
-                "note",
-            ] and event.moderator.id != self.bot.user_id:
+            if (
+                event.action
+                in [
+                    "kick",
+                    "ban",
+                    "preban",
+                    "pretempban",
+                    "mute",
+                    "premute",
+                    "pretempmute",
+                    "tempban",
+                    "tempmute",
+                    "warn",
+                    "note",
+                ]
+                and event.moderator.id != self.bot.user_id
+            ):
                 server_data.members[event.member.id] = server_data.members.get(
                     event.member.id, serverMember(member=event.member.id)
                 )

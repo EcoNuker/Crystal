@@ -161,7 +161,9 @@ class starboard(commands.Cog):
                 event.message.content = await self.format_for_embed(
                     event.message.content
                 )
-                embed = embeds.Embeds.embed(description=event.message.content[:2048])
+                embed = embeds.Embeds.embed(
+                    description=tools.shorten(event.message.content, 2048)
+                )
                 embed.timestamp = event.message.created_at
                 embed.set_author(
                     name=mauthor.name,
@@ -431,7 +433,9 @@ class starboard(commands.Cog):
                 event.message.content = await self.format_for_embed(
                     event.message.content
                 )
-                embed = embeds.Embeds.embed(description=event.message.content[:2048])
+                embed = embeds.Embeds.embed(
+                    description=tools.shorten(event.message.content, 2048)
+                )
                 embed.timestamp = event.message.created_at
                 embed.set_author(
                     name=mauthor.name,
@@ -712,7 +716,9 @@ class starboard(commands.Cog):
             )
             image = await self.find_first_image_or_gif(event.after.content)
             event.after.content = await self.format_for_embed(event.after.content)
-            embed = embeds.Embeds.embed(description=event.after.content[:2048])
+            embed = embeds.Embeds.embed(
+                description=tools.shorten(event.after.content, 2048)
+            )
             embed.timestamp = event.after.created_at
             embed.set_author(
                 name=mauthor.name,
