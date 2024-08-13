@@ -16,6 +16,10 @@ class starboard(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.image_regex = re2.compile(r"!\[\]\((https:\/\/[^\s]+)\)")
+        self.emoji_regex = re2.compile(r"<:\w+:\d{6,8}>")
+        self.channel_mention_regex = re2.compile(
+            r"<#\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b>"
+        )
 
     async def find_first_image_or_gif(self, message_content):
         matches = self.image_regex.findall(message_content)
@@ -28,13 +32,46 @@ class starboard(commands.Cog):
                         return url
         return None
 
-    async def replace_all_links(self, message_content):
+    async def format_for_embed(self, message_content):
+        # Replace image links
         matches = self.image_regex.findall(message_content)
         replacement_counter = 1
         for url in matches:
             replacement = f"[IMAGE_{replacement_counter}]({url})"
             message_content = message_content.replace(f"![]({url})", replacement)
             replacement_counter += 1
+
+        # Replace custom emojis
+        def replace_emoji(match):
+            name = match.group(1)
+            return f":{name}:"
+
+        message_content = self.emoji_regex.sub(replace_emoji, message_content)
+
+        # Replace channel mentions
+        async def get_channel(channel_id):
+            try:
+                channel = await self.bot.getch_channel(
+                    int(channel_id.replace("-", ""), 16)
+                )
+                return channel
+            except:
+                return "unknown-channel"
+
+        async def replace_channel_mention(match):
+            channel_id = match.group(1)
+            channel = await get_channel(channel_id)
+            return (
+                tools.channel_mention(channel)
+                if isinstance(channel, guilded.abc.ServerChannel)
+                else "`#unknown-channel`"
+            )
+
+        # Replace mentions
+        message_content = await self.channel_mention_regex.sub(
+            replace_channel_mention, message_content
+        )
+
         return message_content
 
     # Listeners
@@ -114,10 +151,9 @@ class starboard(commands.Cog):
                     else (await self.bot.getch_user(event.message.author_id))
                 )
                 image = await self.find_first_image_or_gif(event.message.content)
-                if image:
-                    event.message.content = await self.replace_all_links(
-                        event.message.content
-                    )
+                event.message.content = await self.format_for_embed(
+                    event.message.content
+                )
                 embed = embeds.Embeds.embed(description=event.message.content[:2048])
                 embed.timestamp = event.message.created_at
                 embed.set_author(
@@ -385,10 +421,9 @@ class starboard(commands.Cog):
                     else (await self.bot.getch_user(event.message.author_id))
                 )
                 image = await self.find_first_image_or_gif(event.message.content)
-                if image:
-                    event.message.content = await self.replace_all_links(
-                        event.message.content
-                    )
+                event.message.content = await self.format_for_embed(
+                    event.message.content
+                )
                 embed = embeds.Embeds.embed(description=event.message.content[:2048])
                 embed.timestamp = event.message.created_at
                 embed.set_author(
@@ -669,8 +704,7 @@ class starboard(commands.Cog):
                 else (await self.bot.getch_user(event.after.author_id))
             )
             image = await self.find_first_image_or_gif(event.after.content)
-            if image:
-                event.after.content = await self.replace_all_links(event.after.content)
+            event.after.content = await self.format_for_embed(event.after.content)
             embed = embeds.Embeds.embed(description=event.after.content[:2048])
             embed.timestamp = event.after.created_at
             embed.set_author(
