@@ -1061,11 +1061,16 @@ class Logging(commands.Cog):
             if event.action in [
                 "kick",
                 "ban",
+                "preban",
+                "pretempban",
                 "mute",
+                "premute",
+                "pretempmute",
                 "tempban",
                 "tempmute",
                 "warn",
-            ]:
+                "note",
+            ] and event.moderator.id != self.bot.user_id:
                 server_data.members[event.member.id] = server_data.members.get(
                     event.member.id, serverMember(member=event.member.id)
                 )
