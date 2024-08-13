@@ -1,4 +1,4 @@
-(import guilded, asyncio, time
+import guilded, asyncio, time
 
 from guilded.ext import commands, tasks
 from guilded.ext.commands.converters import Greedy
@@ -569,7 +569,7 @@ class moderation(commands.Cog):
                         try:
                             if (await is_muted(server, member)):
                                 continue
-                            await mute_user(server, member, mute.endsAt, override_role=mute.role)
+                            await mute_user(server, member, mute.endsAt, override_role=mute.muteRole)
                             me = await server.getch_member(self.bot.user_id)
                             custom_events.eventqueue.add_event(
                                 custom_events.ModeratorAction(
