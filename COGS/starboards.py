@@ -113,6 +113,11 @@ class starboard(commands.Cog):
                     if event.message.author
                     else (await self.bot.getch_user(event.message.author_id))
                 )
+                image = await self.find_first_image_or_gif(event.message.content)
+                if image:
+                    event.message.content = await self.replace_all_links(
+                        event.message.content
+                    )
                 embed = embeds.Embeds.embed(description=event.message.content[:2048])
                 embed.timestamp = event.message.created_at
                 embed.set_author(
@@ -123,11 +128,7 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
-                image = await self.find_first_image_or_gif(event.message.content)
                 if image:
-                    event.message.content = await self.replace_all_links(
-                        event.message.content
-                    )
                     embed.set_image(url=image)
                 send = False
                 try:
@@ -383,6 +384,11 @@ class starboard(commands.Cog):
                     if event.message.author
                     else (await self.bot.getch_user(event.message.author_id))
                 )
+                image = await self.find_first_image_or_gif(event.message.content)
+                if image:
+                    event.message.content = await self.replace_all_links(
+                        event.message.content
+                    )
                 embed = embeds.Embeds.embed(description=event.message.content[:2048])
                 embed.timestamp = event.message.created_at
                 embed.set_author(
@@ -393,11 +399,7 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
-                image = await self.find_first_image_or_gif(event.message.content)
                 if image:
-                    event.message.content = await self.replace_all_links(
-                        event.message.content
-                    )
                     embed.set_image(url=image)
                 send = False
                 try:
@@ -666,6 +668,9 @@ class starboard(commands.Cog):
                 if event.after.author
                 else (await self.bot.getch_user(event.after.author_id))
             )
+            image = await self.find_first_image_or_gif(event.after.content)
+            if image:
+                event.after.content = await self.replace_all_links(event.after.content)
             embed = embeds.Embeds.embed(description=event.after.content[:2048])
             embed.timestamp = event.after.created_at
             embed.set_author(
@@ -674,9 +679,7 @@ class starboard(commands.Cog):
                     mauthor.avatar.url if mauthor.avatar else mauthor.default_avatar.url
                 ),
             )
-            image = await self.find_first_image_or_gif(event.after.content)
             if image:
-                event.after.content = await self.replace_all_links(event.after.content)
                 embed.set_image(url=image)
             send = False
             if msg.starboardMessageId:
@@ -765,6 +768,11 @@ class starboard(commands.Cog):
             embed.add_field(
                 name="View Starboards",
                 value=f"View existing starboards in the server.\n`{prefix}starboard view`",  # [page | optional]
+                inline=False,
+            )
+            embed.add_field(
+                name="Starboard Leaderboard",  # TODO: use reactions to paginate
+                value=f"View the starboard leaderboard!\n`{prefix}starboard leaderboard #channel [page | optional]`",
                 inline=False,
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
