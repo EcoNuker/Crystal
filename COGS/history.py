@@ -1,8 +1,12 @@
+import time
+
 import guilded
 from guilded.ext import commands
 
 import documents
-from documents import serverMember, HistoryCase
+from documents import serverMember
+
+from humanfriendly import format_timespan
 
 from DATA import embeds
 from DATA import tools
@@ -123,11 +127,26 @@ class history(commands.Cog):
 
         if banned:
             embed.add_field(
-                name="Banned", value="This user is still banned.", inline=False
+                name="Banned",
+                value="This user is still banned"
+                + (
+                    " indefinitely."
+                    if (not isinstance(banned, documents.serverBan))
+                    or not banned.endsAt
+                    else f" for {format_timespan(round(banned.endsAt-time.time()))}."
+                ),
+                inline=False,
             )
         if muted:
             embed.add_field(
-                name="Muted", value="This user is still muted.", inline=False
+                name="Muted",
+                value="This user is still muted"
+                + (
+                    " indefinitely."
+                    if (not isinstance(muted, documents.serverMute)) or not muted.endsAt
+                    else f" for {format_timespan(round(muted.endsAt-time.time()))}."
+                ),
+                inline=False,
             )
 
         await server_data.save()
@@ -366,10 +385,28 @@ class history(commands.Cog):
             )
             if banned:
                 embed.add_field(
-                    name="Banned", value="This user is banned.", inline=False
+                    name="Banned",
+                    value="This user is banned"
+                    + (
+                        " indefinitely."
+                        if (not isinstance(banned, documents.serverBan))
+                        or not banned.endsAt
+                        else f" for {format_timespan(round(banned.endsAt-time.time()))}."
+                    ),
+                    inline=False,
                 )
             if muted:
-                embed.add_field(name="Muted", value="This user is muted.", inline=False)
+                embed.add_field(
+                    name="Muted",
+                    value="This user is muted"
+                    + (
+                        " indefinitely."
+                        if (not isinstance(muted, documents.serverMute))
+                        or not muted.endsAt
+                        else f" for {format_timespan(round(muted.endsAt-time.time()))}."
+                    ),
+                    inline=False,
+                )
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 

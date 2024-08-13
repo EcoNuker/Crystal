@@ -1322,7 +1322,7 @@ class moderation(commands.Cog):
                     if (not isinstance(alr_banned, documents.serverBan))
                     or not alr_banned.endsAt
                     else f" for {format_timespan(round(alr_banned.endsAt-time.time()))}."
-                ),  # TODO: option to overwrite duration etc.
+                ),
                 color=guilded.Color.red(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
@@ -1610,7 +1610,7 @@ class moderation(commands.Cog):
                     if (not isinstance(alr_muted, documents.serverMute))
                     or not alr_muted.endsAt
                     else f" for {format_timespan(round(alr_muted.endsAt-time.time()))}."
-                ),  # TODO: option to overwrite duration etc.
+                ),
                 color=guilded.Color.red(),
             )
             if duration < 1 and (
