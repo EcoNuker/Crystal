@@ -66,8 +66,8 @@ class history(commands.Cog):
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
-        reason: str | None
+        user: guilded.User | guilded.Member | None = user
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -162,7 +162,7 @@ class history(commands.Cog):
     @history.command(name="delete", aliases=["remove"])
     async def _delete(self, ctx: commands.Context, case_id: str, *, reason: str = None):
         # define typehinting here since pylance/python extensions apparently suck
-        reason: str | None
+        reason: str | None = reason
 
         # check permissions
         if ctx.server is None:
@@ -333,7 +333,7 @@ class history(commands.Cog):
         self, ctx: commands.Context, user: tools.UserConverter, page_num: int = 1
     ):
         # define typehinting here since pylance/python extensions apparently suck
-        user: guilded.User | guilded.Member | None
+        user: guilded.User | guilded.Member | None = user
 
         # check permissions
         if ctx.server is None:
@@ -438,7 +438,7 @@ class history(commands.Cog):
         for page_number, page in enumerate(pages, start=1):
             embed = embeds.Embeds.embed(
                 title=f"{user.name}'s Case History (Page {page_number}/{len(pages)})",
-                description="\n".join(page).strip(),
+                description="\n".join(page).strip() + "\n**--------------**",
                 color=guilded.Color.blue(),
             )
             if banned:
