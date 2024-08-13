@@ -1,5 +1,7 @@
 import asyncio, time
 
+import re2, aiohttp
+
 import guilded
 from guilded.ext import commands
 
@@ -13,6 +15,27 @@ import documents
 class starboard(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.image_regex = re2.compile(r"!\[\]\((https:\/\/[^\s]+)\)")
+
+    async def find_first_image_or_gif(self, message_content):
+        matches = self.image_regex.findall(message_content)
+
+        async with aiohttp.ClientSession() as session:
+            for url in matches:
+                async with session.get(url) as response:
+                    content_type = response.headers.get("Content-Type", "").lower()
+                    if "image" in content_type or "gif" in content_type:
+                        return url
+        return None
+
+    async def replace_all_links(self, message_content):
+        matches = self.image_regex.findall(message_content)
+        replacement_counter = 1
+        for url in matches:
+            replacement = f"[IMAGE_{replacement_counter}]({url})"
+            message_content = message_content.replace(f"![]({url})", replacement)
+            replacement_counter += 1
+        return message_content
 
     # Listeners
 
@@ -100,15 +123,11 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
-                image = next(
-                    (
-                        attach
-                        for attach in event.message.attachments
-                        if attach.file_type == "image"
-                    ),
-                    None,
-                )
+                image = await self.find_first_image_or_gif(event.message.content)
                 if image:
+                    event.message.content = await self.replace_all_links(
+                        event.message.content
+                    )
                     embed.set_image(url=image)
                 send = False
                 try:
@@ -374,15 +393,11 @@ class starboard(commands.Cog):
                         else mauthor.default_avatar.url
                     ),
                 )
-                image = next(
-                    (
-                        attach
-                        for attach in event.message.attachments
-                        if attach.file_type == "image"
-                    ),
-                    None,
-                )
+                image = await self.find_first_image_or_gif(event.message.content)
                 if image:
+                    event.message.content = await self.replace_all_links(
+                        event.message.content
+                    )
                     embed.set_image(url=image)
                 send = False
                 try:
@@ -659,15 +674,9 @@ class starboard(commands.Cog):
                     mauthor.avatar.url if mauthor.avatar else mauthor.default_avatar.url
                 ),
             )
-            image = next(
-                (
-                    attach
-                    for attach in event.after.attachments
-                    if attach.file_type == "image"
-                ),
-                None,
-            )
+            image = await self.find_first_image_or_gif(event.after.content)
             if image:
+                event.after.content = await self.replace_all_links(event.after.content)
                 embed.set_image(url=image)
             send = False
             if msg.starboardMessageId:
@@ -782,7 +791,7 @@ class starboard(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
+        channel: guilded.abc.ServerChannel | None = channel
 
         if channel is None or (not tools.channel_is_messageable(channel)):
             await ctx.reply(
@@ -993,7 +1002,7 @@ class starboard(commands.Cog):
                 return
 
         # define typehinting here since pylance/python extensions apparently suck
-        channel: guilded.abc.ServerChannel | None
+        channel: guilded.abc.ServerChannel | None = channel
 
         if channel is None:
             await ctx.reply(
@@ -1114,6 +1123,108 @@ class starboard(commands.Cog):
         # embed.description = desc.strip()
 
         await ctx.reply(embed=embed, private=ctx.message.private)
+
+    @starboard.command(name="leaderboard", aliases=["lb"])
+    async def _leaderboard(
+        self, ctx: commands.Context, channel: tools.ChannelConverter, page: int = 1
+    ):
+        if ctx.server is None:
+            await ctx.reply(
+                embed=embeds.Embeds.server_only, private=ctx.message.private
+            )
+            return
+
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id
+        )
+        if not server_data:
+            server_data = documents.Server(serverId=ctx.server.id)
+            await server_data.save()
+
+        # define typehinting here since pylance/python extensions apparently suck
+        channel: guilded.abc.ServerChannel | None = channel
+
+        if channel is None:
+            await ctx.reply(
+                embed=embeds.Embeds.invalid_channel, private=ctx.message.private
+            )
+            return
+
+        lbs = [
+            starboard
+            for starboard in server_data.starboards
+            if starboard.channelId == channel.id
+        ]
+
+        if not lbs:
+            await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="No Starboard Found",
+                    description=f"There isn't a starboard for {tools.channel_mention(channel)}.",
+                    color=guilded.Color.red(),
+                ),
+                private=ctx.message.private,
+            )
+            return
+
+        for lb in lbs:
+
+            def get_stars(msg):
+                return len(msg.reactions)
+
+            every_entry = sorted(
+                [message for message in lb.messages if message.starboardMessageId],
+                key=get_stars,
+                reverse=True,
+            )
+
+            # Calculate total pages based on valid entries
+            total_entries = len(every_entry)
+            entries_per_page = 10
+            total_pages = (
+                total_entries + entries_per_page - 1
+            ) // entries_per_page  # Calculate total pages
+
+            # Check if the requested page is valid
+            if page < 1 or page > total_pages:
+                await ctx.reply(
+                    embed=embeds.Embeds.embed(
+                        title="Invalid Page",
+                        description=f"Please enter a valid page number between 1 and {total_pages}.",
+                        color=guilded.Color.red(),
+                    ),
+                    private=ctx.message.private,
+                )
+                return
+
+            # Determine the range of entries to display for the current page
+            start_idx = (page - 1) * entries_per_page
+            end_idx = start_idx + entries_per_page
+            entries_to_display = every_entry[start_idx:end_idx]
+
+            embed = embeds.Embeds.embed(
+                title=f"{channel.name} Starboard Leaderboard (Page {page}/{total_pages})",
+                color=guilded.Color.blue(),
+            )
+
+            desc = ""
+
+            # Fetch and process only the messages needed for the current page
+            for placement, entry in enumerate(entries_to_display, start=start_idx + 1):
+                try:
+                    msg: guilded.ChatMessage = await channel.fetch_message(
+                        entry.starboardMessageId
+                    )
+                    full_reaction = msg.content.split(" |")[0]
+                    reaction_name = full_reaction.removeprefix("<:").split(":")[0]
+                    desc += f"{placement}. `{msg.embeds[0].author.name}` - [JUMP]({msg.jump_url}) - **{len(entry.reactions):,}** :{reaction_name}:\n"
+                except guilded.errors.NotFound:
+                    # If message is not found, skip this entry
+                    continue
+
+            embed.description = desc.strip()
+
+            await ctx.reply(embed=embed, private=ctx.message.private, silent=True)
 
 
 def setup(bot):
