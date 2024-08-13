@@ -978,7 +978,9 @@ class Logging(commands.Cog):
                     embed.add_field(name="User ID", value=event.member.id)
                 if event.channel:
                     embed.add_field(
-                        name="Channel", value=tools.channel_mention(event.channel)
+                        name="Channel",
+                        value=tools.channel_mention(event.channel),
+                        inline=False,
                     )
                     embed.add_field(
                         name="Channel ID", value=event.channel.id, inline=False
@@ -2993,6 +2995,9 @@ class Logging(commands.Cog):
                 else event.channel.server.icon.url
             )
         )
+        embed.add_field(
+            name="Channel", value=tools.channel_mention(event.channel), inline=False
+        )
         embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
         if server_data.logging.channelStateUpdate:
@@ -3045,6 +3050,9 @@ class Logging(commands.Cog):
                 if event.channel.group
                 else event.channel.server.icon.url
             )
+        )
+        embed.add_field(
+            name="Channel", value=tools.channel_mention(event.channel), inline=False
         )
         embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         embed.add_field(name="Channel Type", value=event.channel.type.name.capitalize())
@@ -3099,6 +3107,9 @@ class Logging(commands.Cog):
                 else event.channel.server.icon.url
             )
         )
+        embed.add_field(
+            name="Channel", value=tools.channel_mention(event.channel), inline=False
+        )
         embed.add_field(name="Channel ID", value=event.channel.id, inline=False)
         if event.before:
             if event.before.name != event.after.name:
@@ -3144,6 +3155,11 @@ class Logging(commands.Cog):
                         if event.channel.group
                         else event.channel.server.icon.url
                     )
+                )
+                embed2.add_field(
+                    name="Channel",
+                    value=tools.channel_mention(event.channel),
+                    inline=False,
                 )
                 embed2.add_field(
                     name="Channel ID", value=event.channel.id, inline=False
@@ -3194,6 +3210,11 @@ class Logging(commands.Cog):
                         if event.channel.group
                         else event.channel.server.icon.url
                     )
+                )
+                embed2.add_field(
+                    name="Channel",
+                    value=tools.channel_mention(event.channel),
+                    inline=False,
                 )
                 embed2.add_field(
                     name="Channel ID", value=event.channel.id, inline=False

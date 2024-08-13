@@ -30,6 +30,7 @@ def action_map(
         "warn": "The user was warned",
         "note": "A note was added to the user",
         "purge": "{amount} message{checkS} {checkWERE} deleted using purge",
+        "purgeuser": "{amount} message{checkS} by the user {checkWERE} deleted using purge",
         "scan": "{amount} message{checkS} {checkWERE} scanned using automod",
     }
 
@@ -208,6 +209,7 @@ class ModeratorAction(CloudBaseEvent):
             "tempmute",
             "warn",
             "note",
+            "purgeuser",
             "purge",
             "scan",
             "clear_history",

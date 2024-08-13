@@ -720,7 +720,16 @@ class moderation(commands.Cog):
         await unban_user(event.server, event.ban.user, check_ban=False)
 
     @commands.command(name="purge")
-    async def purge(self, ctx: commands.Context, *, amount, private: bool = False):
+    async def purge(
+        self,
+        ctx: commands.Context,
+        amount: str,
+        user: tools.UserConverter = None,
+        private: bool = False,
+    ):
+
+        user: guilded.User | guilded.Member | None = user
+
         # check permissions
         if time.time() - self.cooldowns["purge"].get(ctx.channel.id, 0) < 120:
             try:
@@ -807,7 +816,8 @@ class moderation(commands.Cog):
         else:
             custom_events.eventqueue.add_event(
                 custom_events.ModeratorAction(
-                    "purge",
+                    "purge" if not user else "purgeuser",
+                    member=user,
                     moderator=ctx.author,
                     channel=ctx.channel,
                     amount=amount - 1,
@@ -831,14 +841,23 @@ class moderation(commands.Cog):
                     )
                 if len(messages) == 0:
                     break
+                if user:
+                    messages = [
+                        message
+                        for message in messages
+                        if (
+                            message.author_id == user.id or message.id == ctx.message.id
+                        )
+                    ]
                 msgs.extend(messages)
                 d_msgs.extend([message.id for message in messages])
                 last_message = messages[-1] if messages else None
                 handling_amount -= limit
+            actual_amount = len(d_msgs)
             custom_events.eventqueue.add_overwrites({"message_ids": d_msgs})
             embed = embeds.Embeds.embed(
                 title="Purging Messages",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'are' if amount-1 != 1 else 'is'} being purged.",
+                description=f"{actual_amount-1} message{'s' if actual_amount-1 != 1 else ''} {'are' if actual_amount-1 != 1 else 'is'} being purged.",
                 color=guilded.Color.green(),
             )
             msg = await ctx.reply(embed=embed, private=ctx.message.private)
@@ -852,7 +871,7 @@ class moderation(commands.Cog):
             await asyncio.gather(*[del_message(message) for message in list(set(msgs))])
             embed = embeds.Embeds.embed(
                 title="Purge",
-                description=f"{amount-1} message{'s' if amount-1 != 1 else ''} {'have' if amount-1 != 1 else 'has'} been deleted!",
+                description=f"{actual_amount-1} message{'s' if amount-1 != 1 else ''}{'' if not user else ' by ' + user.mention} {'have' if actual_amount-1 != 1 else 'has'} been deleted!",
                 color=guilded.Color.green(),
             )
             await msg.edit(embed=embed)
