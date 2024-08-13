@@ -49,14 +49,14 @@ def action_map(
             res = res.replace("{checkWERE}", "were" if amount != 1 else "was")
         if "{checkHAVE}" in res:
             res = res.replace("{checkHAS}", "have" if amount != 1 else "has")
-    elif "{amount}" in res:
-        res = res.replace("{amount}", f"{amount:,}")
+    elif "{amount}" in res: # amount is None
+        res = res.replace("{amount}", f"UNKNOWN")
         if "{checkS}" in res:
-            res = res.replace("{checkS}", "s" if amount != 1 else "")
+            res = res.replace("{checkS}", "s")
         if "{checkWERE}" in res:
-            res = res.replace("{checkWERE}", "were" if amount != 1 else "was")
+            res = res.replace("{checkWERE}", "were")
         if "{checkHAVE}" in res:
-            res = res.replace("{checkHAS}", "have" if amount != 1 else "has")
+            res = res.replace("{checkHAS}", "have")
 
     if automod:
         res += " and the message was deleted."
