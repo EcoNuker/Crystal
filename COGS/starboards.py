@@ -43,7 +43,8 @@ class starboard(commands.Cog):
 
         # Replace custom emojis
         def replace_emoji(match):
-            name = match.group(1)
+            full_emoji = match.group()
+            name = full_emoji.split(":")[1]
             return f":{name}:"
 
         message_content = self.emoji_regex.sub(replace_emoji, message_content)
@@ -51,26 +52,32 @@ class starboard(commands.Cog):
         # Replace channel mentions
         async def get_channel(channel_id):
             try:
-                channel = await self.bot.getch_channel(
-                    int(channel_id.replace("-", ""), 16)
-                )
+                channel = await self.bot.getch_channel(channel_id)
                 return channel
             except:
                 return "unknown-channel"
 
-        async def replace_channel_mention(match):
-            channel_id = match.group(1)
-            channel = await get_channel(channel_id)
-            return (
-                tools.channel_mention(channel)
-                if isinstance(channel, guilded.abc.ServerChannel)
-                else "`#unknown-channel`"
-            )
+        async def replace_channel_mentions(message_content):
+            pos = 0
+            result = []
+            for match in self.channel_mention_regex.finditer(message_content):
+                start, end = match.span()
+                result.append(message_content[pos:start])
+                channel_id = match.group().removeprefix("<#").removesuffix(">")
+                channel = await get_channel(channel_id)
+                result.append(
+                    (
+                        tools.channel_mention(channel)
+                        if isinstance(channel, guilded.abc.ServerChannel)
+                        else "`#unknown-channel`"
+                    )
+                )
+                pos = end
+            result.append(message_content[pos:])
+            return "".join(result)
 
-        # Replace mentions
-        message_content = await self.channel_mention_regex.sub(
-            replace_channel_mention, message_content
-        )
+        # Apply replacements
+        message_content = await replace_channel_mentions(message_content)
 
         return message_content
 
