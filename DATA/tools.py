@@ -149,7 +149,7 @@ def channel_is_messageable(channel: guilded.abc.ServerChannel):
     )
 
 
-def shorten(s: str, max_len: int, max_remove: int = 50, add_ellipsis: bool = True):
+def shorten(s: str, max_len: int, max_remove: int = 100, add_ellipsis: bool = True):
     new_s = s[: (max_len if not add_ellipsis else max_len - 1)]
     to_remove = new_s.split(" ")[-1]
     if len(to_remove) <= max_remove:
