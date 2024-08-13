@@ -187,7 +187,7 @@ class BypassFailed(Exception):
 
 
 def channel_mention(channel: guilded.abc.ServerChannel):
-    return f"[**[#{channel.name}]**]({channel.share_url})"
+    return f"[**(#{channel.name})**]({channel.share_url})"
 
 
 def missing_perms(error: guilded.Forbidden):
