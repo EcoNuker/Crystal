@@ -1,4 +1,4 @@
-import guilded, asyncio, time
+(import guilded, asyncio, time
 
 from guilded.ext import commands, tasks
 from guilded.ext.commands.converters import Greedy
@@ -565,9 +565,11 @@ class moderation(commands.Cog):
                 ]
                 await server_data.save()
                 for mute in mutes:
-                    if mute.user == member.id:
+                    if mute.user == member.id: # TODO check endsat duration
                         try:
-                            await mute_user(server, member, mute.endsAt)
+                            if (await is_muted(server, member)):
+                                continue
+                            await mute_user(server, member, mute.endsAt, override_role=mute.role)
                             me = await server.getch_member(self.bot.user_id)
                             custom_events.eventqueue.add_event(
                                 custom_events.ModeratorAction(
@@ -594,7 +596,7 @@ class moderation(commands.Cog):
                             )
                         break  # We found, don't need to keep iterating
                 for ban in bans:
-                    if ban.user == member.id:
+                    if ban.user == member.id: # TODO check ends at
                         try:
                             if (
                                 ban.ban_entry
