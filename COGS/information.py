@@ -55,6 +55,7 @@ class information(commands.Cog):
                         f"`{prefix}help` - The main help menu for the bot.",
                         f"`{prefix}ping` - Bot latency and statistics.",
                         f"`{prefix}invite` - Bot invite and support links.",
+                        f"`{prefix}example <command>` - Command usage examples of any bot command.",
                     ]
                 ),
             )
