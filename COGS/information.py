@@ -39,7 +39,7 @@ class information(commands.Cog):
         me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(
             title="Command Help",
-            description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - len(devcmds)}`\n**Here are all the bot's commands.**{inviteandsupport}"
+            description=f"Command Count: `{len(self.bot.commands) if ctx.author.id in self.bot.owner_ids else len(self.bot.commands) - len(devcmds)}`\n**Use `{prefix}example COMMAND` to see how to use a command.**{inviteandsupport}"
             + (
                 "\n**Unfortunately, I do not have the 'Receive All Socket Events' permission and I can not function. Please add this permission to me.**"
                 if not me.server_permissions.receive_all_events
