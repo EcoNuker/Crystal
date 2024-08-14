@@ -1,5 +1,7 @@
 import string, secrets, asyncio
 
+import re2
+
 import guilded
 from guilded.ext import commands
 from guilded.ext.commands.converters import (
@@ -157,6 +159,22 @@ def shorten(s: str, max_len: int, max_remove: int = 100, add_ellipsis: bool = Tr
     if add_ellipsis:
         new_s += "…"
     return new_s
+
+
+def replacements(source: str, rep: dict) -> str:
+    """
+    A proper way to replace multiple replacements, without making bad replacements.
+
+    EG.
+    - abc -> ababc (c -> abc)
+    - abc -> abbc (bab -> bb)
+
+    SHOULD BE ababc BECAUSE the original string did NOT have bab in it.
+    """
+    rep = dict((re2.escape(k), v) for k, v in rep.items())
+    pattern = re2.compile("|".join(rep.keys()))
+    source = pattern.sub(lambda m: rep[re2.escape(m.group(0))], str(source))
+    return source
 
 
 async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChannel):

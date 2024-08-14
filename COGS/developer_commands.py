@@ -14,7 +14,7 @@ class developer(commands.Cog):
         self.bot = bot
 
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
-    async def tab(self, ctx: commands.Context, user: tools.UserConverter):
+    async def tab(self, ctx: commands.Context, user: tools.UserConverter = None):
         if not ctx.author.id in self.bot.owner_ids:
             return
 

@@ -9,6 +9,8 @@ from DATA import tools
 from DATA import embeds
 from DATA import custom_events
 
+from DATA.cmd_examples import cmd_ex
+
 import documents
 
 
@@ -785,9 +787,17 @@ class starboard(commands.Cog):
 
     # Starboard Commands
 
+    @cmd_ex.document()
     @commands.group(name="starboard", aliases=["starboards"])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def starboard(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all starboard commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -826,8 +836,16 @@ class starboard(commands.Cog):
         else:
             await ctx.server.fill_roles()
 
-    @starboard.command(name="add", aliases=["create"])
+    @cmd_ex.document()
+    @starboard.command(name="add", aliases=["create", "set"])
     async def _add(self, ctx: commands.Context, channel: tools.ChannelConverter):
+        """
+        Command Usage: `{qualified_name} <channel>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention}` - Set the {channel} channel as a starboard channel.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1017,7 +1035,7 @@ class starboard(commands.Cog):
                 title="Missing Permissions",
                 description=f"I do not have access to send messages to {tools.channel_mention(channel)}.",
             )
-            await msg.edit(embed=embed, private=ctx.message.private)
+            await msg.edit(embed=embed)
             return
 
         server_data.starboards.append(starboard)
@@ -1037,8 +1055,16 @@ class starboard(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @starboard.command(name="remove", aliases=["delete"])
     async def _remove(self, ctx: commands.Context, channel: tools.ChannelConverter):
+        """
+        Command Usage: `{qualified_name} <channel>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention}` - Remove the {channel} channel as a starboard channel if it is one.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1105,8 +1131,16 @@ class starboard(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @starboard.command(name="view", aliases=[])
     async def _view(self, ctx: commands.Context):  # page: int = 1
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - View all starboard channels in the server.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1179,10 +1213,20 @@ class starboard(commands.Cog):
 
         await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @starboard.command(name="leaderboard", aliases=["lb"])
     async def _leaderboard(
         self, ctx: commands.Context, channel: tools.ChannelConverter, page: int = 1
     ):
+        """
+        Command Usage: `{qualified_name} <channel> [page | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention}` - If {channel} is a starboard, view the first page of the star leaderboard.
+
+        `{prefix}{qualified_name} {channelmention} 3` - If {channel} is a starboard, view the third page of the star leaderboard if it exists.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

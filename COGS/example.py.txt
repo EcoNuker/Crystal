@@ -1,6 +1,10 @@
 import guilded
 from guilded.ext import commands
 
+from DATA.cmd_examples import cmd_ex
+
+import documents
+
 class COGNAME(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot

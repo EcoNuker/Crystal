@@ -7,6 +7,8 @@ from DATA import custom_events
 from DATA import embeds
 from DATA import tools
 
+from DATA.cmd_examples import cmd_ex
+
 from humanfriendly import format_timespan
 
 import documents
@@ -262,9 +264,17 @@ class Logging(commands.Cog):
         # Had an issue with orphaned tasks, causing events to be dispatched multiple times.
         self.custom_event_dispatcher.cancel()
 
+    @cmd_ex.document()
     @commands.group(name="logs", aliases=["log", "logging"])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def logs(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all logging commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -321,8 +331,16 @@ class Logging(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @logs.group(name="settings", aliases=["setting"])
     async def settings(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all logging setting commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -349,8 +367,16 @@ class Logging(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @settings.group(name="bot_messages", aliases=["bot_message"])
     async def bot_messages_setting(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all bot_message setting commands for logging.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -372,8 +398,20 @@ class Logging(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @bot_messages_setting.command(name="toggle")
     async def _toggle_bot_messages(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the log bot messages setting, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the log bot messages setting on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the log bot messages setting off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -444,8 +482,20 @@ class Logging(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @settings.command(name="toggle")
     async def _toggle(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the logging module, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the logging module on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the logging module off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -514,8 +564,16 @@ class Logging(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @logs.command(name="types")
     async def _types(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of every possible type of logging channel.
+        """
         embed = embeds.Embeds.embed(
             title="Log Channel Types",
             description="Here are the types of events and their descriptions:",
@@ -545,8 +603,16 @@ class Logging(commands.Cog):
 
         await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @logs.command(name="view")
     async def _view(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Show all the server's current logging channels.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -589,10 +655,24 @@ class Logging(commands.Cog):
         )
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @logs.command(name="set")  # set channels
     async def _set(
         self, ctx: commands.Context, channel: tools.ChannelConverter, *, event_type: str
     ):
+        """
+        Command Usage: `{qualified_name} <channel> <event_type>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention} all events` - Sets {channel} as a All Events logging channel.
+
+        `{prefix}{qualified_name} {channelmention} bot setting changes` - Sets {channel} as a Bot Setting Changes logging channel.
+
+        `{prefix}{qualified_name} {channelmention} message change` - Sets {channel} as a Message Change logging channel.
+
+        `{prefix}{qualified_name} {channelmention} membership changes` - Sets {channel} as a Membership Changes logging channel.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -716,8 +796,16 @@ class Logging(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
+    @cmd_ex.document()
     @logs.command(name="delete")  # delete channels
     async def _delete(self, ctx: commands.Context, channel: tools.ChannelConverter):
+        """
+        Command Usage: `{qualified_name} <channel>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention}` - Remove the {channel} channel as a logging channel, if it is one.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

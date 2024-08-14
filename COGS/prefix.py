@@ -4,6 +4,8 @@ from DATA import embeds
 from DATA import custom_events
 from DATA import tools
 
+from DATA.cmd_examples import cmd_ex
+
 from documents import Server
 
 
@@ -11,8 +13,16 @@ class prefix(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @cmd_ex.document()
     @commands.group(name="prefix", description="Return the bot's current prefix!")
     async def prefix(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - View the current server prefix, and the command to set it.
+        """
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
@@ -30,10 +40,18 @@ class prefix(commands.Cog):
         else:
             await ctx.server.fill_roles()
 
+    @cmd_ex.document()
     @prefix.command(name="set")
     async def _set(self, ctx: commands.Context, *, prefix: str = "!"):
-        """Sets the bot's prefix. (Leave blank to reset)"""
+        """
+        Command Usage: `{qualified_name} [prefix | optional | default "!"]`
 
+        -----------
+
+        `{prefix}{qualified_name}` - Reset the server prefix to "!".
+
+        `{prefix}{qualified_name} ?` - Set the server prefix to "?".
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

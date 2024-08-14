@@ -4,11 +4,13 @@ from guilded.ext import commands
 import string, unicodedata, time, asyncio
 
 import re2
+
 from DATA import embeds
 from DATA import tools
 from DATA import custom_events
-
 from DATA import regexes
+
+from DATA.cmd_examples import cmd_ex
 
 from typing import List
 
@@ -696,9 +698,17 @@ class AutoModeration(commands.Cog):
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
         await self.moderateMessage(event.after, messageBefore=event.before)
 
+    @cmd_ex.document()
     @commands.group("automod")
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def automod(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all automod commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -749,8 +759,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @automod.command(name="scan")
-    async def scan(self, ctx: commands.Context, *, amount, private: bool = False):
+    async def scan(self, ctx: commands.Context, *, amount: str):
+        """
+        Command Usage: `{qualified_name} <amount>`
+
+        -----------
+
+        `{prefix}{qualified_name} 5` - Scan 5 messages in the current channel to see if they break rules.
+        """
         # check permissions
         if time.time() - self.cooldowns["scan"].get(ctx.channel.id, 0) < 120:
             try:
@@ -858,12 +876,12 @@ class AutoModeration(commands.Cog):
                 limit = min(handling_amount, 100)
                 if last_message is None:
                     messages = await ctx.channel.history(
-                        limit=limit, include_private=private
+                        limit=limit, include_private=False
                     )
                 else:
                     messages = await ctx.channel.history(
                         limit=limit,
-                        include_private=private,
+                        include_private=False,
                         before=last_message.created_at,
                     )
                 if len(messages) == 0:
@@ -899,8 +917,16 @@ class AutoModeration(commands.Cog):
                 if time.time() - ran_at > 120:
                     del self.cooldowns["scan"][channel_id]
 
+    @cmd_ex.document()
     @automod.group(name="modules", aliases=["module"])
     async def modules(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all automod modules commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -932,8 +958,16 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @modules.group(name="invites", aliases=["invite"])
     async def invites_module(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all invite module commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -955,8 +989,20 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @invites_module.command(name="toggle")
     async def _toggle_invites_module(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the invites module, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the invites module on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the invites module off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1025,8 +1071,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @modules.group(name="slurs", aliases=["slur"])
     async def slurs_module(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all slur module commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -1048,8 +1102,20 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @slurs_module.command(name="toggle")
     async def _toggle_slurs_module(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the slurs module, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the slurs module on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the slurs module off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1118,8 +1184,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @modules.group(name="profanity", aliases=[])
     async def profanity_module(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all profanity module commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -1141,8 +1215,20 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @profanity_module.command(name="toggle")
     async def _toggle_profanity_module(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the profanity module, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the profanity module on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the profanity module off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1213,8 +1299,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @automod.group(name="settings", aliases=["setting"])
     async def settings(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all automod settings commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -1246,8 +1340,16 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @settings.group(name="moderate_owner", aliases=[])
     async def moderate_owner_settings(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all moderate_owner setting commands for logging.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -1269,8 +1371,20 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @moderate_owner_settings.command(name="toggle")
     async def _toggle_moderate_owner(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the moderate server owner setting, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the moderate server owner setting on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the moderate server owner setting off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1341,8 +1455,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @settings.group(name="moderate_bots", aliases=["moderate_bot"])
     async def moderate_bots_setting(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all moderate_bots setting commands for logging.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -1364,8 +1486,20 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @moderate_bots_setting.command(name="toggle")
     async def _toggle_moderate_bots(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the moderate server bots setting, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the moderate server bots setting on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the moderate server bots setting off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1436,8 +1570,20 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @settings.command(name="toggle")
     async def _toggle(self, ctx: commands.Context, status: str = None):
+        """
+        Command Usage: `{qualified_name} [status | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Toggles the server automod, if it was off it turns on, and if it was on it turns off.
+
+        `{prefix}{qualified_name} on` - Toggles the server automod on if it was off.
+
+        `{prefix}{qualified_name} off` - Toggles the server automod off if it was on.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1506,8 +1652,16 @@ class AutoModeration(commands.Cog):
                 private=ctx.message.private,
             )
 
+    @cmd_ex.document()
     @automod.group("rules", aliases=["rule"])
     async def rules(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all automod custom rules commands.
+        """
         await ctx.reply(
             "⚠️ Automod custom rules are under development; do not use! Logging and automod modules are complete if you want to check that out.",
             private=ctx.message.private,
@@ -1542,13 +1696,17 @@ class AutoModeration(commands.Cog):
             )
             await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @rules.command("add", aliases=["create"])
     async def _add(
         self,
         ctx: commands.Context,
         *,
         arguments: str,
-    ):  # TODO: human readable duration input (5d3m) or (3h)
+    ):  # TODO: human readable duration input (5d3m) or (3h) # TODO: command documentation
+        """
+        DO NOT USE THIS COMMAND.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1703,11 +1861,19 @@ class AutoModeration(commands.Cog):
         await server_data.save()
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @rules.command("remove", aliases=["delete"])
     async def _delete(
         self,
         ctx: commands.Context,
     ):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Begin the removal process for a custom automod rule.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1837,8 +2003,16 @@ class AutoModeration(commands.Cog):
             )
             return await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @rules.command("clear")
     async def _clear(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Clears all server custom automod rules.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -1948,8 +2122,16 @@ class AutoModeration(commands.Cog):
             )
         return await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @rules.command("list", alises=["get"])
-    async def _list(self, ctx: commands.Context):
+    async def _list(self, ctx: commands.Context):  # TODO: paginate
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all custom automod rules in the server.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

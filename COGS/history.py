@@ -12,6 +12,8 @@ from DATA import embeds
 from DATA import tools
 from DATA import custom_events
 
+from DATA.cmd_examples import cmd_ex
+
 from COGS.moderation import is_banned, is_muted
 
 
@@ -19,9 +21,17 @@ class history(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @cmd_ex.document()
     @commands.group(name="history", aliases=[])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def history(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all user history commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -61,10 +71,20 @@ class history(commands.Cog):
             # Every subcommand requires a fill to determine permissions
             await ctx.server.fill_roles()
 
+    @cmd_ex.document()
     @history.command(name="clear", aliases=[])
     async def _clear(
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
+        """
+        Command Usage: `{qualified_name} <user> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Clears {user}'s history with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} Invalid History` - Clears {user}'s history with the reason "Invalid History".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         reason: str | None = reason
@@ -159,8 +179,18 @@ class history(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @history.command(name="delete", aliases=["remove"])
     async def _delete(self, ctx: commands.Context, case_id: str, *, reason: str = None):
+        """
+        Command Usage: `{qualified_name} <case_id> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} CASE_ID` - Deletes a case id with the id CASE_ID with no reason provided.
+
+        `{prefix}{qualified_name} CASE_ID No Reason Provided for Case` - Deletes a case id with the id CASE_ID with the reason "No Reason Provided for Case".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         reason: str | None = reason
 
@@ -241,8 +271,16 @@ class history(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @history.command(name="case", aliases=[])
     async def _case(self, ctx: commands.Context, case_id: str):
+        """
+        Command Usage: `{qualified_name} <case_id>`
+
+        -----------
+
+        `{prefix}{qualified_name} CASE_ID` - View detailed information about the case with id CASE_ID.
+        """
         # check permissions
         if ctx.server is None:
             await ctx.reply(
@@ -328,10 +366,20 @@ class history(commands.Cog):
 
         await ctx.reply(embed=embed, private=ctx.message.private)
 
+    @cmd_ex.document()
     @history.command(name="view", aliases=[])
     async def _view(
         self, ctx: commands.Context, user: tools.UserConverter, page_num: int = 1
     ):
+        """
+        Command Usage: `{qualified_name} <user> [page | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - View the first page of {user}'s punishment history.
+
+        `{prefix}{qualified_name} {usermention} 3` - View the third page of {user}'s punishment history, if exists.
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
 

@@ -3,11 +3,14 @@ from guilded.ext import commands
 
 from DATA import embeds
 
+from DATA.cmd_examples import cmd_ex
+
 
 class information(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @cmd_ex.document()
     @commands.command(
         name="help", description="Help for every command this bot has!", aliases=["h"]
     )
@@ -15,7 +18,11 @@ class information(commands.Cog):
         self, ctx: commands.Context
     ) -> guilded.Message | guilded.ChatMessage:
         """
-        Help command
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all public commands.
         """
         prefix = await self.bot.get_prefix(ctx.message)
         if type(prefix) == list:
@@ -61,6 +68,7 @@ class information(commands.Cog):
                 name=":hammer_and_wrench: Moderation Commands",
                 value="\n".join(
                     [
+                        f"`{prefix}purge <amount> [user | OPTIONAL]` - Purges messages, optionally of a specific userv",
                         f"`{prefix}warn @user [reason | OPTIONAL]` - Warn a user, with an optional reason.",
                         f"`{prefix}note @user <note>` - Adds a note to a user, that can be viewed in user history.",
                         f"`{prefix}mute @user [duration | OPTIONAL] [reason | OPTIONAL]` - Indefinitely mute a user, with an optional reason and duration. If duration is not given, it is assumed to be indefinite.",
@@ -75,7 +83,7 @@ class information(commands.Cog):
         if self.bot.extensions.get("COGS.logging"):
             embedig.add_field(
                 name=":memo: Logging Commands",
-                value=f"Run `{prefix}logging` for more information! This is a must have as it logs moderator actions and more.",
+                value=f"Run `{prefix}logging` for more information!",
             )
         if self.bot.extensions.get("COGS.automod"):
             embedig.add_field(
@@ -90,7 +98,7 @@ class information(commands.Cog):
         if self.bot.extensions.get("COGS.settings"):
             embedig.add_field(
                 name=":file_folder: Server Role Commands",
-                value=f"Run `{prefix}role` for more information! Set the server's mute role!",
+                value=f"Run `{prefix}role` for more information!",
             )
             embedig.add_field(
                 name=":gear: Server Setting Commands",
@@ -125,12 +133,20 @@ class information(commands.Cog):
             )
         await ctx.reply(embed=embedig, private=ctx.message.private)
 
+    @cmd_ex.document()
     @commands.command(
         name="invite",
         description="Get the invites for the bot and support server!",
         aliases=[],
     )
     async def invitecommandlol(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get the support server and bot invite links
+        """
         await ctx.reply(
             embed=embeds.Embeds.embed(
                 title=f"Invite {self.bot.user.name}!",
@@ -140,11 +156,19 @@ class information(commands.Cog):
             private=ctx.message.private,
         )
 
+    @cmd_ex.document()
     @commands.command(
         name="ping",
         description="Check if the bot is online, as well as the latency of it!",
     )
     async def pong(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get ping information for the bot.
+        """
         await ctx.server.fill_roles()
         me = await ctx.server.getch_member(self.bot.user_id)
         embedig = embeds.Embeds.embed(title="🏓 Pong")
@@ -159,6 +183,40 @@ class information(commands.Cog):
             inline=False,
         )
         await ctx.reply(embed=embedig, private=ctx.message.private)
+
+    @cmd_ex.document()
+    @commands.command(name="example", description="Example of a command!", aliases=[])
+    async def example(self, ctx: commands.Context, *, cmd: str):
+        """
+        Command Usage: `{qualified_name} <command>`
+
+        -----------
+
+        `{prefix}{qualified_name} help` - Shows you examples of how to use the help command.
+
+        `{prefix}{qualified_name} ping` - Shows you examples of how to use the ping command.
+        """
+        try:
+            docs = await cmd_ex.get_documentation(ctx, cmd.strip())
+        except guilded.errors.InvalidArgument:
+            await ctx.reply(
+                embed=embeds.Embeds.embed(
+                    title="Command Not Found",
+                    description=f"No example was found for the `{cmd}` command.",
+                    color=guilded.Color.red(),
+                ),
+                silent=True,
+                private=ctx.message.private,
+            )
+            return
+        await ctx.reply(
+            embed=embeds.Embeds.embed(
+                title="Example: " + cmd.strip().lower().title(),
+                description=docs,
+            ),
+            silent=True,
+            private=ctx.message.private,
+        )
 
 
 def setup(bot):

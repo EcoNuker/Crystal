@@ -8,6 +8,8 @@ from DATA import embeds
 from DATA import custom_events
 from DATA import tools
 
+from DATA.cmd_examples import cmd_ex
+
 import documents
 from documents import RSSFeed
 
@@ -19,9 +21,17 @@ class RSSFeedCog(commands.Cog):
         self.bot = bot
         self.check_feeds.start()
 
+    @cmd_ex.document()
     @commands.group(name="rss", aliases=[])
     @commands.cooldown(1, 2, commands.BucketType.server)
     async def rss(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all RSS commands.
+        """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id
@@ -55,10 +65,18 @@ class RSSFeedCog(commands.Cog):
         else:
             await ctx.server.fill_roles()
 
+    @cmd_ex.document()
     @rss.command(name="add", aliases=["create"])
     async def _add(
         self, ctx: commands.Context, channel: tools.ChannelConverter, *, feed_url: str
     ):
+        """
+        Command Usage: `{qualified_name} <channel> <feed_url>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention} https://example.com/rss` - Add the {channel} channel as a RSS channel linking to https://example.com/rss.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -182,8 +200,16 @@ class RSSFeedCog(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @rss.command(name="remove", aliases=["delete"])
     async def _remove(self, ctx: commands.Context, channel: tools.ChannelConverter):
+        """
+        Command Usage: `{qualified_name} <channel>`
+
+        -----------
+
+        `{prefix}{qualified_name} {channelmention} ` - Remove the {channel} channel as a RSS channel, if it is one.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private
@@ -248,6 +274,15 @@ class RSSFeedCog(commands.Cog):
 
     @rss.command(name="view", aliases=[])
     async def _view(self, ctx: commands.Context, page: int = 1):
+        """
+        Command Usage: `{qualified_name} <channel> [page | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name}` - View all RSS channels in the server, page 1.
+
+        `{prefix}{qualified_name} 3` - View all RSS channels in the server, page 3.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

@@ -4,6 +4,8 @@ from DATA import embeds
 from DATA import custom_events
 from DATA import tools
 
+from DATA.cmd_examples import cmd_ex
+
 import documents
 
 
@@ -11,8 +13,16 @@ class settings(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @cmd_ex.document()
     @commands.group(name="setting", aliases=["settings"])
     async def settings(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all server setting commands.
+        """
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
@@ -42,8 +52,16 @@ class settings(commands.Cog):
             return
             await ctx.server.fill_roles()
 
+    @cmd_ex.document()
     @commands.group(name="role", aliases=["roles"])
     async def role(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Get a list of all role setting commands.
+        """
         if ctx.invoked_subcommand is None:
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
@@ -94,8 +112,18 @@ class settings(commands.Cog):
         else:
             await ctx.server.fill_roles()
 
+    @cmd_ex.document()
     @role.command(name="mute")
     async def _mute(self, ctx: commands.Context, *, role: tools.RoleConverter):
+        """
+        Command Usage: `{qualified_name} [role | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {rolemention}` - Set the server's mute role to {role}
+
+        `{prefix}{qualified_name}` - Set the server's mute role to NONE.
+        """
         if ctx.server is None:
             await ctx.reply(
                 embed=embeds.Embeds.server_only, private=ctx.message.private

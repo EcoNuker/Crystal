@@ -9,6 +9,8 @@ from DATA import tools
 from DATA import embeds
 from DATA import custom_events
 
+from DATA.cmd_examples import cmd_ex
+
 import documents
 
 
@@ -719,15 +721,27 @@ class moderation(commands.Cog):
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
         await unban_user(event.server, event.ban.user, check_ban=False)
 
+    @cmd_ex.document()
     @commands.command(name="purge")
     async def purge(
         self,
         ctx: commands.Context,
         amount: str,
         user: tools.UserConverter = None,
-        private: bool = False,
     ):
+        """
+        Command Usage: `{qualified_name} <amount> [user | optional]`
 
+        -----------
+
+        `{prefix}{qualified_name} 30` - Delete 30 messeages in the current channel.
+
+        `{prefix}{qualified_name} 66` - Delete 66 messages in the current channel.
+
+        `{prefix}{qualified_name} 25 {usermention}` - Deletes all of {user}'s messages found in the last 25 messages.
+
+        `{prefix}{qualified_name} 70 {usermention}` - Deletes all of {user}'s messages found in the last 70 messages.
+        """
         user: guilded.User | guilded.Member | None = user
 
         # check permissions
@@ -831,12 +845,12 @@ class moderation(commands.Cog):
                 limit = min(handling_amount, 100)
                 if last_message is None:
                     messages = await ctx.channel.history(
-                        limit=limit, include_private=private
+                        limit=limit, include_private=False
                     )
                 else:
                     messages = await ctx.channel.history(
                         limit=limit,
-                        include_private=private,
+                        include_private=False,
                         before=last_message.created_at,
                     )
                 if len(messages) == 0:
@@ -882,10 +896,22 @@ class moderation(commands.Cog):
                 if time.time() - ran_at > 120:
                     del self.cooldowns["purge"][channel_id]
 
+    @cmd_ex.document()
     @commands.command(name="warn")
     async def warn(
         self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
     ):
+        """
+        Command Usage: `{qualified_name} <user> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Warn {user} with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} Spamming` - Warn {user} with the reason "Spamming".
+
+        `{prefix}{qualified_name} {usermention} Not Following Rules` - Warn {user} with the reason "Not Following Rules".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.Member | None = user
         reason: str | None = reason
@@ -951,7 +977,7 @@ class moderation(commands.Cog):
                 return
 
         # warn member
-        warn_message = f"You have been warned by a server moderator.\n**Reason**\n`{reason if reason else 'No reason was provided.'}`"
+        warn_message = f"You have been warned by a server moderator.\n\n**Reason**\n`{reason if reason else 'No reason was provided.'}`"
 
         await ctx.send(
             embed=embeds.Embeds.embed(
@@ -963,7 +989,7 @@ class moderation(commands.Cog):
 
         embed = embeds.Embeds.embed(
             title="User Warned",
-            description=f"Successfully warned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            description=f"Successfully warned `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`",
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=embed, private=True)
@@ -990,10 +1016,20 @@ class moderation(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @commands.command(name="note")
     async def note(
         self, ctx: commands.Context, user: tools.UserConverter, *, note: str
     ):
+        """
+        Command Usage: `{qualified_name} <user> <note>`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention} New Account` - Add a note to {user}'s history that says "New Account".
+
+        `{prefix}{qualified_name} {usermention} Suspicious User` - Add a note to {user}'s history that says "Suspicious User".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         note: str = note
@@ -1071,10 +1107,22 @@ class moderation(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @commands.command(name="kick")
     async def kick(
         self, ctx: commands.Context, user: tools.MemberConverter, *, reason: str = None
     ):
+        """
+        Command Usage: `{qualified_name} <user> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Kick {user} with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} Spamming` - Kick {user} with the reason "Spamming".
+
+        `{prefix}{qualified_name} {usermention} Not Following Rules` - Kick {user} with the reason "Not Following Rules".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.Member | None = user
         reason: str | None = reason
@@ -1144,7 +1192,7 @@ class moderation(commands.Cog):
 
         embed = embeds.Embeds.embed(
             title="User Kicked",
-            description=f"Successfully kicked `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`",
+            description=f"Successfully kicked `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`",
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=embed, private=ctx.message.private)
@@ -1155,10 +1203,22 @@ class moderation(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @commands.command(name="unban")
     async def unban(
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
+        """
+        Command Usage: `{qualified_name} <user_id> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {userid}` - Unbans {user} with no reason provided.
+
+        `{prefix}{qualified_name} {userid} Appealed` - Unbans {user} with the reason "Appealed".
+
+        `{prefix}{qualified_name} {userid} Ban Time Up` - Unbans {user} with the reason "Ban Time Up".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         reason: str | None = reason
@@ -1217,9 +1277,9 @@ class moderation(commands.Cog):
         if result:
             embed = embeds.Embeds.embed(
                 title="User Unbanned",
-                description=f"Successfully unbanned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                description=f"Successfully unbanned `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
                 + (
-                    "\n**Pre-Ban** - The user will no longer be banned when they join the server."
+                    "\n\n**Pre-Ban** - The user will no longer be banned when they join the server."
                     if not isinstance(user, guilded.Member)
                     else ""
                 ),
@@ -1244,6 +1304,7 @@ class moderation(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
+    @cmd_ex.document()
     @commands.command(name="ban", aliases=["tempban"])
     async def ban(
         self,
@@ -1253,6 +1314,25 @@ class moderation(commands.Cog):
         *,
         reason: str = None,
     ):
+        """
+        Command Usage: `{qualified_name} <user> [duration | optional] [reason | optional]`
+
+        Command Usage, tempban Alias: `tempban <user> <duration> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Indefinitely bans {user} with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} 1w Sending NSFW` - Tempbans {user} for 1 week with the reason "Sending NSFW".
+
+        `{prefix}{qualified_name} {usermention} Sending NSFW` - Indefinitely bans {user} with the reason "Sending NSFW".
+
+        `{prefix}{qualified_name} {usermention} 1mo` - Tempbans {user} for 1 month with no reason provided.
+
+        `{prefix}tempban {usermention} 5d 3h 1m Constantly Breaking Rules` - Tempbans {user} for 5 days, 3 hours, and 1 minute with the reason "Constantly Breaking Rules".
+
+        `{prefix}tempban {usermention} 1y` - Tempbans {user} for 1 year with no reason provided.
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         duration: float = sum(duration) if duration else 0
@@ -1392,9 +1472,9 @@ class moderation(commands.Cog):
                     raise
                 embed = embeds.Embeds.embed(
                     title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Banned",
-                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
                     + (
-                        "\n**Pre-Ban** - The user will be banned if they join the server."
+                        "\n\n**Pre-Ban** - The user will be banned if they join the server."
                         if not isinstance(user, guilded.Member)
                         else ""
                     ),
@@ -1464,9 +1544,9 @@ class moderation(commands.Cog):
 
         embed = embeds.Embeds.embed(
             title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Banned",
-            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}banned `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
             + (
-                "\n**Pre-Ban** - The user will be banned if they join the server."
+                "\n\n**Pre-Ban** - The user will be banned if they join the server."
                 if not isinstance(user, guilded.Member)
                 else ""
             ),
@@ -1500,6 +1580,7 @@ class moderation(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @commands.command(name="mute", aliases=["tempmute"])
     async def mute(
         self,
@@ -1509,6 +1590,25 @@ class moderation(commands.Cog):
         *,
         reason: str = None,
     ):
+        """
+        Command Usage: `{qualified_name} <user> [duration | optional] [reason | optional]`
+
+        Command Usage, tempmute Alias: `tempmute <user> <duration> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Indefinitely mutes {user} with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} 1w Spamming` - Tempmutes {user} for 1 week with the reason "Spamming".
+
+        `{prefix}{qualified_name} {usermention} Death Threats` - Indefinitely mutes {user} with the reason "Death Threats".
+
+        `{prefix}{qualified_name} {usermention} 1mo` - Tempmutes {user} for 1 month with no reason provided.
+
+        `{prefix}tempmute {usermention} 5d 3h 1m Constantly Breaking Rules` - Tempmutes {user} for 5 days, 3 hours, and 1 minute with the reason "Constantly Breaking Rules".
+
+        `{prefix}tempmute {usermention} 1y` - Tempmutes {user} for 1 year with no reason provided.
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         duration: float = sum(duration) if duration else 0
@@ -1686,9 +1786,9 @@ class moderation(commands.Cog):
                     raise
                 embed = embeds.Embeds.embed(
                     title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Muted",
-                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                    description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
                     + (
-                        "\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
+                        "\n\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
                         if not isinstance(user, guilded.Member)
                         else ""
                     ),
@@ -1765,9 +1865,9 @@ class moderation(commands.Cog):
 
         embed = embeds.Embeds.embed(
             title=f"User {'Pre-' if not isinstance(user, guilded.Member) else ''}Muted",
-            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+            description=f"Successfully {'pre-' if not isinstance(user, guilded.Member) else ''}muted `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
             + (
-                "\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
+                "\n\n**Pre-Mute** - The user will be muted if they join, and the mute role is set."
                 if not isinstance(user, guilded.Member)
                 else ""
             ),
@@ -1803,10 +1903,22 @@ class moderation(commands.Cog):
             )
         )
 
+    @cmd_ex.document()
     @commands.command(name="unmute")
     async def unmute(
         self, ctx: commands.Context, user: tools.UserConverter, *, reason: str = None
     ):
+        """
+        Command Usage: `{qualified_name} <user> [reason | optional]`
+
+        -----------
+
+        `{prefix}{qualified_name} {usermention}` - Unmutes {user} with no reason provided.
+
+        `{prefix}{qualified_name} {usermention} Appealed` - Unmutes {user} with the reason "Appealed".
+
+        `{prefix}{qualified_name} {usermention} Mute Time Up` - Unmutes {user} with the reason "Ban Time Up".
+        """
         # define typehinting here since pylance/python extensions apparently suck
         user: guilded.User | guilded.Member | None = user
         reason: str | None = reason
@@ -1857,9 +1969,9 @@ class moderation(commands.Cog):
 
             embed = embeds.Embeds.embed(
                 title=f"User Unmuted",
-                description=f"Successfully unmuted `{user.name}` for the following reason:\n`{reason if reason else 'No reason was provided.'}`"
+                description=f"Successfully unmuted `{user.name}` for the following reason:\n\n`{reason if reason else 'No reason was provided.'}`"
                 + (
-                    "\n**Pre-Mute** - The user will no longer be muted when they join the server."
+                    "\n\n**Pre-Mute** - The user will no longer be muted when they join the server."
                     if not isinstance(user, guilded.Member)
                     else ""
                 ),
