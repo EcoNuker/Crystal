@@ -232,14 +232,14 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     if s:
         # Handle the prefix not being set
         if s.prefix is None:
-            return [CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
+            return [bot.user.mention + " ", bot.user.mention, CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
 
         # Generate Apple compatible versions and combine with spaces first
         combined_vers = [
             ver + " " for ver in generate_apple_versions(s.prefix)
         ] + generate_apple_versions(s.prefix)
 
-        deduped_vers = []
+        deduped_vers = [bot.user.mention + " ", bot.user.mention]
         seen = set()
         for ver in combined_vers:
             if ver not in seen:
@@ -257,7 +257,7 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
         await s.insert()
 
         # Return the default
-        return [CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
+        return [bot.user.mention + " ", bot.user.mention, CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
 
 
 bot = commands.Bot(
