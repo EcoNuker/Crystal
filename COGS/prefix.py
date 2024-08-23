@@ -61,12 +61,14 @@ class prefix(commands.Cog):
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
+            print("hi")
             msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
             bypass = tools.check_bypass(ctx, msg)
             if not bypass:
+                print("bye")
                 return
 
         me = await ctx.server.getch_member(self.bot.user_id)
