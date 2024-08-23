@@ -48,7 +48,7 @@ class developer(commands.Cog):
     @commands.command(name="load", description="Loads a cog.")
     async def load(self, ctx: commands.Context, *, cog_name: str):
         if not ctx.author.id in self.bot.owner_ids:
-            return await ctx.reply("No.", private=ctx.message.private)
+            return await ctx.reply("nah no perms.", private=ctx.message.private)
         ocog_name = cog_name
 
         if not cog_name.startswith(f"{self.bot.CONFIGS.cogs_dir[:-1]}."):
@@ -96,7 +96,7 @@ class developer(commands.Cog):
     @commands.command(name="unload", description="Unloads a cog.")
     async def unload(self, ctx: commands.Context, *, cog_name: str):
         if not ctx.author.id in self.bot.owner_ids:
-            return await ctx.reply("No.", private=ctx.message.private)
+            return await ctx.reply("nah no perms.", private=ctx.message.private)
         ocog_name = cog_name
         if not cog_name.startswith(f"{self.bot.CONFIGS.cogs_dir[:-1]}."):
             cog_name = f"{self.bot.CONFIGS.cogs_dir[:-1]}." + cog_name
@@ -149,7 +149,7 @@ class developer(commands.Cog):
     @commands.command(name="reload", description="Reloads a cog.")
     async def reload(self, ctx: commands.Context, *, cog_name: str = None):
         if not ctx.author.id in self.bot.owner_ids:
-            return await ctx.reply("No.", private=ctx.message.private)
+            return await ctx.reply("nah no perms.", private=ctx.message.private)
         if not cog_name:
             cog_name = "all"
         ocog_name = cog_name
@@ -194,7 +194,7 @@ class developer(commands.Cog):
         name="eval", aliases=["exec"], description="eval/exec something for devs only"
     )
     async def asyncexecute(self, ctx: commands.Context):
-        troll = False  # do you want to troll someone who tries to run eval without permissions?
+        troll = True  # do you want to troll someone who tries to run eval without permissions?
         if not ctx.author.id in self.bot.owner_ids:
             if troll:
                 await ctx.message.add_reaction(90001732)
