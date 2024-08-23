@@ -193,9 +193,10 @@ class developer(commands.Cog):
     @commands.command(
         name="eval", aliases=["exec"], description="eval/exec something for devs only"
     )
-    async def asyncexecute(self, ctx: commands.Context):
+    async def asyncexecute(self, ctx: commands.Context, *, cmd: str = ""):
         troll = True  # do you want to troll someone who tries to run eval without permissions?
-        cmd = ((ctx.message.content)[len(prefix) + 4 :]).strip()
+        prefix = ctx.clean_prefix
+        # cmd = ((ctx.message.content)[len(prefix) + 4 :]).strip()
         if not ctx.author.id in self.bot.owner_ids:
             if troll:
                 await ctx.message.add_reaction(90001732)
@@ -226,7 +227,6 @@ class developer(commands.Cog):
             )
             return await locals()["__ex"](message, bot)
 
-        prefix = ctx.clean_prefix
         try:
             await ctx.message.add_reaction(90001733)
             await aexec(cmd, ctx.message, self.bot)
