@@ -513,6 +513,18 @@ async def check_bypass(
         )  # Guilded is weird here, since it will occasionally return 404 Message Not Found
         if delete_orig_message:
             await msg.delete()
+        ctx.bot.bypasses[ctx.author.id] = ctx.bot.bypasses.get(ctx.author.id, [])
+        f = False
+        for m in ctx.bot.bypasses[ctx.author.id]:
+            if m.id == ctx.message.id:
+                f = True
+                msg = m
+                break
+        if not f:
+            msg = ctx.message
+            ctx.message.bypassed = []
+        msg.bypassed.append(bypassed)
+        ctx.bot.bypasses[ctx.author.id].append(msg)
         return True
     elif ctx.author.id in ctx.bot.owner_ids:
         try:
