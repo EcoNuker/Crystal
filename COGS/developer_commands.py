@@ -195,10 +195,16 @@ class developer(commands.Cog):
     )
     async def asyncexecute(self, ctx: commands.Context):
         troll = True  # do you want to troll someone who tries to run eval without permissions?
+        cmd = ((ctx.message.content)[len(prefix) + 4 :]).strip()
         if not ctx.author.id in self.bot.owner_ids:
             if troll:
                 await ctx.message.add_reaction(90001732)
-                await asyncio.sleep(2)
+                await asyncio.sleep(5)
+                try:
+                    await ctx.message.remove_reaction(90001733)
+                except: pass
+                if cmd == "":
+                    return await ctx.reply("no code provided", private=ctx.message.private,)
             return await ctx.reply(
                 "YOU REALLY THOUGHT" if troll else "Access denied.",
                 private=ctx.message.private,
@@ -221,7 +227,6 @@ class developer(commands.Cog):
             return await locals()["__ex"](message, bot)
 
         prefix = ctx.clean_prefix
-        cmd = ((ctx.message.content)[len(prefix) + 4 :]).strip()
         try:
             await ctx.message.add_reaction(90001733)
             await aexec(cmd, ctx.message, self.bot)
