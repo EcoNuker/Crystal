@@ -61,14 +61,12 @@ class prefix(commands.Cog):
             ctx.author.server_permissions.manage_bots
             or ctx.author.server_permissions.manage_server
         ):
-            print("hi")
             msg = await ctx.reply(
                 embed=embeds.Embeds.manage_bot_server_permissions,
                 private=ctx.message.private,
             )
-            bypass = tools.check_bypass(ctx, msg)
+            bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
-                print("bye")
                 return
 
         me = await ctx.server.getch_member(self.bot.user_id)
@@ -82,7 +80,7 @@ class prefix(commands.Cog):
                 embed=embed,
                 private=ctx.message.private,
             )
-            bypass = tools.check_bypass(
+            bypass = await tools.check_bypass(
                 ctx, msg, bypassed="BOT_MISSING_PERMS", auto_bypassable=False
             )
             if not bypass:
@@ -99,7 +97,7 @@ class prefix(commands.Cog):
                 embed=embed,
                 private=ctx.message.private,
             )
-            return
+            return # TODO: bypass
         elif len(prefix.split()) > 1:
             embed = embeds.Embeds.embed(
                 title="Whitespaces Not Allowed",
@@ -110,7 +108,7 @@ class prefix(commands.Cog):
                 embed=embed,
                 private=ctx.message.private,
             )
-            return
+            return # TODO: bypass
 
         # Grab the server from the database
         server_data = await Server.find_one(Server.serverId == ctx.server.id)
