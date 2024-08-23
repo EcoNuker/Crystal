@@ -19,6 +19,11 @@ from DATA import custom_events
 
 import documents
 
+image_regex = re2.compile(r"!\[\]\((https:\/\/[^\s]+)\)")
+emoji_regex = re2.compile(r"<:\w+:\d{6,8}>")
+channel_mention_regex = re2.compile(
+    r"<#\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b>"
+)
 
 class RoleConverter(Converter[Optional[guilded.Role]]):
     """Converts to a :class:`~guilded.Role`.
@@ -150,8 +155,62 @@ def channel_is_messageable(channel: guilded.abc.ServerChannel):
         channel, guilded.abc.Messageable
     )
 
+async def format_for_embed(message: guilded.Message = None, message_content: str = None, bot: commands.Bot = None):
+    assert bot is not None
+    assert message or message_content
+    if message and not message_content:
+        message_content = message.content
+    # Replace image links
+    matches = image_regex.findall(message_content)
+    replacement_counter = 1
+    for url in matches:
+        replacement = f"[ATTACHMENT_{replacement_counter}]({url})"
+        message_content = message_content.replace(f"![]({url})", replacement)
+        replacement_counter += 1
+
+    # Replace custom emojis
+    def replace_emoji(match):
+        full_emoji = match.group()
+        name = full_emoji.split(":")[1]
+        return f":{name}:"
+
+    message_content = emoji_regex.sub(replace_emoji, message_content)
+
+    # Replace channel mentions
+    async def get_channel(channel_id):
+        try:
+            channel = await bot.getch_channel(channel_id)
+            return channel
+        except:
+            return "unknown-channel"
+
+    async def replace_channel_mentions(message_content):
+        pos = 0
+        result = []
+        for match in channel_mention_regex.finditer(message_content):
+            start, end = match.span()
+            result.append(message_content[pos:start])
+            channel_id = match.group().removeprefix("<#").removesuffix(">")
+            channel = await get_channel(channel_id)
+            result.append(
+                (
+                    channel_mention(channel)
+                    if isinstance(channel, guilded.abc.ServerChannel)
+                    else "`#unknown-channel`"
+                )
+            )
+            pos = end
+        result.append(message_content[pos:])
+        return "".join(result)
+
+    # Apply replacements
+    message_content = await replace_channel_mentions(message_content)
+
+    return message_content
 
 def shorten(s: str, max_len: int, max_remove: int = 100, add_ellipsis: bool = True):
+    if len(s) <= max_len:
+        return s
     new_s = s[: (max_len if not add_ellipsis else max_len - 1)]
     to_remove = new_s.split(" ")[-1]
     if len(to_remove) <= max_remove:

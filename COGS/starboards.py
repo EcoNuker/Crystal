@@ -17,14 +17,9 @@ import documents
 class starboard(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.image_regex = re2.compile(r"!\[\]\((https:\/\/[^\s]+)\)")
-        self.emoji_regex = re2.compile(r"<:\w+:\d{6,8}>")
-        self.channel_mention_regex = re2.compile(
-            r"<#\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b>"
-        )
 
     async def find_first_image_or_gif(self, message_content):
-        matches = self.image_regex.findall(message_content)
+        matches = tools.image_regex.findall(message_content)
 
         async with aiohttp.ClientSession() as session:
             for url in matches:
@@ -33,55 +28,6 @@ class starboard(commands.Cog):
                     if "image" in content_type or "gif" in content_type:
                         return url
         return None
-
-    async def format_for_embed(self, message_content):
-        # Replace image links
-        matches = self.image_regex.findall(message_content)
-        replacement_counter = 1
-        for url in matches:
-            replacement = f"[ATTACHMENT_{replacement_counter}]({url})"
-            message_content = message_content.replace(f"![]({url})", replacement)
-            replacement_counter += 1
-
-        # Replace custom emojis
-        def replace_emoji(match):
-            full_emoji = match.group()
-            name = full_emoji.split(":")[1]
-            return f":{name}:"
-
-        message_content = self.emoji_regex.sub(replace_emoji, message_content)
-
-        # Replace channel mentions
-        async def get_channel(channel_id):
-            try:
-                channel = await self.bot.getch_channel(channel_id)
-                return channel
-            except:
-                return "unknown-channel"
-
-        async def replace_channel_mentions(message_content):
-            pos = 0
-            result = []
-            for match in self.channel_mention_regex.finditer(message_content):
-                start, end = match.span()
-                result.append(message_content[pos:start])
-                channel_id = match.group().removeprefix("<#").removesuffix(">")
-                channel = await get_channel(channel_id)
-                result.append(
-                    (
-                        tools.channel_mention(channel)
-                        if isinstance(channel, guilded.abc.ServerChannel)
-                        else "`#unknown-channel`"
-                    )
-                )
-                pos = end
-            result.append(message_content[pos:])
-            return "".join(result)
-
-        # Apply replacements
-        message_content = await replace_channel_mentions(message_content)
-
-        return message_content
 
     # Listeners
 
@@ -160,8 +106,8 @@ class starboard(commands.Cog):
                     else (await self.bot.getch_user(event.message.author_id))
                 )
                 image = await self.find_first_image_or_gif(event.message.content)
-                event.message.content = await self.format_for_embed(
-                    event.message.content
+                event.message.content = await tools.format_for_embed(
+                    message=event.message, bot=self.bot
                 )
                 embed = embeds.Embeds.embed(
                     description=tools.shorten(event.message.content, 2048)
@@ -432,8 +378,8 @@ class starboard(commands.Cog):
                     else (await self.bot.getch_user(event.message.author_id))
                 )
                 image = await self.find_first_image_or_gif(event.message.content)
-                event.message.content = await self.format_for_embed(
-                    event.message.content
+                event.message.content = await tools.format_for_embed(
+                    message=event.message, bot=self.bot
                 )
                 embed = embeds.Embeds.embed(
                     description=tools.shorten(event.message.content, 2048)
@@ -717,7 +663,9 @@ class starboard(commands.Cog):
                 else (await self.bot.getch_user(event.after.author_id))
             )
             image = await self.find_first_image_or_gif(event.after.content)
-            event.after.content = await self.format_for_embed(event.after.content)
+            event.after.content = await tools.format_for_embed(
+                    message=event.after, bot=self.bot
+                )
             embed = embeds.Embeds.embed(
                 description=tools.shorten(event.after.content, 2048)
             )

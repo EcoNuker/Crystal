@@ -734,7 +734,7 @@ class moderation(commands.Cog):
 
         -----------
 
-        `{prefix}{qualified_name} 30` - Delete 30 messeages in the current channel.
+        `{prefix}{qualified_name} 30` - Delete 30 messages in the current channel.
 
         `{prefix}{qualified_name} 66` - Delete 66 messages in the current channel.
 
@@ -828,15 +828,6 @@ class moderation(commands.Cog):
                     raise tools.BypassFailed()
                 newlimit += 50
         else:
-            custom_events.eventqueue.add_event(
-                custom_events.ModeratorAction(
-                    "purge" if not user else "purgeuser",
-                    member=user,
-                    moderator=ctx.author,
-                    channel=ctx.channel,
-                    amount=amount - 1,
-                )
-            )
             handling_amount = amount
             last_message = None
             d_msgs = []
@@ -868,7 +859,16 @@ class moderation(commands.Cog):
                 last_message = messages[-1] if messages else None
                 handling_amount -= limit
             actual_amount = len(d_msgs)
-            custom_events.eventqueue.add_overwrites({"message_ids": d_msgs})
+            custom_events.eventqueue.add_event(
+                custom_events.ModeratorAction(
+                    "purge" if not user else "purgeuser",
+                    member=user,
+                    moderator=ctx.author,
+                    channel=ctx.channel,
+                    amount=actual_amount - 1,
+                    overwrites={"message_ids": d_msgs}
+                )
+            )
             embed = embeds.Embeds.embed(
                 title="Purging Messages",
                 description=f"{actual_amount-1} message{'s' if actual_amount-1 != 1 else ''} {'are' if actual_amount-1 != 1 else 'is'} being purged.",
