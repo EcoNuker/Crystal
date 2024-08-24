@@ -23,7 +23,7 @@ def setup():
                 status_code=401, detail="No or invalid Authorization header provided."
             )
         try:
-            user = await cardboard.get_user(token=token)
+            user = await cardboard.get_user(token=token.removeprefix("Basic "))
         except cExceptions.CardboardException as e:
             user = None
         if not user or user.id != id:
