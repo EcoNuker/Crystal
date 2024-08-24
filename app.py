@@ -37,7 +37,7 @@ def loadRoutes(folder, main, cleanup: bool = True):
                     .replace("/", ".")
                 )
                 route_version = route_name.split(".")[0]
-                if route_name.endswith("index"):
+                if route_name.endswith(".index"):
                     route = importlib.import_module(route_name)
                     if hasattr(route, "donotload") and route.donotload:
                         continue
@@ -59,7 +59,7 @@ def loadRoutes(folder, main, cleanup: bool = True):
                     )
                 else:
                     route = importlib.import_module(route_name)
-                    if route.donotload:
+                    if hasattr(route, "donotload") and route.donotload:
                         continue
                     route_name = route_name.split(".")
                     del route_name[0]
@@ -108,7 +108,7 @@ async def startup_event():
         main.bot.warn("No routes loaded.")
     else:
         loadRoutes(folder, main)
-        main.bot.success("Routes Loaded!")
+        main.bot.success("Routes loaded!")
 
 
 app.add_event_handler("startup", startup_event)
