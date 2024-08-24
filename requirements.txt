@@ -2,6 +2,9 @@
 # Use latest version on Github
 git+https://github.com/shayypy/guilded.py
 
+# Cardboard for API login
+cardboard.py
+
 # Make colorful logging! TODO: completely replace this with raw ansi values
 colorama==0.4.6
 
