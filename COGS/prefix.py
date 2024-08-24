@@ -97,7 +97,7 @@ class prefix(commands.Cog):
                 embed=embed,
                 private=ctx.message.private,
             )
-            return # TODO: bypass
+            return  # TODO: bypass
         elif len(prefix.split()) > 1:
             embed = embeds.Embeds.embed(
                 title="Whitespaces Not Allowed",
@@ -108,7 +108,7 @@ class prefix(commands.Cog):
                 embed=embed,
                 private=ctx.message.private,
             )
-            return # TODO: bypass
+            return  # TODO: bypass
 
         # Grab the server from the database
         server_data = await Server.find_one(Server.serverId == ctx.server.id)

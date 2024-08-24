@@ -25,6 +25,7 @@ channel_mention_regex = re2.compile(
     r"<#\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b>"
 )
 
+
 class RoleConverter(Converter[Optional[guilded.Role]]):
     """Converts to a :class:`~guilded.Role`.
 
@@ -155,7 +156,12 @@ def channel_is_messageable(channel: guilded.abc.ServerChannel):
         channel, guilded.abc.Messageable
     )
 
-async def format_for_embed(message: guilded.Message = None, message_content: str = None, bot: commands.Bot = None):
+
+async def format_for_embed(
+    message: guilded.Message = None,
+    message_content: str = None,
+    bot: commands.Bot = None,
+):
     assert bot is not None
     assert message or message_content
     if message and not message_content:
@@ -207,6 +213,7 @@ async def format_for_embed(message: guilded.Message = None, message_content: str
     message_content = await replace_channel_mentions(message_content)
 
     return message_content
+
 
 def shorten(s: str, max_len: int, max_remove: int = 100, add_ellipsis: bool = True):
     if len(s) <= max_len:

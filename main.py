@@ -1,6 +1,7 @@
 import sys
 
 debug_mode = ("-d" in sys.argv) or ("--debug" in sys.argv)
+api_debug_mode = ("-ad" in sys.argv) or ("--adebug" in sys.argv)
 disable_auto_restart_on_crash = ("-nar" in sys.argv) or (
     "--no-auto-restart" in sys.argv
 )
@@ -19,6 +20,8 @@ if (
         "Debug": None,
         "--debug": "Turn on debugging for the Guilded bot. Not for production use.",
         "-d": "Short for --debug.",
+        "--adebug": "Turn on debugging for the API. Not for production use.",
+        "-ad": "Short for --adebug.",
         "Settings": None,
         "--no-auto-restart": "Turn off auto-restart if the bot crashes.",
         "-nar": "Short for --no-auto-restart",
@@ -46,7 +49,7 @@ from colorama import init as coloramainit
 coloramainit(autoreset=True)
 
 # Utility imports
-import json, os, glob, logging, traceback, signal, platform, sys, time
+import json, os, glob, logging, traceback, signal, platform, time, types
 import logging.handlers
 from datetime import datetime, timezone
 import asyncio
@@ -61,6 +64,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from DATA.log_colors import COLORS
 from DATA.apple_normalizer import generate_apple_versions
 
+# Configs
+from DATA.CONFIGS import CONFIGS
+
 # Configure directories
 cogspath = os.path.join("COGS", "")
 cogspathpy = [os.path.basename(f) for f in glob.glob(os.path.join(cogspath, "*.py"))]
@@ -71,6 +77,9 @@ if not os.path.exists(logs_dir):
     os.makedirs(logs_dir)
 if not os.path.exists(errors_dir):
     os.makedirs(errors_dir)
+
+CONFIGS.error_logs_dir = errors_dir
+CONFIGS.cogs_dir = cogspath
 
 # Configure the loggers
 # Guilded Logs -> Console
@@ -113,27 +122,6 @@ if file_logging:
     )
     console_logger.addHandler(handler)
     glogger.addHandler(handler)
-
-
-class CONFIGS:
-    """
-    Configs to start the bot.
-    """
-
-    with open(f"config.json", "r") as config:
-        configdata = json.load(config)
-    version: str = configdata["version"]
-    database_url: str = configdata["database"]
-    token: str = configdata["token"]
-    botid: str = configdata["bot_id"]
-    botuserid: str = configdata["bot_user_id"]
-    supportserverid: str = configdata["support_server"]
-    supportserverinv: str = configdata["support_server_invite"]
-    defaultprefix: str = configdata["default_prefix"]
-    owners: list = configdata["owners"]
-    join_leave_logs: str | None = configdata["server_join_leave"]
-    error_logs_dir = errors_dir
-    cogs_dir = cogspath
 
 
 # Configure database
@@ -232,7 +220,12 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     if s:
         # Handle the prefix not being set
         if s.prefix is None:
-            return [bot.user.mention + " ", bot.user.mention, CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
+            return [
+                bot.user.mention + " ",
+                bot.user.mention,
+                CONFIGS.defaultprefix + " ",
+                CONFIGS.defaultprefix,
+            ]
 
         # Generate Apple compatible versions and combine with spaces first
         combined_vers = [
@@ -257,10 +250,55 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
         await s.insert()
 
         # Return the default
-        return [bot.user.mention + " ", bot.user.mention, CONFIGS.defaultprefix + " ", CONFIGS.defaultprefix]
+        return [
+            bot.user.mention + " ",
+            bot.user.mention,
+            CONFIGS.defaultprefix + " ",
+            CONFIGS.defaultprefix,
+        ]
 
 
-bot = commands.Bot(
+class CrystalBot(commands.Bot):
+    def __init__(
+        self,
+        *args,
+        version: str,
+        name: str,
+        debug: bool = False,
+        allow_bypass: bool = True,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.debug: bool = debug
+        self.version: str = version
+        self.name: str = name
+
+        self.CONFIGS = CONFIGS
+        self.COLORS = COLORS
+
+        self.bypasses = {}
+        self.auto_bypass = []
+        self.bypassing = allow_bypass
+
+        self._motor = motor  # Giving the bot access to the raw motor client
+
+        self.print = _print
+        self.info = _infoprint
+        self.error = _errorprint
+        self.warn = _warnprint
+        self.success = _successprint
+        self.traceback = _tracebackprint
+
+        self.db: types.ModuleType = documents
+        self.db_on = False
+
+
+bot = CrystalBot(
+    version=CONFIGS.version,
+    name="Crystal",
+    debug=debug_mode,
+    allow_bypass=not disable_bypassing,
+    # Default options
     command_prefix=getprefix,
     bot_id=CONFIGS.botid,
     features=guilded.ClientFeatures(
@@ -270,23 +308,6 @@ bot = commands.Bot(
     owner_ids=CONFIGS.owners,
     help_command=None,
 )
-bot.debug = debug_mode
-bot.version = CONFIGS.version
-bot.name = "Crystal"
-bot.CONFIGS = CONFIGS
-bot.COLORS = COLORS
-bot.bypasses = {}
-bot.auto_bypass = []
-bot.bypassing = not disable_bypassing
-
-# Logging
-bot.print = _print
-bot.info = _infoprint
-bot.error = _errorprint
-bot.warn = _warnprint
-bot.success = _successprint
-bot.traceback = _tracebackprint
-bot._motor = motor  # Giving the bot access to the raw motor client
 
 
 @bot.event
@@ -295,7 +316,7 @@ async def on_ready():
 
     # Initialize beanie
     try:
-        bot.db
+        assert bot.db_on == True
     except:
         # Initializing beanie in the "crystal" database
         bot.print(
@@ -306,7 +327,7 @@ async def on_ready():
             document_models=documents.__documents__,
             multiprocessing_mode=True,
         )
-        bot.db = documents
+        bot.db_on = True
 
     for cog in cogs:
         try:
@@ -322,13 +343,17 @@ async def on_ready():
     bot.success(f"Bot ready! Logged in as {COLORS.user_name}{bot.user}")
 
 
-if __name__ == "__main__":
+async def start_bot():
     console_logger.info("\n")
     bot.info("Starting bot...")
 
     if debug_mode:
         bot.warn(
             f"Debug mode is on. ({bot.COLORS.item_name}{'-d' if '-d' in sys.argv else '--debug'}{bot.COLORS.normal_message})"
+        )
+    if api_debug_mode:
+        bot.warn(
+            f"API debug mode is on. ({bot.COLORS.item_name}{'-ad' if '-ad' in sys.argv else '--adebug'}{bot.COLORS.normal_message})"
         )
     if disable_auto_restart_on_crash:
         bot.info(
@@ -357,7 +382,11 @@ if __name__ == "__main__":
 
     while True:
         try:
-            bot.run(CONFIGS.token)
+            async with bot:
+                await bot.start(
+                    CONFIGS.token,
+                    reconnect=True,
+                )
         except Exception as e:
             bot.traceback(e)
             bot.error("Bot crashed")
@@ -369,3 +398,7 @@ if __name__ == "__main__":
             )
             time.sleep(5)
     on_bot_stopped()
+
+
+if __name__ == "__main__":
+    import app

@@ -13,5 +13,12 @@
 
     "owners": ["AnnXbPLA",  "4WG7wrP4", "mj7xOkBA", "dO63N5e4"],
 
-    "server_join_leave": "2a977e2b-9a5e-4bda-a671-d914a65d2eba"
+    "server_join_leave": "2a977e2b-9a5e-4bda-a671-d914a65d2eba",
+
+    "api": {
+        "port": 6942,
+        "secret_key": "Your secret key",
+        "CARDBOARD_CLIENT_ID": "CARDBOARD_CLIENT_ID",
+        "CARDBOARD_SECRET": "CARDBOARD_SECRET"
+    }
 }

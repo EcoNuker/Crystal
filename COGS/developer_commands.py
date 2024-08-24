@@ -203,9 +203,13 @@ class developer(commands.Cog):
                 await asyncio.sleep(5)
                 try:
                     await ctx.message.remove_reaction(90001732)
-                except: pass
+                except:
+                    pass
                 if cmd == "":
-                    return await ctx.reply("no code provided", private=ctx.message.private,)
+                    return await ctx.reply(
+                        "no code provided",
+                        private=ctx.message.private,
+                    )
             return await ctx.reply(
                 "YOU REALLY THOUGHT" if troll else "Access denied.",
                 private=ctx.message.private,

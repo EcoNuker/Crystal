@@ -664,8 +664,8 @@ class starboard(commands.Cog):
             )
             image = await self.find_first_image_or_gif(event.after.content)
             event.after.content = await tools.format_for_embed(
-                    message=event.after, bot=self.bot
-                )
+                message=event.after, bot=self.bot
+            )
             embed = embeds.Embeds.embed(
                 description=tools.shorten(event.after.content, 2048)
             )

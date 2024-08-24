@@ -1,0 +1,14 @@
+donotload = False
+
+from fastapi import APIRouter, Request, Response, HTTPException
+from main import CrystalBot
+
+router = APIRouter()
+
+
+def setup():
+    @router.get("/")
+    async def main(request: Request):
+        bot: CrystalBot = request.app.bot
+        # do stuff
+        pass

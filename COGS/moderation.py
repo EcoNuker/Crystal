@@ -866,7 +866,7 @@ class moderation(commands.Cog):
                     moderator=ctx.author,
                     channel=ctx.channel,
                     amount=actual_amount - 1,
-                    overwrites={"message_ids": d_msgs}
+                    overwrites={"message_ids": d_msgs},
                 )
             )
             embed = embeds.Embeds.embed(
