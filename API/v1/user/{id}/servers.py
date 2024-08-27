@@ -37,9 +37,11 @@ def setup():
                         "id": server.id,
                         "owner_id": server.owner_id,
                         "icon_url": server.icon.url if server.icon else None,
+                        "banner_url": server.banner.url if server.banner else None,
                         "about": server.about,
                         "name": server.name,
                         "timezone": server.raw_timezone,
+                        "verified": server.verified,
                         # "member_count": server.member_count
                         # ^ do we need this? I mean if we're going to fill we'll add this but ehhhhh
                         # Consider this when we have permissions for users to access dashboard
