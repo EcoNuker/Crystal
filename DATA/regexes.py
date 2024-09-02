@@ -246,22 +246,26 @@ slurs = [
 # retard/rtard/retarded + pluralized
 
 invites = [
-    r"(?i)(?:https?:\/\/)?(?:www.|ptb.|canary.)?(?:dsc\.gg|invite\.gg|discord\.link|(?:discord\.(?:gg|io|me|li|id))|disboard\.org|discord(?:app)?\.(?:com|gg)\/(?:invite|servers))\/[a-z0-9-_]+",
-    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:guilded\.(?:gg|com))\/(?:i\/[a-z0-9-_]+|[a-z0-9-_]+)",
-    r"(?i)(?:https?:\/\/)?(?:www\.)?(?:revolt\.chat|rvlt\.gg)(?:\/[a-zA-Z0-9_-]+)*",
+    r"(?i)(?:https?:\/\/)?(?:www\.|ptb\.|canary\.)?(?:dsc\.gg|invite\.gg|discord\.link|(?:discord\.(?:gg|io|me|li|id))|disboard\.org|discord(?:app)?\.(?:com|gg)\/(?:invite|servers))\/[a-z0-9-_]+",
+    r"(?i)(?:https?:\/\/)?(?:www\.|support\.)?(?:guilded\.(?:gg|com))\/(?:i\/[a-z0-9-_]+|[a-z0-9-_]+)",
+    r"(?i)(?:https?:\/\/)?(?:www\.|support\.)?(?:revolt\.chat|rvlt\.gg)(?:\/[a-zA-Z0-9_-]+)*",
 ]
 
 invites_exclusions = {
-    "guilded": [
-        "/TheGG",
-        "/Guilded-Official",
-        "/EcoNuker",
-        "/API-Official",
-        "/api",
-        "/u",
-    ],
-    "discord": [],
-    "revolt": ["/posts", "/tracker"],
+    "guilded": {
+        "slugs": [
+            "/TheGG",
+            "/Guilded-Official",
+            "/EcoNuker",
+            "/API-Official",
+            "/api",
+            "/u",
+            "/r",
+        ],
+        "subdomains": ["support"],
+    },
+    "discord": {"slugs": [], "subdomains": ["support"]},
+    "revolt": {"slugs": ["/posts", "/tracker"], "subdomains": ["support"]},
 }
 
 # invites LIST IN ORDER:

@@ -418,6 +418,8 @@ class AutoModeration(commands.Cog):
                         for rule in USING_RULES
                     }
 
+                context = {}
+
                 for future in as_completed(futures):
                     result = future.result()
                     if result:
@@ -428,23 +430,38 @@ class AutoModeration(commands.Cog):
                         match_start = combined_content.find(match_result[1][0])
                         match_end = match_start + len(match_result[1][0])
 
-                        # Determine which messages are part of the match
+                        # Determine which messages are part of the match and collect context
                         current_index = 0
+                        match_context = "..."
                         for msg in messages:
-                            msg_len = (
-                                len(msg.content) + 1
-                            )  # +1 for the space we added during join
+                            msg_start_index = current_index
                             msg_end_index = current_index + len(msg.content)
+                            current_index += (
+                                len(msg.content) + 1
+                            )  # +1 for the space added during join
+
+                            # Check if the match is within this message
                             if (
-                                current_index <= match_end
-                                and match_start <= msg_end_index
+                                msg_start_index <= match_start < msg_end_index
+                                or msg_start_index < match_end <= msg_end_index
+                                or (
+                                    match_start <= msg_start_index
+                                    and match_end >= msg_end_index
+                                )
                             ):
                                 messages_to_delete.append(msg)
-                            current_index += msg_len
+
+                                match_context = " ".join(
+                                    [msg.content for msg in messages_to_delete]
+                                )
+                        context[match_result[1][0]] = (
+                            match_context
+                            + f" - Across `{len(messages_to_delete)}` messages."
+                        )
 
                 if messages_to_delete:
-                    return messages_to_delete, matches
-                return [], matches
+                    return messages_to_delete, matches, context
+                return [], matches, context
 
             to_be_modded_msgs = []
 
@@ -462,13 +479,11 @@ class AutoModeration(commands.Cog):
                 matches = parallel_regex_search(USING_RULES, message, messageBefore)
                 if matches:
                     to_be_modded_msgs.append(message)
-            # TODO: delete deleted messages from this stuff
-            # TODO: add message deleted evnt
-            msgs, add_matches = combined_regex_search(
+            msgs, add_matches, msg_contexts = combined_regex_search(
                 USING_RULES, self.ch_prev_messages[message.channel_id]
             )
             if len(msgs) == 1 and msgs[0] == message:
-                pass
+                msg_contexts = {}
             else:
                 for msg in msgs:
                     if (
@@ -519,18 +534,29 @@ class AutoModeration(commands.Cog):
                             continue
 
                         def is_excluded(match, exclusions):
-                            for exclusion in exclusions:
+                            # Check against slugs
+                            for exclusion in exclusions.get("slugs", []):
                                 if re2.search(
                                     rf"(?i){re2.escape(exclusion)}($|/)", match
                                 ):
                                     return True
+
+                            # Check against subdomains
+                            for exclusion in exclusions.get("subdomains", []):
+                                # Match exclusion as a subdomain within the string
+                                if re2.search(
+                                    rf"(?i)(http|https)?(:\/.)?\b{exclusion}\.", match
+                                ):
+                                    return True
+
                             return False
 
                         if i == 0:
+                            c_exclusions = regexes.invites_exclusions["guilded"]
+                            c_exclusions["slugs"] += ["/" + message.server.slug]
                             if is_excluded(
                                 mtch[0],
-                                regexes.invites_exclusions["guilded"]
-                                + ["/" + message.server.slug],
+                                c_exclusions,
                             ):
                                 continue
                         elif i == 1:
@@ -682,6 +708,7 @@ class AutoModeration(commands.Cog):
                             else f"**[Automod]** Multiple automod rules were violated. (`{'`, `'.join(list(set(shortened_matches)))}`)"
                         ),
                         [punishments["tempmute_dur"], punishments["tempban_dur"]],
+                        context=msg_contexts if msg_contexts != {} else None,
                     )
                 )
                 await asyncio.gather(*[run_delete(msg) for msg in to_be_modded_msgs])

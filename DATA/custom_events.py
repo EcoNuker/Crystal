@@ -132,6 +132,7 @@ class AutomodEvent(CloudBaseEvent):
         member: guilded.Member,
         reason: str = None,
         durations: List[int] = [],
+        context: dict = {},
     ) -> None:
         super().__init__()
         self.cloud_data = {}  # TODO: Cloud data to show up on dashboards
@@ -161,7 +162,23 @@ class AutomodEvent(CloudBaseEvent):
         self.timestamp = time.time()
         self.reason = reason
         for action in self.actions:
-            assert action in ["kick", "ban", "mute", "tempban", "tempmute", "warn"]
+            assert action in [
+                "kick",
+                "ban",
+                "mute",
+                "tempban",
+                "tempmute",
+                "warn",
+                "pretempban",
+                "pretempmute",
+                "preban",
+                "premute",
+            ]
+        self.relevant_content = (
+            "\n---\n".join(f"{context[key]}" for key in context)
+            if context and context != {}
+            else None
+        )
 
 
 class ModeratorAction(CloudBaseEvent):

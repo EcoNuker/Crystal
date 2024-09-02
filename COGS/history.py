@@ -458,7 +458,8 @@ class history(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private)
             return
 
-        # Create pages, 10 cases per page
+        # Create pages, 8 cases per page
+        num_per_page = 8
         pages = []
         page = []
 
@@ -474,7 +475,7 @@ class history(commands.Cog):
                 "\n"
             )
             page.append(case_info)
-            if (index + 1) % 10 == 0:
+            if (index + 1) % num_per_page == 0:
                 pages.append(page)
                 page = []
 

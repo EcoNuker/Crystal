@@ -902,7 +902,18 @@ class Logging(commands.Cog):
                 embed.add_field(
                     name="Was Message Pinned", value=event.message.pinned, inline=False
                 )
-
+                if event.relevant_content:
+                    embed.add_field(
+                        name="Relevant Context",
+                        value=tools.shorten(event.relevant_content, 1024),
+                        inline=False,
+                    )
+                else:
+                    embed.add_field(
+                        name="Full Message Content",
+                        value=tools.shorten(event.message.content, 1024),
+                        inline=False,
+                    )
             elif isinstance(event, custom_events.BotForbidden):
                 # Create the event embed
                 embed = embeds.Embeds.embed(
@@ -1749,7 +1760,11 @@ class Logging(commands.Cog):
         embed.add_field(name="Message ID", value=event.message.id)
         embed.add_field(
             name="Contents",
-            value=event.message.content[:1024] if event.message.content else "UNKNOWN",
+            value=(
+                tools.shorten(event.message.content, 1024)
+                if event.message.content
+                else "UNKNOWN"
+            ),
             inline=False,
         )
         if server_data.logging.messageChange:
