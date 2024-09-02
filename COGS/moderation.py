@@ -1428,7 +1428,6 @@ class moderation(commands.Cog):
                 ),
                 color=guilded.Color.red(),
             )
-            msg = await ctx.reply(embed=embed, private=ctx.message.private)
             if duration < 1 and (
                 (not isinstance(alr_banned, documents.serverBan))
                 or not alr_banned.endsAt
