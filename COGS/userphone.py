@@ -8,6 +8,8 @@ from guilded.embed import EmptyEmbed
 
 from COGS.automod import would_be_automodded
 
+from DATA.cmd_examples import cmd_ex
+
 from DATA.CONFIGS import CONFIGS
 
 
@@ -221,8 +223,16 @@ class Userphone(commands.Cog):
             except websockets.ConnectionClosedOK:
                 pass
 
+    @cmd_ex.document()
     @commands.command(name="userphone")
     async def start_userphone(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Start a userphone in the current channel.
+        """
         if ctx.message.private:
             return await ctx.reply("Cannot be private.", private=ctx.message.private)
 
@@ -250,8 +260,16 @@ class Userphone(commands.Cog):
         await ctx.send("Userphone session ended.")
         self.active_sessions.pop(ctx.channel.id, None)
 
+    @cmd_ex.document()
     @commands.command(name="disconnect")
     async def disconnect_userphone(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Disconnect from userphone if it's on in the current channel.
+        """
         if ctx.channel.id in self.active_sessions:
             session = self.active_sessions.pop(ctx.channel.id)
             ws = session["ws"]
