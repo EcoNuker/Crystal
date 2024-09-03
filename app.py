@@ -101,7 +101,7 @@ async def startup_event():
     import main
 
     loop = asyncio.get_running_loop()
-    # loop.create_task(main.start_bot())
+    loop.create_task(main.start_bot())
     app.bot = main.bot
     folder = "API"
     if len(os.listdir(folder)) == 0:
