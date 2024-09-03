@@ -86,6 +86,7 @@ async def validate_message(message: dict):
                 "message_id": "...",
                 "nickname": null,
                 "avatar_url": null,
+                "profile_url": null,
                 "content": {
                     "text": "Hello World",
                 }
@@ -101,6 +102,7 @@ async def validate_message(message: dict):
         )
         assert isinstance(message["content"]["text"], str)
         assert (not message["nickname"]) or isinstance(message["nickname"], str)
+        assert (not message["profile_url"]) or isinstance(message["profile_url"], str)
         assert (not message["avatar_url"]) or (
             isinstance(message["avatar_url"], str)
             and (await validate_url(message["avatar_url"], image=True))
@@ -471,6 +473,7 @@ def setup():
                 "message_id": "...",
                 "nickname": null,
                 "avatar_url": null,
+                "profile_url": null,
                 "content": {
                     "text": "Hello World",
                 }

@@ -35,6 +35,7 @@ class Userphone(commands.Cog):
             "message_id": message.id,
             "nickname": None,
             "avatar_url": user_data["avatar_url"],
+            "profile_url": user_data["profile_url"],
             "content": {"text": message.content},
         }
         await ws.send(
@@ -102,6 +103,11 @@ class Userphone(commands.Cog):
                             icon_url=(
                                 message_data["avatar_url"]
                                 if message_data["avatar_url"]
+                                else EmptyEmbed
+                            ),
+                            url=(
+                                message_data["profile_url"]
+                                if message_data["profile_url"]
                                 else EmptyEmbed
                             ),
                         )
@@ -209,6 +215,7 @@ class Userphone(commands.Cog):
                         if event.message.author.avatar
                         else event.message.author.default_avatar.url
                     ),
+                    "profile_url": event.message.author.profile_url,
                 }
                 await self.send_message(ws, event.message, user_data)
             except websockets.ConnectionClosedOK:
