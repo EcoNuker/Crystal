@@ -28,7 +28,8 @@ class Userphone(commands.Cog):
         }
 
         self.uri = "ws://127.0.0.1:6942/v1/userphone/"
-        self.active_sessions = {}
+        if not hasattr(self.bot, "active_userphone_sessions"):
+            self.bot.active_userphone_sessions = {}
 
     async def send_message(self, ws, message: guilded.Message, user_data: dict):
         message_obj = {
@@ -53,7 +54,7 @@ class Userphone(commands.Cog):
 
                 if response_data["code"] == 202:
                     started = True
-                    self.active_sessions[channel.id]["uuid"] = response_data["uuid"]
+                    self.bot.active_userphone_sessions[channel.id]["uuid"] = response_data["uuid"]
                     server_name = response_data["user"]["server"]["name"]
                     channel_name = response_data["user"]["server"]["channel"]
 
@@ -182,10 +183,10 @@ class Userphone(commands.Cog):
                 await ws.send(json.dumps({"code": 200, "user": auth, "detail": "auth"}))
 
             # Start receiving and sending messages
-            self.active_sessions[channel.id] = {"ws": ws, "uuid": uuid}
+            self.bot.active_userphone_sessions[channel.id] = {"ws": ws, "uuid": uuid}
             resp = await self.receive_message(ws, channel)
             if resp == False:
-                self.active_sessions.pop(channel.id, 0)
+                self.bot.active_userphone_sessions.pop(channel.id, 0)
                 try:
                     await ws.close(1001)
                 except:
@@ -196,13 +197,13 @@ class Userphone(commands.Cog):
                     await ws.close(1000)  # unintentional
                 except:
                     pass
-                return self.active_sessions[channel.id]["uuid"]
+                return self.bot.active_userphone_sessions[channel.id]["uuid"]
 
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
-        if event.message.channel.id in self.active_sessions.copy():
+        if event.message.channel.id in self.bot.active_userphone_sessions.copy():
             try:
-                session = self.active_sessions[event.message.channel.id]
+                session = self.bot.active_userphone_sessions[event.message.channel.id]
                 if (
                     event.message.content == ""
                     or event.message.author.id == self.bot.user_id
@@ -236,7 +237,7 @@ class Userphone(commands.Cog):
         if ctx.message.private:
             return await ctx.reply("Cannot be private.", private=ctx.message.private)
 
-        if ctx.channel.id in self.active_sessions:
+        if ctx.channel.id in self.bot.active_userphone_sessions:
             return await ctx.reply(
                 "Userphone already active in this channel.", private=ctx.message.private
             )
@@ -258,7 +259,7 @@ class Userphone(commands.Cog):
             if not uuid:
                 break
         await ctx.send("Userphone session ended.")
-        self.active_sessions.pop(ctx.channel.id, None)
+        self.bot.active_userphone_sessions.pop(ctx.channel.id, None)
 
     @cmd_ex.document()
     @commands.command(name="disconnect")
@@ -270,8 +271,8 @@ class Userphone(commands.Cog):
 
         `{prefix}{qualified_name}` - Disconnect from userphone if it's on in the current channel.
         """
-        if ctx.channel.id in self.active_sessions:
-            session = self.active_sessions.pop(ctx.channel.id)
+        if ctx.channel.id in self.bot.active_userphone_sessions:
+            session = self.bot.active_userphone_sessions.pop(ctx.channel.id)
             ws = session["ws"]
             try:
                 await ws.close(1001)
