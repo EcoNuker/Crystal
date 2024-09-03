@@ -6,6 +6,8 @@ import guilded
 from guilded.ext import commands
 from guilded.embed import EmptyEmbed
 
+from COGS.automod import would_be_automodded
+
 from DATA.CONFIGS import CONFIGS
 
 
@@ -78,18 +80,43 @@ class Userphone(commands.Cog):
                     message_data = response_data["message"]
                     # TODO: store message id so edits and deletions can be mapped
                     content = message_data["content"]["text"]
-                    embed = guilded.Embed(
-                        description=content, color=guilded.Color.purple()
+                    blocked = await would_be_automodded(
+                        content, channel.server, self.bot
                     )
-                    embed.set_author(
-                        name=message_data["name"],
-                        icon_url=(
-                            message_data["avatar_url"]
-                            if message_data["avatar_url"]
-                            else EmptyEmbed
-                        ),
-                    )
-                    await channel.send(embed=embed)
+                    if blocked:
+                        await ws.send(
+                            json.dumps(
+                                {
+                                    "code": 400,
+                                    "message_id": message_data["message_id"],
+                                    "detail": "blocked",
+                                }
+                            )
+                        )
+                    else:
+                        embed = guilded.Embed(
+                            description=content, color=guilded.Color.purple()
+                        )
+                        embed.set_author(
+                            name=message_data["name"],
+                            icon_url=(
+                                message_data["avatar_url"]
+                                if message_data["avatar_url"]
+                                else EmptyEmbed
+                            ),
+                        )
+                        await channel.send(embed=embed)
+                elif response_data["code"] == 415:
+                    if (
+                        response_data["detail"]
+                        == "Message contains content blocked by other user."
+                    ):
+                        msg = await channel.fetch_message(response_data["message_id"])
+
+                        await channel.send(
+                            "Message not sent - blocked by other server automod.",
+                            reply_to=[msg],
+                        )
                 elif response_data["code"] in [404]:
                     return False
                 elif (

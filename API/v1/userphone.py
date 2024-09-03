@@ -275,17 +275,21 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                     )
                             elif data["code"] == 400:
                                 if data["detail"] == "unprocessable":
-                                    {
-                                        "code": 400,
-                                        "detail": "unprocessable",
-                                        "message_id": data["message_id"],
-                                    }
+                                    await other_con.send_json(
+                                        {
+                                            "code": 400,
+                                            "detail": "unprocessable",
+                                            "message_id": data["message_id"],
+                                        }
+                                    )
                                 elif data["detail"] == "blocked":
-                                    {
-                                        "code": 415,
-                                        "detail": "Message contains content blocked by other user.",
-                                        "message_id": data["message_id"],
-                                    }
+                                    await other_con.send_json(
+                                        {
+                                            "code": 415,
+                                            "detail": "Message contains content blocked by other user.",
+                                            "message_id": data["message_id"],
+                                        }
+                                    )
                         except (AssertionError, KeyError, TypeError):
                             try:
                                 await cur_con.send_json(

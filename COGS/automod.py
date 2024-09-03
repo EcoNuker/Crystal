@@ -22,6 +22,238 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # TODO: toggle custom rules (disable/enable rule)
 
 
+async def would_be_automodded(content: str, server: guilded.Server, bot: commands.Bot):
+    default_slurs = []
+    for rule in regexes.slurs:
+        newrule = automodRule(
+            author=bot.user.id,
+            rule=rule,
+            regex=True,
+            custom_reason="**[Anti-Slurs Module]** This user has violated the server's automod anti-slurs module. (`{MATCH}`)",
+            extra_data={"check_leetspeak": True},
+        )
+        newrule.punishment.action = "warn"
+        default_slurs.append(newrule)
+
+    default_profanity = []
+    for rule in regexes.profanity:
+        newrule = automodRule(
+            author=bot.user.id,
+            rule=rule,
+            regex=True,
+            custom_reason="**[Anti-Profanity Module]** This user has violated the server's automod anti-profanity module. (`{MATCH}`)",
+            extra_data={"check_leetspeak": True},
+        )
+        newrule.punishment.action = "warn"
+        default_profanity.append(newrule)
+
+    default_invites = []
+    for rule in regexes.invites:
+        newrule = automodRule(
+            author=bot.user.id,
+            rule=rule,
+            regex=True,
+            custom_reason="**[Anti-Invites Module]** This user has violated the server's automod anti-invites module. (`{MATCH}`)",
+        )
+        newrule.punishment.action = "warn"
+        default_invites.append(newrule)
+
+    modded = False
+
+    server_data = await Server.find_one(Server.serverId == server.id)
+    if not server_data:
+        server_data = Server(serverId=server.id)
+        await server_data.save()
+    if not server_data.data.automodSettings.enabled:
+        return modded
+
+    USING_RULES: List[automodRule] = []
+    USING_RULES.extend(server_data.data.automodRules)
+    if server_data.data.automodModules.slurs:
+        USING_RULES.extend(default_slurs)
+    if server_data.data.automodModules.profanity:
+        USING_RULES.extend(default_profanity)
+
+    if USING_RULES != []:
+
+        def process_rule(
+            rule: automodRule,
+            message_content: str,
+            o_message_content: str,
+            message_before_content: str = None,
+        ):
+            if rule.regex:
+                orule = ""
+                match_rule = rule.rule
+            else:
+                orule = rule.rule
+                match_rule = regexes.allow_seperators(
+                    regexes.generate_regex(rule.rule, plural=True)
+                )
+
+            # Perform the regex search
+            mtch = re2.search(match_rule, message_content)
+            mtch2 = re2.search(match_rule, o_message_content)
+            if mtch:
+                mtch = [mtch.group()]
+            elif mtch2:
+                mtch = [mtch2.group()]
+            else:
+                mtch = None
+            if mtch and (len(o_message_content) == len(message_content)):
+                try:
+                    i = message_content.index(mtch[0])
+                    mtch = [o_message_content[i : i + len(mtch[0])]]
+                except:
+                    pass
+            if rule.enabled and mtch:
+                # if (
+                #     message_before_content
+                #     and message_content[
+                #         re2.search(rule.rule, message_content)
+                #         .start() : re2.search(rule.rule, message_content)
+                #         .end()
+                #     ]
+                #     in message_before_content
+                # ):
+                #     return None  # Skip this rule if it matches the condition
+                if rule.extra_data.get(
+                    "check_leetspeak"
+                ):  # over 40% numbers in match is probably not leetspeak, or nearly unreadable
+                    forty_percent_numbers = (
+                        lambda s: len(s) > 0
+                        and (sum(c.isdigit() for c in s) / len(s)) > 0.4
+                    )
+                    safe = True
+                    to_delete = []
+                    for i, m in enumerate(mtch):
+                        if forty_percent_numbers(m):
+                            to_delete.append(i)
+                        else:
+                            safe = False
+                    if safe:
+                        return None
+                    to_delete.reverse()
+                    for index in to_delete:
+                        del mtch[index]
+                extras = (
+                    regexes.seperators.replace("\\s", string.whitespace).replace(
+                        "\\", ""
+                    )
+                    if not any(
+                        char in orule
+                        for char in [
+                            *regexes.seperators.replace(
+                                "\\s", string.whitespace
+                            ).replace("\\", "")
+                        ]
+                    )
+                    else string.whitespace
+                )
+                return (
+                    rule.rule,
+                    [
+                        rule,
+                        [m.strip(extras) for m in mtch],
+                    ],
+                )
+            return None
+
+        def parallel_regex_search(USING_RULES: List[automodRule], content: str):
+            matches = {}
+
+            o_message_content = content
+            message_content = unicodedata.normalize("NFC", content)
+            message_content = regexes.CHARS.attempt_clean_zalgo(message_content.lower())
+            message_content = regexes.CHARS.replace_doubled_chars(message_content)
+
+            # Create a ThreadPoolExecutor to run tasks in parallel
+            with ThreadPoolExecutor(max_workers=2048) as executor:
+                # Submit tasks to the executor
+                futures = {
+                    executor.submit(
+                        process_rule,
+                        rule,
+                        message_content,
+                        o_message_content,
+                        None,
+                    ): rule
+                    for rule in USING_RULES
+                }
+
+                # Process completed futures
+                for future in as_completed(futures):
+                    result = future.result()
+                    if result:
+                        rule_key, match_result = result
+                        matches[rule_key] = match_result
+            return matches
+
+        matches = parallel_regex_search(USING_RULES, content)
+        if matches:
+            modded = True
+        elif server_data.data.automodModules.invites:
+            i = 0
+            i_matched = False
+            for rule in default_invites:
+                mtch = re2.search(rule.rule, content)
+                if mtch:
+                    mtch = [mtch.group()]
+                else:
+                    mtch = []
+
+                if rule.enabled and mtch:
+
+                    def is_excluded(match, exclusions):
+                        # Check against slugs
+                        for exclusion in exclusions.get("slugs", []):
+                            if re2.search(rf"(?i){re2.escape(exclusion)}($|/)", match):
+                                return True
+
+                        # Check against subdomains
+                        for exclusion in exclusions.get("subdomains", []):
+                            # Match exclusion as a subdomain within the string
+                            if re2.search(
+                                rf"(?i)(http|https)?(:\/.)?\b{exclusion}\.", match
+                            ):
+                                return True
+
+                        return False
+
+                    if i == 0:
+                        c_exclusions = regexes.invites_exclusions["guilded"]
+                        c_exclusions["slugs"] += ["/" + server.slug]
+                        if is_excluded(
+                            mtch[0],
+                            c_exclusions,
+                        ):
+                            continue
+                    elif i == 1:
+                        if is_excluded(mtch[0], regexes.invites_exclusions["discord"]):
+                            continue
+                    elif i == 2:
+                        if is_excluded(mtch[0], regexes.invites_exclusions["revolt"]):
+                            continue
+                    rule_key, match_result = rule.rule, [rule, mtch]
+                    matches[rule_key] = match_result
+                    i += 1
+                    i_matched = True
+            if i_matched:
+                modded = True
+        if matches == {}:
+            return modded
+        try:
+            for key, mtchs in matches.copy().items():
+                if mtchs[1][0].strip() == "":
+                    del matches[key]
+            if matches == {}:
+                return modded
+            modded = True
+            return modded
+        except:
+            return False
+
+
 async def toggle_module(
     server_id: str, module: str, specific: bool | None = None, logged: bool = False
 ) -> bool | None:
