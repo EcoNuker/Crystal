@@ -1,6 +1,7 @@
+import datetime
 import asyncio, time
 import json
-import websockets
+import websockets, aiohttp
 
 import guilded
 from guilded.ext import commands
@@ -9,6 +10,7 @@ from guilded.embed import EmptyEmbed
 from COGS.automod import would_be_automodded
 
 from DATA.cmd_examples import cmd_ex
+from DATA import tools
 
 from DATA.CONFIGS import CONFIGS
 
@@ -30,6 +32,39 @@ class Userphone(commands.Cog):
         self.uri = "ws://127.0.0.1:6942/v1/userphone/"
         if not hasattr(self.bot, "active_userphone_sessions"):
             self.bot.active_userphone_sessions = {}
+
+        asyncio.create_task(self.restart_sessions())
+
+    async def find_first_image_or_gif(self, message_content):
+        matches = tools.image_regex.findall(message_content)
+
+        async with aiohttp.ClientSession() as session:
+            for url in matches:
+                async with session.get(url) as response:
+                    content_type = response.headers.get("Content-Type", "").lower()
+                    if "image" in content_type or "gif" in content_type:
+                        return url
+        return None
+
+    async def restart_sessions(self):
+        # attempt to reconnect every session
+        for session in self.bot.active_userphone_sessions:
+            channel = session["channel"]
+            connection_details = json.loads(json.dumps(self.USER_DATA))
+            connection_details["server"] = {
+                "name": channel.server.name,
+                "channel": channel.name,
+                "icon_url": channel.server.icon.url if channel.server.icon else None,
+                "description": channel.server.description,
+            }
+
+            uuid = session["uuid"]
+            while True:
+                uuid = await self.userphone_client(uuid, channel, connection_details)
+                if not uuid:
+                    break
+            await channel.send("Userphone session ended.")
+            self.bot.active_userphone_sessions.pop(channel.id, None)
 
     async def send_message(self, ws, message: guilded.Message, user_data: dict):
         message_obj = {
@@ -54,13 +89,15 @@ class Userphone(commands.Cog):
 
                 if response_data["code"] == 202:
                     started = True
-                    self.bot.active_userphone_sessions[channel.id]["uuid"] = response_data["uuid"]
+                    self.bot.active_userphone_sessions[channel.id]["uuid"] = (
+                        response_data["uuid"]
+                    )
                     server_name = response_data["user"]["server"]["name"]
                     channel_name = response_data["user"]["server"]["channel"]
 
                     embed = guilded.Embed(
                         title="Connected",
-                        description=f"Connected to **{server_name} - #{channel_name}**",
+                        description=f"Connected to **{server_name} - (#{channel_name})**",
                         color=guilded.Color.purple(),
                     )
                     embed.set_author(
@@ -98,9 +135,16 @@ class Userphone(commands.Cog):
                             )
                         )
                     else:
+                        image = await self.find_first_image_or_gif(content)
+                        content = await tools.format_for_embed(
+                            message_content=content, bot=self.bot
+                        )
                         embed = guilded.Embed(
                             description=content, color=guilded.Color.purple()
                         )
+                        if image:
+                            embed.set_image(url=image)
+                        embed.timestamp = datetime.datetime.now()
                         embed.set_author(
                             name=message_data["name"],
                             icon_url=(
@@ -183,7 +227,11 @@ class Userphone(commands.Cog):
                 await ws.send(json.dumps({"code": 200, "user": auth, "detail": "auth"}))
 
             # Start receiving and sending messages
-            self.bot.active_userphone_sessions[channel.id] = {"ws": ws, "uuid": uuid}
+            self.bot.active_userphone_sessions[channel.id] = {
+                "ws": ws,
+                "uuid": uuid,
+                "channel": channel,
+            }
             resp = await self.receive_message(ws, channel)
             if resp == False:
                 self.bot.active_userphone_sessions.pop(channel.id, 0)
