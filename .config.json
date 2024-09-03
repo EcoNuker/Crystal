@@ -17,8 +17,12 @@
 
     "api": {
         "port": 6942,
-        "secret_key": "Your secret key",
         "CARDBOARD_CLIENT_ID": "CARDBOARD_CLIENT_ID",
-        "CARDBOARD_SECRET": "CARDBOARD_SECRET"
+        "CARDBOARD_SECRET": "CARDBOARD_SECRET",
+        "userphone_auth": "CRYSTAL_USERPHONE_AUTH"
+    },
+    
+    "userphone_auth": {
+        "daOBjZZA": "https://nobsmarketplace.com/resources/tools/wpa-encryption-key-generator/ :) too lazy to make own password stuff"
     }
 }

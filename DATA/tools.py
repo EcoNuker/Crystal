@@ -16,6 +16,7 @@ from DATA.TIMESPAN_PARSER import parse as parse_timespan
 from typing import List, Union, Optional
 
 from DATA import custom_events
+from DATA.CONFIGS import CONFIGS
 
 import documents
 
@@ -149,6 +150,32 @@ class TimespanConverter(Converter[float]):
 
     async def convert(self, ctx: commands.Context, argument: str):
         return parse_timespan(argument, raise_exception=True)
+
+
+def userphone_authorize(user: dict):
+    """
+    {
+        "authentication": "...",
+        "name": "Crystal",
+        "id": "daOBjZZA",
+        "description": null,
+        "avatar_url": null,
+        "server": {
+            "name": "Codeverse",
+            "channel": "general",
+            "icon_url": null,
+            "description": null
+        }
+    }
+    """
+    valid = CONFIGS.USERPHONE.data
+    if user["id"] in valid:
+        try:
+            assert valid[user["id"]] == user["authentication"]
+            return True
+        except AssertionError:
+            return False
+    return False
 
 
 def channel_is_messageable(channel: guilded.abc.ServerChannel):

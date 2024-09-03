@@ -18,7 +18,7 @@ class CrystalFastAPI(FastAPI):
 app = CrystalFastAPI(debug=api_debug_mode)
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 # templates = Jinja2Templates(directory="templates")
-app.add_middleware(SessionMiddleware, secret_key=CONFIGS.API.secret_key)
+# app.add_middleware(SessionMiddleware, secret_key=CONFIGS.API.secret_key)
 cardboard = CardboardAsync(
     client_id=CONFIGS.API.CARDBOARD_CLIENT_ID, secret=CONFIGS.API.CARDBOARD_SECRET
 )
@@ -55,7 +55,7 @@ def loadRoutes(folder, main, cleanup: bool = True):
                     route.setup()
                     app.include_router(route.router)
                     main.bot.print(
-                        f"{main.bot.COLORS.cog_logs}[API] {main.bot.COLORS.normal_message}Loaded Route {main.bot.COLORS.item_name}{folder}"
+                        f"{main.bot.COLORS.cog_logs}[API] {main.bot.COLORS.normal_message}Loaded Route {main.bot.COLORS.item_name}{(folder + '.' + route_name.strip('.'))}"
                     )
                 else:
                     route = importlib.import_module(route_name)
@@ -101,7 +101,7 @@ async def startup_event():
     import main
 
     loop = asyncio.get_running_loop()
-    loop.create_task(main.start_bot())
+    # loop.create_task(main.start_bot())
     app.bot = main.bot
     folder = "API"
     if len(os.listdir(folder)) == 0:

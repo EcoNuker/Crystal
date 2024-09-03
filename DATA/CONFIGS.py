@@ -26,11 +26,16 @@ class _CONFIGS:
             def __init__(self, configdata):
                 self._data = configdata["api"]
                 self.port = self._data["port"]
-                self.secret_key = self._data["secret_key"]
+                self.userphone_auth = self._data["userphone_auth"]
                 self.CARDBOARD_CLIENT_ID = self._data["CARDBOARD_CLIENT_ID"]
                 self.CARDBOARD_SECRET = self._data["CARDBOARD_SECRET"]
 
+        class userphone:
+            def __init__(self, configdata):
+                self.data = configdata["userphone_auth"]
+
         self.API = api(configdata)
+        self.USERPHONE = userphone(configdata)
 
 
 CONFIGS = _CONFIGS(None, None)

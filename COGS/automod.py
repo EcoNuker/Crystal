@@ -479,9 +479,10 @@ class AutoModeration(commands.Cog):
                 matches = parallel_regex_search(USING_RULES, message, messageBefore)
                 if matches:
                     to_be_modded_msgs.append(message)
-            msgs, add_matches, msg_contexts = combined_regex_search(
-                USING_RULES, self.ch_prev_messages[message.channel_id]
-            )
+            # msgs, add_matches, msg_contexts = combined_regex_search(
+            #     USING_RULES, self.ch_prev_messages[message.channel_id]
+            # )
+            msgs, add_matches, msg_contexts = [], {}, {}  # TODO: fix
             if len(msgs) == 1 and msgs[0] == message:
                 msg_contexts = {}
             else:
