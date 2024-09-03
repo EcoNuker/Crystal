@@ -151,8 +151,16 @@ class Userphone(commands.Cog):
             resp = await self.receive_message(ws, channel)
             if resp == False:
                 self.active_sessions.pop(channel.id, 0)
+                try:
+                    await ws.close(1001)
+                except:
+                    pass
                 return None
             else:
+                try:
+                    await ws.close(1000)  # unintentional
+                except:
+                    pass
                 return self.active_sessions[channel.id]["uuid"]
 
     @commands.Cog.listener()
@@ -213,7 +221,10 @@ class Userphone(commands.Cog):
         if ctx.channel.id in self.active_sessions:
             session = self.active_sessions.pop(ctx.channel.id)
             ws = session["ws"]
-            await ws.close(1001)
+            try:
+                await ws.close(1001)
+            except:
+                pass
             await ctx.send("Userphone session disconnected.")
         else:
             await ctx.send("No active userphone session found in this channel.")
