@@ -7,7 +7,7 @@ class _CONFIGS:
     """
 
     def __init__(self, errors_dir, cogspath):
-        with open(f"config.json", "r") as config:
+        with open(f"config.json", "r", encoding="utf-8") as config:
             configdata = json.load(config)
         self.version: str = configdata["version"]
         self.database_url: str = configdata["database"]

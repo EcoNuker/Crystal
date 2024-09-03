@@ -179,119 +179,122 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                     await cur_con.send_json(message)
                 message_queue[con_name] = []
             while True:
-                if other_con == None:
-                    other_con = pairings.get(uuid_str, {}).get(
-                        other_con_name, {"ws": None}
-                    )["ws"]
-                if cur_con.application_state == 2:
-                    msg = 1000
-                else:
-                    msg = await receive_with_timeout(
-                        cur_con, timeout=1, disconnect_code=True
-                    )
-                if disconnect_flag and not allow_reconnect:
-                    await close(
-                        cur_con, 1001
-                    )  # we assume 1001. Anything else should be handled already when the flag is set.
-                    return None
-                else:  # other side disconnected
-                    other_con = pairings.get(uuid_str, {}).get(
-                        other_con_name, {"ws": None}
-                    )[
-                        "ws"
-                    ]  # None
-                if not pairings.get(uuid_str):
-                    msg == 1001
-                if type(msg) == int:
-                    if msg == 1001:  # intentional disconnect
-                        disconnect_flag = True
-                        await close(cur_con, 1001)
-                        await close(other_con, 1001)
-                        return None
-                    # anything else is unintentional
-                    if disconnect_flag:
-                        allow_reconnect = False  # both sides have unintentionally disconnected, don't allow either to reconnect.
-                        await close(cur_con, 1001)
-                        await close(other_con, 1001)
-                        return None
+                try:
+                    if other_con == None:
+                        other_con = pairings.get(uuid_str, {}).get(
+                            other_con_name, {"ws": None}
+                        )["ws"]
+                    if cur_con.application_state == 2:
+                        msg = 1000
                     else:
-                        disconnect_flag = True
-                        allow_reconnect = True
-                    await other_con.send_json(
-                        {
-                            "code": 418,
-                            "detail": "Other user disconnected unintentionally. Wait for possible reconnect.",
-                            "time": reconnect_time,
-                        }
-                    )
-                    return False
-                elif msg == None:  # timeout
-                    if time.time() > last_success + 120:  # time limit exceeded
-                        disconnect_flag = True
-                        await close(cur_con, 3008)
-                        await close(other_con, 3008)
-                        return None
-                else:
-                    try:
-                        data = json.loads(msg)
-                        assert data["code"] in [200, 400] and (
-                            (
-                                data["message"]
-                                and data["detail"] == "message"
-                                and (await validate_message(data["message"]))
-                            )
-                            if data["code"] == 200
-                            else (
-                                data["message_id"]
-                                and data["detail"] in ["blocked", "unprocessable"]
-                            )
+                        msg = await receive_with_timeout(
+                            cur_con, timeout=1, disconnect_code=True
                         )
-                        # TODO: check if message id was already sent, and if 400, verify it's a valid message id from opposing side
-                        if data["code"] == 200:
-                            await cur_con.send_json(
-                                {
-                                    "code": 201,
-                                    "detail": "Message sent.",
-                                    "message_id": data["message"]["message_id"],
-                                }
-                            )
-                            last_success = time.time()
-                            if not disconnect_flag:
-                                await other_con.send_json(
-                                    {
-                                        "code": 200,
-                                        "detail": "Message received.",
-                                        "message": data["message"],
-                                    }
-                                )
-                            else:
-                                message_queue[other_con_name].append(
-                                    {
-                                        "code": 200,
-                                        "detail": "Message received.",
-                                        "message": data["message"],
-                                    }
-                                )
-                        elif data["code"] == 400:
-                            if data["detail"] == "unprocessable":
-                                {
-                                    "code": 400,
-                                    "detail": "unprocessable",
-                                    "message_id": data["message_id"],
-                                }
-                            elif data["detail"] == "blocked":
-                                {
-                                    "code": 415,
-                                    "detail": "Message contains content blocked by other user.",
-                                    "message_id": data["message_id"],
-                                }
-                    except (AssertionError, KeyError, TypeError):
+                    if disconnect_flag and not allow_reconnect:
+                        await close(
+                            cur_con, 1001
+                        )  # we assume 1001. Anything else should be handled already when the flag is set.
+                        return None
+                    else:  # other side disconnected
+                        other_con = pairings.get(uuid_str, {}).get(
+                            other_con_name, {"ws": None}
+                        )[
+                            "ws"
+                        ]  # None
+                    if not pairings.get(uuid_str):
+                        msg == 1001
+                    if type(msg) == int:
+                        if msg == 1001:  # intentional disconnect
+                            disconnect_flag = True
+                            await close(cur_con, 1001)
+                            await close(other_con, 1001)
+                            return None
+                        # anything else is unintentional
+                        if disconnect_flag:
+                            allow_reconnect = False  # both sides have unintentionally disconnected, don't allow either to reconnect.
+                            await close(cur_con, 1001)
+                            await close(other_con, 1001)
+                            return None
+                        else:
+                            disconnect_flag = True
+                            allow_reconnect = True
+                        await other_con.send_json(
+                            {
+                                "code": 418,
+                                "detail": "Other user disconnected unintentionally. Wait for possible reconnect.",
+                                "time": reconnect_time,
+                            }
+                        )
+                        return False
+                    elif msg == None:  # timeout
+                        if time.time() > last_success + 120:  # time limit exceeded
+                            disconnect_flag = True
+                            await close(cur_con, 3008)
+                            await close(other_con, 3008)
+                            return None
+                    else:
                         try:
-                            await cur_con.send_json(
-                                {"code": 400, "detail": "invalid_content"}
+                            data = json.loads(msg)
+                            assert data["code"] in [200, 400] and (
+                                (
+                                    data["message"]
+                                    and data["detail"] == "message"
+                                    and (await validate_message(data["message"]))
+                                )
+                                if data["code"] == 200
+                                else (
+                                    data["message_id"]
+                                    and data["detail"] in ["blocked", "unprocessable"]
+                                )
                             )
-                        except:
-                            pass
+                            # TODO: check if message id was already sent, and if 400, verify it's a valid message id from opposing side
+                            if data["code"] == 200:
+                                await cur_con.send_json(
+                                    {
+                                        "code": 201,
+                                        "detail": "Message sent.",
+                                        "message_id": data["message"]["message_id"],
+                                    }
+                                )
+                                last_success = time.time()
+                                if not disconnect_flag:
+                                    await other_con.send_json(
+                                        {
+                                            "code": 200,
+                                            "detail": "Message received.",
+                                            "message": data["message"],
+                                        }
+                                    )
+                                else:
+                                    message_queue[other_con_name].append(
+                                        {
+                                            "code": 200,
+                                            "detail": "Message received.",
+                                            "message": data["message"],
+                                        }
+                                    )
+                            elif data["code"] == 400:
+                                if data["detail"] == "unprocessable":
+                                    {
+                                        "code": 400,
+                                        "detail": "unprocessable",
+                                        "message_id": data["message_id"],
+                                    }
+                                elif data["detail"] == "blocked":
+                                    {
+                                        "code": 415,
+                                        "detail": "Message contains content blocked by other user.",
+                                        "message_id": data["message_id"],
+                                    }
+                        except (AssertionError, KeyError, TypeError):
+                            try:
+                                await cur_con.send_json(
+                                    {"code": 400, "detail": "invalid_content"}
+                                )
+                            except:
+                                pass
+                except RuntimeError:
+                    msg = 1001
 
         async def send_and_receive_reconnect(
             cur_con: WebSocket, other_con: WebSocket, con_name: str, other_con_name: str
@@ -302,10 +305,7 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                     cur_con, other_con, con_name, other_con_name
                 )
                 if res == None:
-                    try:
-                        del pairings[uuid_str]
-                    except KeyError:
-                        pass
+                    pairings.pop(uuid_str, 0)
                     break
                 elif res == False:  # reconnect
                     pairings[uuid_str][con_name]["ws"] = None
@@ -342,7 +342,7 @@ async def keep_alive(ws: WebSocket):
             elif msg == False:
                 websocket_locks.pop(ws, 0)
                 try:
-                    del active_connections[ws]
+                    active_connections.pop(ws, 0)
                     await ws.close(1001)
                 except:
                     pass
@@ -353,7 +353,10 @@ async def keep_alive(ws: WebSocket):
             else:
                 count += 1
     except WebSocketDisconnect:
-        del active_connections[ws]
+        active_connections.pop(ws, 0)
+        websocket_locks.pop(ws, 0)
+    except RuntimeError:
+        active_connections.pop(ws, 0)
         websocket_locks.pop(ws, 0)
 
 
@@ -391,7 +394,7 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
                 {
                     "code": 202,
                     "detail": "Connected.",
-                    "user": con2_details_censored,
+                    "user": con2_details_censored["user"],
                     "uuid": uuid_str,
                 }
             )
@@ -399,7 +402,7 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
                 {
                     "code": 202,
                     "detail": "Connected.",
-                    "user": con1_details_censored,
+                    "user": con1_details_censored["user"],
                     "uuid": uuid_str,
                 }
             )
@@ -501,7 +504,8 @@ def setup():
                     )
                     assert tools.userphone_authorize(msg["user"])
                     # TODO: reject same channel (or server) already in queue
-                except:
+                except Exception as e:
+                    raise e
                     msg = False
             if not msg:
                 if msg == None:
@@ -599,7 +603,7 @@ def setup():
                 {
                     "code": 202,
                     "detail": "Connected.",
-                    "user": con2_details_censored,
+                    "user": con2_details_censored["user"],
                     "uuid": id,
                 }
             )
@@ -607,7 +611,7 @@ def setup():
                 {
                     "code": 202,
                     "detail": "Connected.",
-                    "user": con1_details_censored,
+                    "user": con1_details_censored["user"],
                     "uuid": id,
                 }
             )
