@@ -94,7 +94,7 @@ async def validate_message(message: dict):
     ```
     """
     try:
-        assert len(message.keys()) == 6 and len(message["content"].keys()) == 1
+        assert len(message.keys()) == 7 and len(message["content"].keys()) == 1
         assert (
             isinstance(message["name"], str)
             and isinstance(message["id"], str)
