@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, time
 import json
 import websockets
 
@@ -40,12 +40,14 @@ class Userphone(commands.Cog):
         )
 
     async def receive_message(self, ws, channel: guilded.ChatChannel):
+        started = time.time()
         while True:
             try:
                 response = await ws.recv()
                 response_data = json.loads(response)
 
                 if response_data["code"] == 202:
+                    started = True
                     self.active_sessions[channel.id]["uuid"] = response_data["uuid"]
                     server_name = response_data["user"]["server"]["name"]
                     channel_name = response_data["user"]["server"]["channel"]
@@ -90,6 +92,14 @@ class Userphone(commands.Cog):
                     await channel.send(embed=embed)
                 elif response_data["code"] in [404]:
                     return False
+                elif (
+                    response_data["code"] == 200
+                    and response_data["detail"] == "not_connected"
+                ):
+                    if (
+                        started is not True
+                    ) and time.time() - started > 300:  # 5 min no connection.
+                        return False
                 else:  # We don't handle anything else yet
                     print(f"Server response: {response_data}")
 
@@ -179,7 +189,9 @@ class Userphone(commands.Cog):
                 "Userphone already active in thsi channel.", private=ctx.message.private
             )
 
-        await ctx.reply("Searching for userphone...")
+        await ctx.reply(
+            "Searching for userphone... If no connection is found in 5 minutes this will automatically fail."
+        )
         connection_details = json.loads(json.dumps(self.USER_DATA))
         connection_details["server"] = {
             "name": ctx.server.name,
