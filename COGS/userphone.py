@@ -238,7 +238,7 @@ class Userphone(commands.Cog):
 
         if ctx.channel.id in self.active_sessions:
             return await ctx.reply(
-                "Userphone already active in thsi channel.", private=ctx.message.private
+                "Userphone already active in this channel.", private=ctx.message.private
             )
 
         await ctx.reply(
