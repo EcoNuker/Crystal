@@ -7,6 +7,11 @@ class _CONFIGS:
     """
 
     def __init__(self, errors_dir, cogspath):
+        self.error_logs_dir = errors_dir
+        self.cogs_dir = cogspath
+        self.load()
+
+    def load(self):
         with open(f"config.json", "r", encoding="utf-8") as config:
             configdata = json.load(config)
         self.version: str = configdata["version"]
@@ -19,8 +24,6 @@ class _CONFIGS:
         self.defaultprefix: str = configdata["default_prefix"]
         self.owners: list = configdata["owners"]
         self.join_leave_logs: str | None = configdata["server_join_leave"]
-        self.error_logs_dir = errors_dir
-        self.cogs_dir = cogspath
 
         class api:
             def __init__(self, configdata):

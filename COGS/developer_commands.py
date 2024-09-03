@@ -8,10 +8,25 @@ from sys import modules
 from DATA import embeds
 from DATA import tools
 
+from DATA.CONFIGS import CONFIGS
+
 
 class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    @commands.command(name="reload_config", description="reload da config")
+    async def tab(self, ctx: commands.Context, user: tools.UserConverter = None):
+        if not ctx.author.id in self.bot.owner_ids:
+            return
+
+        CONFIGS.load()
+
+        em = embeds.Embeds.embed(
+            description=f"Reloaded configs.",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=em, private=ctx.message.private)
 
     @commands.command(name="toggle_auto_bypass", description="Auto-bypass everything.")
     async def tab(self, ctx: commands.Context, user: tools.UserConverter = None):
