@@ -104,8 +104,8 @@ class Userphone(commands.Cog):
         - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect ✅ (handles connect only)
         - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - operation one of "message_edit", "message", "message_delete" ✅
         - `{"code": 200, "detail": "Message received.", "message": {...}}` ✅
-        - `{"code": 200, "detail": "Message edited.", "message": {...}}`
-        - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
+        - `{"code": 200, "detail": "Message edited.", "message": {...}}` ✅
+        - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}` ✅
         - `{"code": 400, "detail": "not_connected"}` ✅
         - `{"code": 400, "detail": "unprocessable", "message_id": "..."}` ✅
         - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server) ✅
@@ -172,26 +172,9 @@ class Userphone(commands.Cog):
                         )
                     await channel.send(embed=embed)
 
-                elif (
-                    response_data["code"] == 200
-                    and response_data["detail"] == "Message received."
-                ):
-                    message_data = response_data["message"]
-                    content = message_data["content"]["text"]
-                    blocked = await would_be_automodded(
-                        content, channel.server, self.bot
-                    )
-                    if blocked:
-                        await ws.send(
-                            json.dumps(
-                                {
-                                    "code": 400,
-                                    "message_id": message_data["message_id"],
-                                    "detail": "blocked",
-                                }
-                            )
-                        )
-                    else:
+                elif response_data["code"] == 200:
+
+                    async def get_embed(content, message_data):
                         image = await self.find_first_image_or_gif(content)
                         content = await tools.format_for_embed(
                             message_content=content, bot=self.bot
@@ -215,19 +198,58 @@ class Userphone(commands.Cog):
                                 else EmptyEmbed
                             ),
                         )
-                        our_message = await channel.send(
-                            embed=embed,
-                            silent=True,
-                            reply_to=[
-                                self.bot.active_userphone_sessions[channel.id][
-                                    "message_id_map"
-                                ].get(msg_id)
-                                for msg_id in message_data["reply_ids"]
-                            ],
+                        return embed
+
+                    if response_data["detail"] == "Message deleted.":
+                        try:
+                            await self.bot.active_userphone_sessions[channel.id][
+                                "message_id_map"
+                            ].pop(response_data["message_id"]).delete()
+                        except:
+                            pass  # it's gone.
+                    if response_data["detail"] == "Message edited.":
+                        try:
+                            message_data = response_data["message"]
+                            content = message_data["content"]["text"]
+                            embed = await get_embed(content, message_data)
+                            await self.bot.active_userphone_sessions[channel.id][
+                                "message_id_map"
+                            ].pop(response_data["message_id"]).edit(embed=embed)
+                        except:
+                            pass  # it's gone.
+                    if response_data["detail"] == "Message received.":
+                        message_data = response_data["message"]
+                        content = message_data["content"]["text"]
+                        blocked = await would_be_automodded(
+                            content, channel.server, self.bot
                         )
-                        self.bot.active_userphone_sessions[channel.id][
-                            "message_id_map"
-                        ][message_data["message_id"]] = our_message
+                        if blocked:
+                            await ws.send(
+                                json.dumps(
+                                    {
+                                        "code": 400,
+                                        "message_id": message_data["message_id"],
+                                        "detail": "blocked",
+                                    }
+                                )
+                            )
+                        else:
+                            message_data = response_data["message"]
+                            content = message_data["content"]["text"]
+                            embed = await get_embed(content, message_data)
+                            our_message = await channel.send(
+                                embed=embed,
+                                silent=True,
+                                reply_to=[
+                                    self.bot.active_userphone_sessions[channel.id][
+                                        "message_id_map"
+                                    ].get(msg_id)
+                                    for msg_id in message_data["reply_ids"]
+                                ],
+                            )
+                            self.bot.active_userphone_sessions[channel.id][
+                                "message_id_map"
+                            ][message_data["message_id"]] = our_message
 
                 elif response_data["code"] in [415, 400] and response_data[
                     "detail"
@@ -334,7 +356,7 @@ class Userphone(commands.Cog):
         ```
         """
 
-        async def begin(self):
+        async def begin():
             self.bot.active_userphone_sessions[channel.id] = {
                 "ws": ws,
                 "uuid": uuid,
@@ -374,9 +396,9 @@ class Userphone(commands.Cog):
                         json.dumps({"code": 200, "user": auth, "detail": "auth"})
                     )
 
-                return await begin(self)
+                return await begin()
         else:
-            return await begin(self)
+            return await begin()
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -385,7 +407,22 @@ class Userphone(commands.Cog):
                 session = self.bot.active_userphone_sessions[event.message.channel.id]
                 if not session["connected"]:
                     return
-                if event.message.author_id == self.bot.user_id:  # Ignore self deletes.
+                if (
+                    event.message.author_id == self.bot.user_id
+                ):  # Specially handle self deletes.
+                    message_map = self.bot.active_userphone_sessions[event.channel_id][
+                        "message_id_map"
+                    ]
+
+                    key_to_delete = next(
+                        (k for k, v in message_map.items() if v == event.message_id),
+                        None,
+                    )
+
+                    if key_to_delete is not None:
+                        self.bot.active_userphone_sessions[event.channel_id][
+                            "message_id_map"
+                        ].pop(key_to_delete)
                     return
                 if (
                     event.message.created_at.timestamp() < session["connected"]
