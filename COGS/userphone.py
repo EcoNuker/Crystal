@@ -144,7 +144,6 @@ class Userphone(commands.Cog):
                         )
                         if image:
                             embed.set_image(url=image)
-                        embed.timestamp = datetime.datetime.now()
                         embed.set_author(
                             name=message_data["name"],
                             icon_url=(
