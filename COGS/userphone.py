@@ -77,7 +77,10 @@ class Userphone(commands.Cog):
             task = asyncio.create_task(self.userphone_session(session))
             self.session_tasks.append(task)
 
-    async def send_message(self, ws, message: guilded.Message, user_data: dict):
+    async def send_message(
+        self, ws, message: guilded.Message, user_data: dict, type: str
+    ):
+        assert type in ["message", "message_edit"]
         message_obj = {
             "name": user_data["name"],
             "id": user_data["id"],
@@ -87,22 +90,54 @@ class Userphone(commands.Cog):
             "profile_url": user_data["profile_url"],
             "content": {"text": message.content},
         }
-        await ws.send(
-            json.dumps({"code": 200, "message": message_obj, "detail": "message"})
-        )
+        await ws.send(json.dumps({"code": 200, "message": message_obj, "detail": type}))
 
     async def receive_message(self, ws, channel: guilded.ChatChannel):
-        started = time.time()
+        """
+        Client Receives:
+        - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}` ✅
+        - `{"code": 200, "detail": "not_connected"}` - while waiting ✅
+        - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect ✅ (handles connect only)
+        - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - operation one of "message_edit", "message", "message_delete" ✅
+        - `{"code": 200, "detail": "Message received.", "message": {...}}` ✅
+        - `{"code": 200, "detail": "Message edited.", "message": {...}}`
+        - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
+        - `{"code": 400, "detail": "not_connected"}` ✅
+        - `{"code": 400, "detail": "unprocessable", "message_id": "..."}` ✅
+        - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server) ✅
+        - `{"code": 400, "detail": "already_connected"}` (channel already connected) ✅
+        - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}` ✅
+        - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}` ✅
+        - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}` ✅
+        """
+        started = time.time()  # TODO: store this in session info
         while True:
             try:
                 response = await ws.recv()
                 response_data = json.loads(response)
 
-                if response_data["code"] == 202:
+                if response_data["code"] == 429:
+                    return False  # This shouldn't ever happen as we comply with authentication.
+                if response_data["code"] == 404:
+                    return False  # Reconnect failure.
+                if response_data["detail"] == "already_connected":
+                    return 1  # Already connected. Shouldn't ever happen as we keep a list of active sessions.
+                if response_data["detail"] == "invalid_content":
+                    print(
+                        response_data
+                    )  # Print it to let developers know, as this shouldn't ever happen. We comply with all userphone standards.
+                if response_data["code"] == 418:
+                    pass  # The server will send all of our messages anyways. Disconnected user will however not have their messages sent.
+                if response_data["detail"] == "not_connected":
+                    pass
+                if response_data["detail"] == "Operation sent.":
+                    pass
+
+                elif response_data["code"] == 202 and (started != True):
                     started = True
                     self.bot.active_userphone_sessions[channel.id]["uuid"] = (
                         response_data["uuid"]
-                    )
+                    )  # TODO: store current connection info to return later
                     server_name = response_data["user"]["server"]["name"]
                     channel_name = response_data["user"]["server"]["channel"]
 
@@ -169,19 +204,19 @@ class Userphone(commands.Cog):
                             ),
                         )
                         await channel.send(embed=embed)
-                elif response_data["code"] == 415:
-                    if (
-                        response_data["detail"]
-                        == "Message contains content blocked by other user."
-                    ):
-                        msg = await channel.fetch_message(response_data["message_id"])
 
-                        await channel.send(
-                            "Message not sent - blocked by other server automod.",
-                            reply_to=[msg],
-                        )
-                elif response_data["code"] in [404]:
-                    return False
+                elif response_data["code"] in [415, 400] and response_data[
+                    "detail"
+                ] in [
+                    "Message contains content blocked by other user.",
+                    "unprocessable",
+                ]:
+                    msg = await channel.fetch_message(response_data["message_id"])
+
+                    await channel.send(
+                        f"Message not sent{' - blocked by other server automod' if response_data['detail'] == 'Message contains content blocked by other user.' else ' - other user rejected.'}.",
+                        reply_to=[msg],
+                    )
                 elif (
                     response_data["code"] == 200
                     and response_data["detail"] == "not_connected"
@@ -203,18 +238,24 @@ class Userphone(commands.Cog):
         self, uuid: str | None, channel: guilded.ChatChannel, auth: dict, ws=None
     ):
         """
+        You can assume all keys exist and that they are of the correct type as specified. URLs are validated server side before being sent again.
+
+        Additionally, all message_ids are validated when they are receieved - you will only get a message_edit or message_delete of a previous message. Additionally, you may only send and receive 400s for existing message_ids, and cannot send a 400 for a message_delete.
+
         Client Receives:
         - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}`
         - `{"code": 200, "detail": "not_connected"}` - while waiting
         - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect
-        - `{"code": 201, "detail": "Message sent."}`
+        - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - detail one of "message_edit", "message", "message_delete"
         - `{"code": 200, "detail": "Message received.", "message": {...}}`
-        - `{"code": 200, "detail": "Message edited.", "message": {...}}` - UNIMPLEMENTED
+        - `{"code": 200, "detail": "Message edited.", "message": {...}}`
+        - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
         - `{"code": 400, "detail": "not_connected"}`
         - `{"code": 400, "detail": "unprocessable", "message_id": "..."}`
         - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server)
-        - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
+        - `{"code": 400, "detail": "already_connected"}` (channel already connected)
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}`
+        - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}`
         - `1001 - Disconnected`
         - `3008 - No activity on one side for > 120s`
@@ -224,9 +265,45 @@ class Userphone(commands.Cog):
         Server Receives:
         - `{"code": 200, "user": {...}, "detail": "auth"}`
         - `{"code": 200, "message": {...}, "detail": "message"}`
+        - `{"code": 200, "message": {...}, "detail": "message_edit"}`
+        - `{"code": 200, "message_id": "...", "detail": "message_delete"}`
         - `{"code": 400, "message_id": "...", "detail": "unprocessable"}` - Client could not process message.
         - `{"code": 400, "message_id": "...", "detail": "blocked"}` - Contains blocked content.
         - `1001 - Disconnected`
+
+        User Object:
+        ```json
+            {
+                "authentication": "...",
+                "name": "Crystal",
+                "id": "daOBjZZA",
+                "description": null,
+                "avatar_url": null,
+                "server": {
+                    "name": "Codeverse",
+                    "id": "...",
+                    "channel": "general",
+                    "channel_id": "...",
+                    "icon_url": null,
+                    "description": null
+                }
+            }
+        ```
+
+        Message Object:
+        ```json
+            {
+                "name": "YumYummity",
+                "id": "4WG7wrP4",
+                "message_id": "...",
+                "nickname": null,
+                "avatar_url": null,
+                "profile_url": null,
+                "content": {
+                    "text": "Hello World",
+                }
+            }
+        ```
         """
         uri = self.uri
         if uuid:
@@ -283,6 +360,54 @@ class Userphone(commands.Cog):
                 return self.bot.active_userphone_sessions[channel.id]["uuid"]
 
     @commands.Cog.listener()
+    async def on_message_delete(self, event: guilded.MessageDeleteEvent):
+        if event.message.channel.id in self.bot.active_userphone_sessions.copy():
+            try:
+                session = self.bot.active_userphone_sessions[event.message.channel.id]
+                if (
+                    False
+                ):  # TODO: message id cache for current session, verify the message is in session
+                    return
+                ws = session["ws"]
+                await ws.send(
+                    json.dumps(
+                        {
+                            "code": 200,
+                            "message_id": event.message_id,
+                            "detail": "message_delete",
+                        }
+                    )
+                )
+            except websockets.ConnectionClosedOK:
+                pass
+
+    @commands.Cog.listener()
+    async def on_message_update(self, event: guilded.MessageUpdateEvent):
+        if event.after.channel.id in self.bot.active_userphone_sessions.copy():
+            try:
+                session = self.bot.active_userphone_sessions[event.after.channel.id]
+                if (
+                    event.after.content == ""
+                    or event.after.author.id == self.bot.user_id
+                ):  # TODO: message id cache for current session, verify the message is in session
+                    return
+                ws = session["ws"]
+                user_data = {
+                    "name": event.after.author.name,
+                    "id": event.after.author.id,
+                    "nickname": None,
+                    "avatar_url": (
+                        event.after.author.avatar.url
+                        if event.after.author.avatar
+                        else None  # event.message.author.default_avatar.url
+                    ),
+                    "profile_url": event.after.author.profile_url,
+                }
+                await self.send_message(ws, event.after, user_data, type="message_edit")
+            except websockets.ConnectionClosedOK:
+                pass
+
+    @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
         if event.message.channel.id in self.bot.active_userphone_sessions.copy():
             try:
@@ -304,7 +429,7 @@ class Userphone(commands.Cog):
                     ),
                     "profile_url": event.message.author.profile_url,
                 }
-                await self.send_message(ws, event.message, user_data)
+                await self.send_message(ws, event.message, user_data, type="message")
             except websockets.ConnectionClosedOK:
                 pass
 

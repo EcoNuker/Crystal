@@ -320,6 +320,12 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                     message_queue[other_con_name].append(data_to_send)
                             elif data["code"] == 400:
                                 if data["detail"] == "unprocessable":
+                                    assert (
+                                        data["message_id"]
+                                        in pairings[uuid_str][other_con_name][
+                                            "message_ids"
+                                        ]
+                                    )
                                     await other_con.send_json(
                                         {
                                             "code": 400,
@@ -328,6 +334,12 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                         }
                                     )
                                 elif data["detail"] == "blocked":
+                                    assert (
+                                        data["message_id"]
+                                        in pairings[uuid_str][other_con_name][
+                                            "message_ids"
+                                        ]
+                                    )
                                     await other_con.send_json(
                                         {
                                             "code": 415,
@@ -474,11 +486,15 @@ def setup():
     @router.websocket("/")
     async def userphone_endpoint(websocket: WebSocket, id: str | None = None):
         """
+        You can assume all keys exist and that they are of the correct type as specified. URLs are validated server side before being sent again.
+
+        Additionally, all message_ids are validated when they are receieved - you will only get a message_edit or message_delete of a previous message. Additionally, you may only send and receive 400s for existing message_ids, and cannot send a 400 for a message_delete.
+
         Client Receives:
         - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}`
         - `{"code": 200, "detail": "not_connected"}` - while waiting
         - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect
-        - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - detail one of "message_edit", "message", "message_delete"
+        - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - operation one of "message_edit", "message", "message_delete"
         - `{"code": 200, "detail": "Message received.", "message": {...}}`
         - `{"code": 200, "detail": "Message edited.", "message": {...}}`
         - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
