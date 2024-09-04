@@ -56,7 +56,9 @@ class Userphone(commands.Cog):
             "name": channel.server.name,
             "id": channel.server.id,
             "channel": channel.name,
-            "channel_id": channel.id if not hasattr(channel, "root_id") else channel.root_id,
+            "channel_id": (
+                channel.id if not hasattr(channel, "root_id") else channel.root_id
+            ),
             "icon_url": channel.server.icon.url if channel.server.icon else None,
             "description": channel.server.description,
         }
@@ -198,7 +200,7 @@ class Userphone(commands.Cog):
                     break
 
     async def userphone_client(
-        self, uuid: str | None, channel: guilded.ChatChannel, auth: dict, ws = None
+        self, uuid: str | None, channel: guilded.ChatChannel, auth: dict, ws=None
     ):
         """
         Client Receives:
@@ -235,7 +237,9 @@ class Userphone(commands.Cog):
             async with websockets.connect(uri, ping_timeout=180) as ws:
                 # Send authentication
                 if not uuid:
-                    await ws.send(json.dumps({"code": 200, "user": auth, "detail": "auth"}))
+                    await ws.send(
+                        json.dumps({"code": 200, "user": auth, "detail": "auth"})
+                    )
 
                 # Start receiving and sending messages
                 self.bot.active_userphone_sessions[channel.id] = {
@@ -296,7 +300,7 @@ class Userphone(commands.Cog):
                     "avatar_url": (
                         event.message.author.avatar.url
                         if event.message.author.avatar
-                        else None # event.message.author.default_avatar.url
+                        else None  # event.message.author.default_avatar.url
                     ),
                     "profile_url": event.message.author.profile_url,
                 }
@@ -326,11 +330,13 @@ class Userphone(commands.Cog):
             "Searching for userphone... If no connection is found in 5 minutes this will automatically fail."
         )
 
-        await self.userphone_session({
-            "ws": None,
-            "uuid": None,
-            "channel": ctx.channel,
-        })
+        await self.userphone_session(
+            {
+                "ws": None,
+                "uuid": None,
+                "channel": ctx.channel,
+            }
+        )
 
         await ctx.send("Userphone disconnected.")
         self.bot.active_userphone_sessions.pop(ctx.channel.id, None)
@@ -358,6 +364,7 @@ class Userphone(commands.Cog):
     def cog_unload(self):
         for task in self.session_tasks:
             task.cancel()
+
 
 def setup(bot):
     bot.add_cog(Userphone(bot))

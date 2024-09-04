@@ -135,12 +135,11 @@ async def validate_user(user: dict, authentication: bool = False):
     try:
         assert len(user.keys()) == 6 and len(user["server"].keys()) == 6
         assert isinstance(user["name"], str) and isinstance(user["id"], str)
-        assert isinstance(user["server"]["name"], str) and isinstance(
-            user["server"]["channel"], str
-        ) and isinstance(
-            user["server"]["id"], str
-        ) and isinstance(
-            user["server"]["channel_id"], str
+        assert (
+            isinstance(user["server"]["name"], str)
+            and isinstance(user["server"]["channel"], str)
+            and isinstance(user["server"]["id"], str)
+            and isinstance(user["server"]["channel_id"], str)
         )
         if authentication:
             assert isinstance(user["authentication"], str)
@@ -257,30 +256,68 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                             )
                             # TODO: check if message id was already sent, and if 400, verify it's a valid message id from opposing side
                             if data["code"] == 200:
+                                operation = data["detail"]
+                                assert operation in [
+                                    "message",
+                                    "message_edit",
+                                    "message_delete",
+                                ]
+                                if operation == "message":
+                                    assert (
+                                        data["message"]["message_id"]
+                                        not in pairings[uuid_str][con_name][
+                                            "message_ids"
+                                        ]
+                                    )
+                                    pairings[uuid_str][con_name]["message_ids"].append(
+                                        data["message"]["message_id"]
+                                    )
+                                elif operation == "message_delete":
+                                    pairings[uuid_str][con_name]["message_ids"].pop(
+                                        pairings[uuid_str][con_name][
+                                            "message_ids"
+                                        ].index(data["message_id"])
+                                    )
+
+                                message_id = (
+                                    data["message"]["message_id"]
+                                    if operation != "message_delete"
+                                    else data["message_id"]
+                                )
+
                                 await cur_con.send_json(
                                     {
                                         "code": 201,
-                                        "detail": "Message sent.",
-                                        "message_id": data["message"]["message_id"],
+                                        "detail": "Operation sent.",
+                                        "operation": operation,
+                                        "message_id": message_id,
                                     }
                                 )
+
+                                match operation:
+                                    case "message":
+                                        data_to_send = {
+                                            "code": 200,
+                                            "detail": "Message received.",
+                                            "message": data["message"],
+                                        }
+                                    case "message_delete":
+                                        data_to_send = {
+                                            "code": 200,
+                                            "detail": "Message deleted.",
+                                            "message_id": message_id,
+                                        }
+                                    case "message_edit":
+                                        data_to_send = {
+                                            "code": 200,
+                                            "detail": "Message edited.",
+                                            "message": data["message"],
+                                        }
                                 last_success = time.time()
                                 if not disconnect_flag:
-                                    await other_con.send_json(
-                                        {
-                                            "code": 200,
-                                            "detail": "Message received.",
-                                            "message": data["message"],
-                                        }
-                                    )
+                                    await other_con.send_json(data_to_send)
                                 else:
-                                    message_queue[other_con_name].append(
-                                        {
-                                            "code": 200,
-                                            "detail": "Message received.",
-                                            "message": data["message"],
-                                        }
-                                    )
+                                    message_queue[other_con_name].append(data_to_send)
                             elif data["code"] == 400:
                                 if data["detail"] == "unprocessable":
                                     await other_con.send_json(
@@ -391,12 +428,17 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
             while uuid_str in pairings.keys():
                 uuid_str = str(uuid.uuid4())
             pairings[uuid_str] = {
-                "con1": {"ws": con1, "details": con1_details},
-                "con2": {"ws": con2, "details": con2_details},
+                "con1": {"ws": con1, "details": con1_details, "message_ids": []},
+                "con2": {"ws": con2, "details": con2_details, "message_ids": []},
                 "ready": True,
-                "message_ids": [],
-                "server_ids": [con1_details["user"]["server"]["id"], con2_details["user"]["server"]["id"]],
-                "channel_ids": [con1_details["user"]["server"]["channel_id"], con2_details["user"]["server"]["channel_id"]]
+                "server_ids": [
+                    con1_details["user"]["server"]["id"],
+                    con2_details["user"]["server"]["id"],
+                ],
+                "channel_ids": [
+                    con1_details["user"]["server"]["channel_id"],
+                    con2_details["user"]["server"]["channel_id"],
+                ],
             }
 
             con1_details_censored = json.loads(json.dumps(con1_details))
@@ -436,9 +478,10 @@ def setup():
         - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}`
         - `{"code": 200, "detail": "not_connected"}` - while waiting
         - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect
-        - `{"code": 201, "detail": "Message sent."}`
+        - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - detail one of "message_edit", "message", "message_delete"
         - `{"code": 200, "detail": "Message received.", "message": {...}}`
-        - `{"code": 200, "detail": "Message edited.", "message": {...}}` - UNIMPLEMENTED
+        - `{"code": 200, "detail": "Message edited.", "message": {...}}`
+        - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
         - `{"code": 400, "detail": "not_connected"}`
         - `{"code": 400, "detail": "unprocessable", "message_id": "..."}`
         - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server)
@@ -454,6 +497,8 @@ def setup():
         Server Receives:
         - `{"code": 200, "user": {...}, "detail": "auth"}`
         - `{"code": 200, "message": {...}, "detail": "message"}`
+        - `{"code": 200, "message": {...}, "detail": "message_edit"}`
+        - `{"code": 200, "message_id": "...", "detail": "message_delete"}`
         - `{"code": 400, "message_id": "...", "detail": "unprocessable"}` - Client could not process message.
         - `{"code": 400, "message_id": "...", "detail": "blocked"}` - Contains blocked content.
         - `1001 - Disconnected`
@@ -494,7 +539,6 @@ def setup():
         """
         global pairings
         await websocket.accept()
-        # POSSIBLE TODO: Message edit
         user_ip = websocket.headers.get(
             "X-Forwarded-For",
             websocket.headers.get(
@@ -522,20 +566,20 @@ def setup():
                         await validate_user(msg["user"], authentication=True)
                     )
                     assert tools.userphone_authorize(msg["user"])
-                    alr_in_use = False
-                    for pair, value in pairings.items().copy():
-                        if msg["user"]["server"]["channel_id"] in value["channel_ids"]:
-                            alr_in_use = True
-                            break
-                    for ws, details in active_connections.items().copy():
-                        if details["user"]["server"]["channel_id"] == msg["user"]["server"]["channel_id"]:
-                            alr_in_use = True
-                            break
-                    if alr_in_use:
-                        await websocket.send_json({"code": 400, "detail": "already_connected"})
+                    channel_id = msg["user"]["server"]["channel_id"]
+                    if any(
+                        details["user"]["server"]["channel_id"] == channel_id
+                        for details in active_connections.values()
+                    ) or any(
+                        channel_id in value["channel_ids"]
+                        for value in pairings.values()
+                    ):
+                        await websocket.send_json(
+                            {"code": 400, "detail": "already_connected"}
+                        )
                         await websocket.close(1001)
                         msg = False
-                except Exception as e:
+                except Exception:
                     msg = False
             if not msg:
                 if msg == None:
