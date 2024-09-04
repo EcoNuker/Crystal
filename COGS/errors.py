@@ -6,9 +6,10 @@ from guilded.ext import commands
 from DATA import embeds
 from DATA import tools
 
+from main import CrystalBot
 
 class errors(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     @commands.Cog.listener(name="on_command_error")

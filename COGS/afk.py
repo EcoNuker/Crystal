@@ -5,9 +5,10 @@ from guilded.ext import commands
 # Database imports
 from documents import Server
 
+from main import CrystalBot
 
 class afk(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
         self.keystore = dict()
 

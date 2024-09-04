@@ -1,33 +1,34 @@
 import guilded
 from guilded.ext import commands
-from guilded.ext.commands.converters import Greedy
+
 import asyncio
 import glob
 from os import path
 from sys import modules
+
 from DATA import embeds
 from DATA import tools
 
 from DATA.CONFIGS import CONFIGS
 
+from main import CrystalBot
+
 
 class developer(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     @commands.command(name="userphone_active", description="omg how many waiting")
-    async def upa(self, ctx: commands.Context, user: tools.UserConverter = None):
+    async def upa(self, ctx: commands.Context):
         if not ctx.author.id in self.bot.owner_ids:
             return
 
-        active = (
-            self.bot.active_userphone_sessions
-            if hasattr(self.bot, "active_userphone_sessions")
-            else {}
-        )
+        bot_active = self.bot.active_userphone_sessions
+        all_connected = self.bot.userphone_pairings # pairings, so *2
+        all_active_not_connected = self.bot.active_userphone_connections
 
         em = embeds.Embeds.embed(
-            description=f"{len(active)} connections\n\n{len(active) % 2} waiting to connect",
+            description=f"{len(bot_active)} connections via {self.bot.user.mention}\n\n{len(all_connected)*2} connections currently connected\n\n{len(all_active_not_connected)} waiting to connect overall\n\n{len(all_connected)} current conversations",
             color=guilded.Color.green(),
         )
         await ctx.reply(embed=em, private=ctx.message.private)

@@ -14,9 +14,10 @@ from DATA import tools
 
 from DATA.CONFIGS import CONFIGS
 
+from main import CrystalBot
 
 class Userphone(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
         self.USER_DATA = {
@@ -73,7 +74,7 @@ class Userphone(commands.Cog):
                 "Already connected!"
             )  # how tf?? lol this shouldn't happen but ok
         await channel.send("Userphone session ended.")
-        self.bot.active_userphone_sessions.pop(channel.id, None)
+        self.bot.active_userphone_sessions.pop(channel.id if not hasattr(channel, "root_id") else channel.root_id, None)
 
     async def restart_sessions(self):
         # attempt to reconnect every session
@@ -137,17 +138,17 @@ class Userphone(commands.Cog):
                     pass
 
                 elif response_data["code"] == 202 and (
-                    self.bot.active_userphone_sessions[channel.id]["started"] != True
+                    self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["started"] != True
                 ):
-                    self.bot.active_userphone_sessions[channel.id]["started"] = True
-                    self.bot.active_userphone_sessions[channel.id]["uuid"] = (
+                    self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["started"] = True
+                    self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["uuid"] = (
                         response_data["uuid"]
                     )
-                    self.bot.active_userphone_sessions[channel.id]["user"] = (
+                    self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["user"] = (
                         response_data["user"]
                     )
-                    if not self.bot.active_userphone_sessions[channel.id]["connected"]:
-                        self.bot.active_userphone_sessions[channel.id][
+                    if not self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["connected"]:
+                        self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                             "connected"
                         ] = time.time()
                     server_name = response_data["user"]["server"]["name"]
@@ -202,7 +203,7 @@ class Userphone(commands.Cog):
 
                     if response_data["detail"] == "Message deleted.":
                         try:
-                            await self.bot.active_userphone_sessions[channel.id][
+                            await self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                                 "message_id_map"
                             ].pop(response_data["message_id"]).delete()
                         except:
@@ -212,7 +213,7 @@ class Userphone(commands.Cog):
                             message_data = response_data["message"]
                             content = message_data["content"]["text"]
                             embed = await get_embed(content, message_data)
-                            await self.bot.active_userphone_sessions[channel.id][
+                            await self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                                 "message_id_map"
                             ].pop(response_data["message_id"]).edit(embed=embed)
                         except:
@@ -241,13 +242,13 @@ class Userphone(commands.Cog):
                                 embed=embed,
                                 silent=True,
                                 reply_to=[
-                                    self.bot.active_userphone_sessions[channel.id][
+                                    self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                                         "message_id_map"
                                     ].get(msg_id)
                                     for msg_id in message_data["reply_ids"]
                                 ],
                             )
-                            self.bot.active_userphone_sessions[channel.id][
+                            self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                                 "message_id_map"
                             ][message_data["message_id"]] = our_message
 
@@ -268,9 +269,9 @@ class Userphone(commands.Cog):
                     and response_data["detail"] == "not_connected"
                 ):
                     if (
-                        self.bot.active_userphone_sessions[channel.id]["started"]
+                        self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["started"]
                         is not True
-                    ) and time.time() - self.bot.active_userphone_sessions[channel.id][
+                    ) and time.time() - self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id][
                         "started"
                     ] > 300:  # 5 min no connection.
                         return False
@@ -357,7 +358,7 @@ class Userphone(commands.Cog):
         """
 
         async def begin():
-            self.bot.active_userphone_sessions[channel.id] = {
+            self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id] = {
                 "ws": ws,
                 "uuid": uuid,
                 "channel": channel,
@@ -368,7 +369,7 @@ class Userphone(commands.Cog):
             }
             resp = await self.receive_message(ws, channel)
             if resp == False:
-                self.bot.active_userphone_sessions.pop(channel.id, 0)
+                self.bot.active_userphone_sessions.pop(channel.id if not hasattr(channel, "root_id") else channel.root_id, 0)
                 try:
                     await ws.close(1001)
                 except:
@@ -381,7 +382,7 @@ class Userphone(commands.Cog):
                     await ws.close(1000)  # unintentional
                 except:
                     pass
-                return self.bot.active_userphone_sessions[channel.id]["uuid"]
+                return self.bot.active_userphone_sessions[channel.id if not hasattr(channel, "root_id") else channel.root_id]["uuid"]
 
         uri = self.uri
         if uuid:
@@ -404,13 +405,13 @@ class Userphone(commands.Cog):
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
         if event.message.channel.id in self.bot.active_userphone_sessions:
             try:
-                session = self.bot.active_userphone_sessions[event.message.channel.id]
+                session = self.bot.active_userphone_sessions[event.channel.id if not hasattr(event.channel, "root_id") else event.channel.root_id]
                 if not session["connected"]:
                     return
                 if (
                     event.message.author_id == self.bot.user_id
                 ):  # Specially handle self deletes.
-                    message_map = self.bot.active_userphone_sessions[event.channel_id][
+                    message_map = self.bot.active_userphone_sessions[event.channel.id if not hasattr(event.channel, "root_id") else event.channel.root_id][
                         "message_id_map"
                     ]
 
@@ -420,7 +421,7 @@ class Userphone(commands.Cog):
                     )
 
                     if key_to_delete is not None:
-                        self.bot.active_userphone_sessions[event.channel_id][
+                        self.bot.active_userphone_sessions[event.channel.id if not hasattr(event.channel, "root_id") else event.channel.root_id][
                             "message_id_map"
                         ].pop(key_to_delete)
                     return
@@ -445,7 +446,7 @@ class Userphone(commands.Cog):
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
         if event.after.channel.id in self.bot.active_userphone_sessions:
             try:
-                session = self.bot.active_userphone_sessions[event.after.channel.id]
+                session = self.bot.active_userphone_sessions[event.after.channel.id if not hasattr(event.after.channel, "root_id") else event.after.channel.root_id]
                 if not session["connected"]:
                     return
                 if (
@@ -477,7 +478,7 @@ class Userphone(commands.Cog):
     async def on_message(self, event: guilded.MessageEvent):
         if event.message.channel.id in self.bot.active_userphone_sessions:
             try:
-                session = self.bot.active_userphone_sessions[event.message.channel.id]
+                session = self.bot.active_userphone_sessions[event.message.channel.id if not hasattr(event.message.channel, "root_id") else event.message.channel.root_id]
                 if (
                     event.message.content == ""
                     or event.message.author.id == self.bot.user_id
@@ -513,12 +514,12 @@ class Userphone(commands.Cog):
             return await ctx.reply("Cannot be private.", private=ctx.message.private)
 
         if ctx.channel.id in self.bot.active_userphone_sessions:
-            if self.bot.active_userphone_sessions[ctx.channel.id]["user"] == None:
+            if self.bot.active_userphone_sessions[ctx.channel.id if not hasattr(ctx.channel, "root_id") else ctx.channel.root_id]["user"] == None:
                 return await ctx.reply(
                     "Userphone is already ringing.", private=ctx.message.private
                 )
             else:
-                user = self.bot.active_userphone_sessions[ctx.channel.id]["user"]
+                user = self.bot.active_userphone_sessions[ctx.channel.id if not hasattr(ctx.channel, "root_id") else ctx.channel.root_id]["user"]
                 server_name = user["server"]["name"]
                 channel_name = user["server"]["channel"]
 
@@ -548,7 +549,7 @@ class Userphone(commands.Cog):
         )
 
         await ctx.send("Userphone disconnected.")
-        self.bot.active_userphone_sessions.pop(ctx.channel.id, None)
+        self.bot.active_userphone_sessions.pop(ctx.channel.id if not hasattr(ctx.channel, "root_id") else ctx.channel.root_id, None)
 
     @cmd_ex.document()
     @commands.command(name="disconnect")
@@ -561,7 +562,7 @@ class Userphone(commands.Cog):
         `{prefix}{qualified_name}` - Disconnect from userphone if it's on in the current channel.
         """
         if ctx.channel.id in self.bot.active_userphone_sessions:
-            session = self.bot.active_userphone_sessions.pop(ctx.channel.id)
+            session = self.bot.active_userphone_sessions.pop(ctx.channel.id if not hasattr(ctx.channel, "root_id") else ctx.channel.root_id)
             ws = session["ws"]
             try:
                 await ws.close(1001)

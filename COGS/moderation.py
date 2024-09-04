@@ -13,6 +13,7 @@ from DATA.cmd_examples import cmd_ex
 
 import documents
 
+from main import CrystalBot
 
 async def is_banned(
     server: guilded.Server, member: guilded.Member | guilded.User
@@ -456,7 +457,7 @@ async def ban_user(
 
 
 class moderation(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
         self.cooldowns = {"purge": {}}
         self.endsAt_check.start()

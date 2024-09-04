@@ -5,9 +5,10 @@ from guilded.ext import commands
 
 from DATA import embeds
 
+from main import CrystalBot
 
 class events(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     @commands.Cog.listener("on_command_completion")

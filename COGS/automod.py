@@ -19,10 +19,12 @@ from documents import Server, automodRule
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from main import CrystalBot
+
 # TODO: toggle custom rules (disable/enable rule)
 
 
-async def would_be_automodded(content: str, server: guilded.Server, bot: commands.Bot):
+async def would_be_automodded(content: str, server: guilded.Server, bot: CrystalBot):
     if server.id not in [server.id for server in bot.servers]:
         return False
     default_slurs = []
@@ -386,7 +388,7 @@ async def toggle_setting(
 
 
 class AutoModeration(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
         self.max_thread_workers = 1024

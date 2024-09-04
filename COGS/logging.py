@@ -16,6 +16,8 @@ from documents import serverMember, HistoryCase
 
 from fuzzywuzzy import process
 
+from main import CrystalBot
+
 human_readable_map = {
     "allEvents": "All Events",
     "allChannelEvents": "All Channel Events",
@@ -37,7 +39,7 @@ human_readable_map = {
 
 
 async def delete_log(
-    bot: commands.Bot,
+    bot: CrystalBot,
     server_id: str,
     channel_id: str,
     logged: bool = False,
@@ -201,7 +203,7 @@ async def toggle_setting(
 
 
 class Logging(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
         self.custom_event_dispatcher.start()
@@ -3538,5 +3540,5 @@ class Logging(commands.Cog):
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
 
-def setup(bot: commands.Bot):
+def setup(bot: CrystalBot):
     bot.add_cog(Logging(bot))

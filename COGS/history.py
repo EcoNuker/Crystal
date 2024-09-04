@@ -16,9 +16,10 @@ from DATA.cmd_examples import cmd_ex
 
 from COGS.moderation import is_banned, is_muted
 
+from main import CrystalBot
 
 class history(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     @cmd_ex.document()

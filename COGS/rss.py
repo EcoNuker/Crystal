@@ -1,6 +1,8 @@
 import guilded
 from guilded.ext import commands, tasks
-import asyncio
+
+import asyncio, time
+
 import aiohttp
 import feedparser
 
@@ -13,11 +15,10 @@ from DATA.cmd_examples import cmd_ex
 import documents
 from documents import RSSFeed
 
-import time
-
+from main import CrystalBot
 
 class RSSFeedCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
         self.check_feeds.start()
 

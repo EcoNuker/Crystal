@@ -8,9 +8,10 @@ from DATA.cmd_examples import cmd_ex
 
 from documents import Server
 
+from main import CrystalBot
 
 class prefix(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     @cmd_ex.document()

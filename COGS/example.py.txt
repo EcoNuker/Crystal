@@ -3,10 +3,12 @@ from guilded.ext import commands
 
 from DATA.cmd_examples import cmd_ex
 
+from main import CrystalBot
+
 import documents
 
 class COGNAME(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
 def setup(bot):

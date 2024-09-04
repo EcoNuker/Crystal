@@ -3,9 +3,10 @@ import asyncio
 import guilded
 from guilded.ext import commands, tasks
 
+from main import CrystalBot
 
 class taskscog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
         self.change_status.start()
 

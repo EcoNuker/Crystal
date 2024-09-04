@@ -1,6 +1,6 @@
-import asyncio, time
+import asyncio
 
-import re2, aiohttp
+import aiohttp
 
 import guilded
 from guilded.ext import commands
@@ -13,9 +13,10 @@ from DATA.cmd_examples import cmd_ex
 
 import documents
 
+from main import CrystalBot
 
 class starboard(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: CrystalBot):
         self.bot = bot
 
     async def find_first_image_or_gif(self, message_content):
