@@ -71,7 +71,7 @@ class Userphone(commands.Cog):
             "name": user_data["name"],
             "id": user_data["id"],
             "message_id": message.id,
-            "nickname": None,
+            "nickname": user_data["nickname"],
             "avatar_url": user_data["avatar_url"],
             "profile_url": user_data["profile_url"],
             "content": {"text": message.content},
@@ -260,10 +260,11 @@ class Userphone(commands.Cog):
                 user_data = {
                     "name": event.message.author.name,
                     "id": event.message.author.id,
+                    "nickname": None,
                     "avatar_url": (
                         event.message.author.avatar.url
                         if event.message.author.avatar
-                        else event.message.author.default_avatar.url
+                        else None # event.message.author.default_avatar.url
                     ),
                     "profile_url": event.message.author.profile_url,
                 }
