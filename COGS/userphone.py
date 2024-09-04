@@ -215,7 +215,16 @@ class Userphone(commands.Cog):
                                 else EmptyEmbed
                             ),
                         )
-                        our_message = await channel.send(embed=embed)
+                        our_message = await channel.send(
+                            embed=embed,
+                            silent=True,
+                            reply_to=[
+                                self.bot.active_userphone_sessions[channel.id][
+                                    "message_id_map"
+                                ].get(msg_id)
+                                for msg_id in message_data["reply_ids"]
+                            ],
+                        )
                         self.bot.active_userphone_sessions[channel.id][
                             "message_id_map"
                         ][message_data["message_id"]] = our_message
