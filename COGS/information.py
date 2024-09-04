@@ -128,6 +128,8 @@ class information(commands.Cog):
                         f"`{prefix}reload [cog | optional | default ALL]` - Reloads cogs.",
                         f"`{prefix}eval <code>` - Run custom code. Some builtins such as `import` are disabled.",
                         f"`{prefix}toggle_auto_bypass [user | optional | default command author]` - Toggle a user's auto-bypass, meaning whether they auto-bypass permissions or not.",
+                        f"`{prefix}reload_configs` - Reload all configs.",
+                        f"`{prefix}userphone_active` - Check how many userphone connections there are.",
                     ]
                 ),
                 inline=False,
