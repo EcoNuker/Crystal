@@ -15,8 +15,25 @@ class developer(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @commands.command(name="userphone_active", description="omg how many waiting")
+    async def upa(self, ctx: commands.Context, user: tools.UserConverter = None):
+        if not ctx.author.id in self.bot.owner_ids:
+            return
+
+        active = (
+            self.bot.active_userphone_sessions
+            if hasattr(self.bot, "active_userphone_sessions")
+            else {}
+        )
+
+        em = embeds.Embeds.embed(
+            description=f"{len(active)} connections\n\n{len(active) % 2} waiting to connect",
+            color=guilded.Color.green(),
+        )
+        await ctx.reply(embed=em, private=ctx.message.private)
+
     @commands.command(name="reload_config", description="reload da config")
-    async def tab(self, ctx: commands.Context, user: tools.UserConverter = None):
+    async def rcfg(self, ctx: commands.Context, user: tools.UserConverter = None):
         if not ctx.author.id in self.bot.owner_ids:
             return
 
