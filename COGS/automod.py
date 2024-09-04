@@ -23,6 +23,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 async def would_be_automodded(content: str, server: guilded.Server, bot: commands.Bot):
+    if server.id not in [server.id for server in bot.servers]:
+        return False
     default_slurs = []
     for rule in regexes.slurs:
         newrule = automodRule(
