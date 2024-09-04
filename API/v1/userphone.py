@@ -13,7 +13,7 @@ from fastapi import (
 
 from starlette.websockets import WebSocketState
 
-from main import CrystalBot
+from main import CrystalBot, bot
 from typing import List, Dict
 
 from DATA import tools
@@ -33,12 +33,6 @@ async def get_websocket_lock(websocket: WebSocket):
 
 banned_ips = {}
 reconnect_time = 10  # time limit
-
-# Store active connections and pairings
-active_connections: Dict[WebSocket, Dict[str, str | Dict[str, str]]] = {}
-pairings: Dict[str, Dict[str, WebSocket]] = (
-    {}
-)  # Store UUIDs with user1 and user2 WebSocket
 
 
 async def receive_with_timeout(
@@ -190,7 +184,7 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
             while True:
                 try:
                     if other_con == None:
-                        other_con = pairings.get(uuid_str, {}).get(
+                        other_con = bot.userphone_pairings.get(uuid_str, {}).get(
                             other_con_name, {"ws": None}
                         )["ws"]
                     if cur_con.application_state == 2:
@@ -205,12 +199,12 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                         )  # we assume 1001. Anything else should be handled already when the flag is set.
                         return None
                     else:  # other side disconnected
-                        other_con = pairings.get(uuid_str, {}).get(
+                        other_con = bot.userphone_pairings.get(uuid_str, {}).get(
                             other_con_name, {"ws": None}
                         )[
                             "ws"
                         ]  # None
-                    if not pairings.get(uuid_str):
+                    if not bot.userphone_pairings.get(uuid_str):
                         msg == 1001
                     if type(msg) == int:
                         if msg == 1001:  # intentional disconnect
@@ -267,23 +261,27 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                 if operation == "message":
                                     assert (
                                         data["message"]["message_id"]
-                                        not in pairings[uuid_str][con_name][
-                                            "message_ids"
-                                        ]
+                                        not in bot.userphone_pairings[uuid_str][
+                                            con_name
+                                        ]["message_ids"]
                                     )
-                                    pairings[uuid_str][con_name]["message_ids"].append(
-                                        data["message"]["message_id"]
-                                    )
+                                    bot.userphone_pairings[uuid_str][con_name][
+                                        "message_ids"
+                                    ].append(data["message"]["message_id"])
                                     # Strip other reply ids.
                                     data["message"]["reply_ids"] = [
                                         m_id
                                         for m_id in data["message"]["reply_ids"]
                                         if m_id
-                                        in pairings[uuid_str][con_name]["message_ids"]
+                                        in bot.userphone_pairings[uuid_str][con_name][
+                                            "message_ids"
+                                        ]
                                     ]
                                 elif operation == "message_delete":
-                                    pairings[uuid_str][con_name]["message_ids"].pop(
-                                        pairings[uuid_str][con_name][
+                                    bot.userphone_pairings[uuid_str][con_name][
+                                        "message_ids"
+                                    ].pop(
+                                        bot.userphone_pairings[uuid_str][con_name][
                                             "message_ids"
                                         ].index(data["message_id"])
                                     )
@@ -331,9 +329,9 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                 if data["detail"] == "unprocessable":
                                     assert (
                                         data["message_id"]
-                                        in pairings[uuid_str][other_con_name][
-                                            "message_ids"
-                                        ]
+                                        in bot.userphone_pairings[uuid_str][
+                                            other_con_name
+                                        ]["message_ids"]
                                     )
                                     await other_con.send_json(
                                         {
@@ -345,9 +343,9 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                 elif data["detail"] == "blocked":
                                     assert (
                                         data["message_id"]
-                                        in pairings[uuid_str][other_con_name][
-                                            "message_ids"
-                                        ]
+                                        in bot.userphone_pairings[uuid_str][
+                                            other_con_name
+                                        ]["message_ids"]
                                     )
                                     await other_con.send_json(
                                         {
@@ -369,25 +367,24 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
         async def send_and_receive_reconnect(
             cur_con: WebSocket, other_con: WebSocket, con_name: str, other_con_name: str
         ):
-            global pairings
             while True:
                 res = await send_and_receive(
                     cur_con, other_con, con_name, other_con_name
                 )
                 if res == None:
-                    pairings.pop(uuid_str, 0)
+                    bot.userphone_pairings.pop(uuid_str, 0)
                     break
                 elif res == False:  # reconnect
-                    pairings[uuid_str][con_name]["ws"] = None
-                    pairings[uuid_str]["ready"] = False
+                    bot.userphone_pairings[uuid_str][con_name]["ws"] = None
+                    bot.userphone_pairings[uuid_str]["ready"] = False
                     cur_time = time.time()
                     while time.time() < cur_time + reconnect_time:
-                        if not pairings.get(uuid_str):
+                        if not bot.userphone_pairings.get(uuid_str):
                             return
-                        if pairings[uuid_str][con_name]["ws"] != None:
-                            if not pairings.get(uuid_str):
+                        if bot.userphone_pairings[uuid_str][con_name]["ws"] != None:
+                            if not bot.userphone_pairings.get(uuid_str):
                                 return
-                            cur_con = pairings[uuid_str][con_name]["ws"]
+                            cur_con = bot.userphone_pairings[uuid_str][con_name]["ws"]
                             break
                         await asyncio.sleep(0.3)
 
@@ -405,14 +402,14 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
 async def keep_alive(ws: WebSocket):
     try:
         count = 0
-        while ws in active_connections:
+        while ws in bot.active_userphone_connections:
             msg = await receive_with_timeout(ws, 0.5, disconnect_code=True)
             if msg:
                 await ws.send_json({"code": 400, "detail": "not_connected"})
             elif msg == False:
                 websocket_locks.pop(ws, 0)
                 try:
-                    active_connections.pop(ws, 0)
+                    bot.active_userphone_connections.pop(ws, 0)
                     await ws.close(1001)
                 except:
                     pass
@@ -423,32 +420,31 @@ async def keep_alive(ws: WebSocket):
             else:
                 count += 1
     except WebSocketDisconnect:
-        active_connections.pop(ws, 0)
+        bot.active_userphone_connections.pop(ws, 0)
         websocket_locks.pop(ws, 0)
     except RuntimeError:
-        active_connections.pop(ws, 0)
+        bot.active_userphone_connections.pop(ws, 0)
         websocket_locks.pop(ws, 0)
 
 
 async def connect_users(websocket: WebSocket, websocket_details: dict):
-    global active_connections, pairings
     """Automatically link users who are waiting."""
-    active_connections[websocket] = websocket_details
+    bot.active_userphone_connections[websocket] = websocket_details
     asyncio.create_task(keep_alive(websocket))
     while True:
-        if len(active_connections.keys()) >= 2:
-            con1 = next(iter(active_connections))
-            con1_details = active_connections.pop(con1)  # first item
-            con2 = next(iter(active_connections))
-            con2_details = active_connections.pop(
+        if len(bot.active_userphone_connections.keys()) >= 2:
+            con1 = next(iter(bot.active_userphone_connections))
+            con1_details = bot.active_userphone_connections.pop(con1)  # first item
+            con2 = next(iter(bot.active_userphone_connections))
+            con2_details = bot.active_userphone_connections.pop(
                 con2
             )  # first item again, aka second now
 
             # Create a unique UUID for this pairing
             uuid_str = str(uuid.uuid4())
-            while uuid_str in pairings.keys():
+            while uuid_str in bot.userphone_pairings.keys():
                 uuid_str = str(uuid.uuid4())
-            pairings[uuid_str] = {
+            bot.userphone_pairings[uuid_str] = {
                 "con1": {"ws": con1, "details": con1_details, "message_ids": []},
                 "con2": {"ws": con2, "details": con2_details, "message_ids": []},
                 "ready": True,
@@ -563,7 +559,6 @@ def setup():
             }
         ```
         """
-        global pairings
         await websocket.accept()
         user_ip = websocket.headers.get(
             "X-Forwarded-For",
@@ -595,10 +590,10 @@ def setup():
                     channel_id = msg["user"]["server"]["channel_id"]
                     if any(
                         details["user"]["server"]["channel_id"] == channel_id
-                        for details in active_connections.values()
+                        for details in bot.active_userphone_connections.values()
                     ) or any(
                         channel_id in value["channel_ids"]
-                        for value in pairings.values()
+                        for value in bot.userphone_pairings.values()
                     ):
                         await websocket.send_json(
                             {"code": 400, "detail": "already_connected"}
@@ -674,11 +669,11 @@ def setup():
             else:
                 await connect_users(websocket, msg)
 
-        elif id in pairings:
-            if not pairings[id]["con1"]["ws"]:
-                pairings[id]["con1"]["ws"] = websocket
-            elif not pairings[id]["con2"]["ws"]:
-                pairings[id]["con2"]["ws"] = websocket
+        elif id in bot.userphone_pairings:
+            if not bot.userphone_pairings[id]["con1"]["ws"]:
+                bot.userphone_pairings[id]["con1"]["ws"] = websocket
+            elif not bot.userphone_pairings[id]["con2"]["ws"]:
+                bot.userphone_pairings[id]["con2"]["ws"] = websocket
             else:
                 await websocket.send_json(
                     {
@@ -690,16 +685,16 @@ def setup():
                 return
 
             con1_details_censored = json.loads(
-                json.dumps(pairings[id]["con1"]["details"])
+                json.dumps(bot.userphone_pairings[id]["con1"]["details"])
             )
             del con1_details_censored["user"]["authentication"]
             con2_details_censored = json.loads(
-                json.dumps(pairings[id]["con2"]["details"])
+                json.dumps(bot.userphone_pairings[id]["con2"]["details"])
             )
             del con2_details_censored["user"]["authentication"]
 
             # Notify users they are connected
-            await pairings[id]["con1"]["ws"].send_json(
+            await bot.userphone_pairings[id]["con1"]["ws"].send_json(
                 {
                     "code": 202,
                     "detail": "Connected.",
@@ -707,7 +702,7 @@ def setup():
                     "uuid": id,
                 }
             )
-            await pairings[id]["con2"]["ws"].send_json(
+            await bot.userphone_pairings[id]["con2"]["ws"].send_json(
                 {
                     "code": 202,
                     "detail": "Connected.",
@@ -716,11 +711,11 @@ def setup():
                 }
             )
 
-            pairings[id]["ready"] = True
+            bot.userphone_pairings[id]["ready"] = True
             try:
                 while websocket in [
-                    pairings[id]["con2"]["ws"],
-                    pairings[id]["con1"]["ws"],
+                    bot.userphone_pairings[id]["con2"]["ws"],
+                    bot.userphone_pairings[id]["con1"]["ws"],
                 ]:
                     await asyncio.sleep(
                         1

@@ -49,10 +49,9 @@ from colorama import init as coloramainit
 coloramainit(autoreset=True)
 
 # Utility imports
-import json, os, glob, logging, traceback, signal, platform, time, types
+import os, glob, logging, traceback, signal, platform, time, types
 import logging.handlers
 from datetime import datetime, timezone
-import asyncio
 
 import re2
 
@@ -66,6 +65,10 @@ from DATA.apple_normalizer import generate_apple_versions
 
 # Configs
 from DATA.CONFIGS import CONFIGS
+
+# Typing
+from typing import Dict, Any
+from fastapi import WebSocket
 
 # Configure directories
 cogspath = os.path.join("COGS", "")
@@ -291,6 +294,12 @@ class CrystalBot(commands.Bot):
 
         self.db: types.ModuleType = documents
         self.db_on = False
+
+        self.active_userphone_connections: Dict[
+            WebSocket, Dict[str, str | Dict[str, str]]
+        ] = {}
+        self.userphone_pairings: Dict[str, Dict[str, WebSocket]] = {}
+        self.active_userphone_sessions: Dict[str, Dict[str, Any]] = {}
 
 
 bot = CrystalBot(
