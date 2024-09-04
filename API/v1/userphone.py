@@ -87,6 +87,7 @@ async def validate_message(message: dict):
                 "nickname": null,
                 "avatar_url": null,
                 "profile_url": null,
+                "reply_ids": ["you may put other message ids in here, but the server will strip ids not sent during userphone session"],
                 "content": {
                     "text": "Hello World",
                 }
@@ -94,13 +95,14 @@ async def validate_message(message: dict):
     ```
     """
     try:
-        assert len(message.keys()) == 7 and len(message["content"].keys()) == 1
+        assert len(message.keys()) == 8 and len(message["content"].keys()) == 1
         assert (
             isinstance(message["name"], str)
             and isinstance(message["id"], str)
             and isinstance(message["message_id"], str)
         )
         assert isinstance(message["content"]["text"], str)
+        assert isinstance(message["reply_ids"], list) and len(message["reply_ids"]) <= 5
         assert (not message["nickname"]) or isinstance(message["nickname"], str)
         assert (not message["profile_url"]) or isinstance(message["profile_url"], str)
         assert (not message["avatar_url"]) or (
@@ -272,6 +274,13 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                     pairings[uuid_str][con_name]["message_ids"].append(
                                         data["message"]["message_id"]
                                     )
+                                    # Strip other reply ids.
+                                    data["message"]["reply_ids"] = [
+                                        m_id
+                                        for m_id in data["message"]["reply_ids"]
+                                        if m_id
+                                        in pairings[uuid_str][con_name]["message_ids"]
+                                    ]
                                 elif operation == "message_delete":
                                     pairings[uuid_str][con_name]["message_ids"].pop(
                                         pairings[uuid_str][con_name][
@@ -547,6 +556,7 @@ def setup():
                 "nickname": null,
                 "avatar_url": null,
                 "profile_url": null,
+                "reply_ids": ["you may put other message ids in here, but the server will strip ids not sent during userphone session"],
                 "content": {
                     "text": "Hello World",
                 }

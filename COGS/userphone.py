@@ -66,8 +66,12 @@ class Userphone(commands.Cog):
         uuid = session["uuid"]
         while True:
             uuid = await self.userphone_client(uuid, channel, connection_details, ws)
-            if not uuid:
+            if type(uuid) != str:
                 break
+        if uuid == 1:
+            await channel.send(
+                "Already connected!"
+            )  # how tf?? lol this shouldn't happen but ok
         await channel.send("Userphone session ended.")
         self.bot.active_userphone_sessions.pop(channel.id, None)
 
@@ -110,7 +114,6 @@ class Userphone(commands.Cog):
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}` ✅
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}` ✅
         """
-        started = time.time()  # TODO: store this in session info
         while True:
             try:
                 response = await ws.recv()
@@ -133,11 +136,20 @@ class Userphone(commands.Cog):
                 if response_data["detail"] == "Operation sent.":
                     pass
 
-                elif response_data["code"] == 202 and (started != True):
-                    started = True
+                elif response_data["code"] == 202 and (
+                    self.bot.active_userphone_sessions[channel.id]["started"] != True
+                ):
+                    self.bot.active_userphone_sessions[channel.id]["started"] = True
                     self.bot.active_userphone_sessions[channel.id]["uuid"] = (
                         response_data["uuid"]
-                    )  # TODO: store current connection info to return later
+                    )
+                    self.bot.active_userphone_sessions[channel.id]["user"] = (
+                        response_data["user"]
+                    )
+                    if not self.bot.active_userphone_sessions[channel.id]["connected"]:
+                        self.bot.active_userphone_sessions[channel.id][
+                            "connected"
+                        ] = time.time()
                     server_name = response_data["user"]["server"]["name"]
                     channel_name = response_data["user"]["server"]["channel"]
 
@@ -165,7 +177,6 @@ class Userphone(commands.Cog):
                     and response_data["detail"] == "Message received."
                 ):
                     message_data = response_data["message"]
-                    # TODO: store message id so edits and deletions can be mapped
                     content = message_data["content"]["text"]
                     blocked = await would_be_automodded(
                         content, channel.server, self.bot
@@ -186,7 +197,8 @@ class Userphone(commands.Cog):
                             message_content=content, bot=self.bot
                         )
                         embed = guilded.Embed(
-                            description=content, color=guilded.Color.purple()
+                            description=content,
+                            color=guilded.Color.gray(),
                         )
                         if image:
                             embed.set_image(url=image)
@@ -203,7 +215,10 @@ class Userphone(commands.Cog):
                                 else EmptyEmbed
                             ),
                         )
-                        await channel.send(embed=embed)
+                        our_message = await channel.send(embed=embed)
+                        self.bot.active_userphone_sessions[channel.id][
+                            "message_id_map"
+                        ][message_data["message_id"]] = our_message
 
                 elif response_data["code"] in [415, 400] and response_data[
                     "detail"
@@ -222,8 +237,11 @@ class Userphone(commands.Cog):
                     and response_data["detail"] == "not_connected"
                 ):
                     if (
-                        started is not True
-                    ) and time.time() - started > 300:  # 5 min no connection.
+                        self.bot.active_userphone_sessions[channel.id]["started"]
+                        is not True
+                    ) and time.time() - self.bot.active_userphone_sessions[channel.id][
+                        "started"
+                    ] > 300:  # 5 min no connection.
                         return False
                 else:  # We don't handle anything else yet
                     print(f"Server response: {response_data}")
@@ -299,12 +317,41 @@ class Userphone(commands.Cog):
                 "nickname": null,
                 "avatar_url": null,
                 "profile_url": null,
+                "reply_ids": ["you may put other message ids in here, but the server will strip ids not sent during userphone session"],
                 "content": {
                     "text": "Hello World",
                 }
             }
         ```
         """
+
+        async def begin(self):
+            self.bot.active_userphone_sessions[channel.id] = {
+                "ws": ws,
+                "uuid": uuid,
+                "channel": channel,
+                "started": time.time(),
+                "connected": None,
+                "message_id_map": {},
+                "user": None,
+            }
+            resp = await self.receive_message(ws, channel)
+            if resp == False:
+                self.bot.active_userphone_sessions.pop(channel.id, 0)
+                try:
+                    await ws.close(1001)
+                except:
+                    pass
+                return None
+            elif resp == 1:
+                return 1  # 1 is already connected.
+            else:
+                try:
+                    await ws.close(1000)  # unintentional
+                except:
+                    pass
+                return self.bot.active_userphone_sessions[channel.id]["uuid"]
+
         uri = self.uri
         if uuid:
             uri = f"{self.uri}?id={uuid}"
@@ -318,55 +365,22 @@ class Userphone(commands.Cog):
                         json.dumps({"code": 200, "user": auth, "detail": "auth"})
                     )
 
-                # Start receiving and sending messages
-                self.bot.active_userphone_sessions[channel.id] = {
-                    "ws": ws,
-                    "uuid": uuid,
-                    "channel": channel,
-                }
-                resp = await self.receive_message(ws, channel)
-                if resp == False:
-                    self.bot.active_userphone_sessions.pop(channel.id, 0)
-                    try:
-                        await ws.close(1001)
-                    except:
-                        pass
-                    return None
-                else:
-                    try:
-                        await ws.close(1000)  # unintentional
-                    except:
-                        pass
-                    return self.bot.active_userphone_sessions[channel.id]["uuid"]
+                return await begin(self)
         else:
-            self.bot.active_userphone_sessions[channel.id] = {
-                "ws": ws,
-                "uuid": uuid,
-                "channel": channel,
-            }
-            resp = await self.receive_message(ws, channel)
-            if resp == False:
-                self.bot.active_userphone_sessions.pop(channel.id, 0)
-                try:
-                    await ws.close(1001)
-                except:
-                    pass
-                return None
-            else:
-                try:
-                    await ws.close(1000)  # unintentional
-                except:
-                    pass
-                return self.bot.active_userphone_sessions[channel.id]["uuid"]
+            return await begin(self)
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
-        if event.message.channel.id in self.bot.active_userphone_sessions.copy():
+        if event.message.channel.id in self.bot.active_userphone_sessions:
             try:
                 session = self.bot.active_userphone_sessions[event.message.channel.id]
+                if not session["connected"]:
+                    return
+                if event.message.author_id == self.bot.user_id:  # Ignore self deletes.
+                    return
                 if (
-                    False
-                ):  # TODO: message id cache for current session, verify the message is in session
+                    event.message.created_at.timestamp() < session["connected"]
+                ):  # message was earlier than connected time, therefore not in userphone
                     return
                 ws = session["ws"]
                 await ws.send(
@@ -383,13 +397,19 @@ class Userphone(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
-        if event.after.channel.id in self.bot.active_userphone_sessions.copy():
+        if event.after.channel.id in self.bot.active_userphone_sessions:
             try:
                 session = self.bot.active_userphone_sessions[event.after.channel.id]
+                if not session["connected"]:
+                    return
+                if (
+                    event.message.created_at.timestamp() < session["connected"]
+                ):  # message was earlier than connected time, therefore not in userphone
+                    return
                 if (
                     event.after.content == ""
                     or event.after.author.id == self.bot.user_id
-                ):  # TODO: message id cache for current session, verify the message is in session
+                ):
                     return
                 ws = session["ws"]
                 user_data = {
@@ -409,7 +429,7 @@ class Userphone(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
-        if event.message.channel.id in self.bot.active_userphone_sessions.copy():
+        if event.message.channel.id in self.bot.active_userphone_sessions:
             try:
                 session = self.bot.active_userphone_sessions[event.message.channel.id]
                 if (
@@ -447,12 +467,30 @@ class Userphone(commands.Cog):
             return await ctx.reply("Cannot be private.", private=ctx.message.private)
 
         if ctx.channel.id in self.bot.active_userphone_sessions:
-            return await ctx.reply(
-                "Userphone already active in this channel.", private=ctx.message.private
-            )
+            if self.bot.active_userphone_sessions[ctx.channel.id]["user"] == None:
+                return await ctx.reply(
+                    "Userphone is already ringing.", private=ctx.message.private
+                )
+            else:
+                user = self.bot.active_userphone_sessions[ctx.channel.id]["user"]
+                server_name = user["server"]["name"]
+                channel_name = user["server"]["channel"]
+
+                embed = guilded.Embed(
+                    title="Already Connected!",
+                    description=f"Currently connected to **{server_name} - (#{channel_name})**",
+                    color=guilded.Color.purple(),
+                )
+                embed.set_author(
+                    name=user["name"],
+                    icon_url=(user["avatar_url"] if user["avatar_url"] else EmptyEmbed),
+                )
+                if user["server"]["icon_url"]:
+                    embed.set_thumbnail(url=user["server"]["icon_url"])
+                return await ctx.reply(embed=embed, private=ctx.message.private)
 
         await ctx.reply(
-            "Searching for userphone... If no connection is found in 5 minutes this will automatically fail."
+            "Calling userphone... If no connection is found in 5 minutes this will automatically fail."
         )
 
         await self.userphone_session(
