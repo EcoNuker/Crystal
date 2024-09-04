@@ -306,7 +306,7 @@ class Userphone(commands.Cog):
             uuid = await self.userphone_client(uuid, ctx.channel, connection_details)
             if not uuid:
                 break
-        await ctx.send("Userphone session ended.")
+        await ctx.send("Userphone disconnected.")
         self.bot.active_userphone_sessions.pop(ctx.channel.id, None)
 
     @cmd_ex.document()
@@ -326,7 +326,6 @@ class Userphone(commands.Cog):
                 await ws.close(1001)
             except:
                 pass
-            await ctx.send("Userphone session disconnected.")
         else:
             await ctx.send("No active userphone session found in this channel.")
 

@@ -1244,8 +1244,14 @@ class Logging(commands.Cog):
 
         # Add the differential
         if event.before:
-            embed.add_field(name="Before", value=event.before.content, inline=False)
-        embed.add_field(name="After", value=event.after.content, inline=False)
+            embed.add_field(
+                name="Before",
+                value=tools.shorten(event.before.content, 1024),
+                inline=False,
+            )
+        embed.add_field(
+            name="After", value=tools.shorten(event.after.content, 1024), inline=False
+        )
 
         # Push the event to the listening channels
         if server_data.logging.messageChange:
