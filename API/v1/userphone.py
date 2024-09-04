@@ -123,7 +123,9 @@ async def validate_user(user: dict, authentication: bool = False):
                 "avatar_url": null,
                 "server": {
                     "name": "Codeverse",
+                    "id": "...",
                     "channel": "general",
+                    "channel_id": "...",
                     "icon_url": null,
                     "description": null
                 }
@@ -131,10 +133,14 @@ async def validate_user(user: dict, authentication: bool = False):
     ```
     """
     try:
-        assert len(user.keys()) == 6 and len(user["server"].keys()) == 4
+        assert len(user.keys()) == 6 and len(user["server"].keys()) == 6
         assert isinstance(user["name"], str) and isinstance(user["id"], str)
         assert isinstance(user["server"]["name"], str) and isinstance(
             user["server"]["channel"], str
+        ) and isinstance(
+            user["server"]["id"], str
+        ) and isinstance(
+            user["server"]["channel_id"], str
         )
         if authentication:
             assert isinstance(user["authentication"], str)
@@ -388,6 +394,9 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
                 "con1": {"ws": con1, "details": con1_details},
                 "con2": {"ws": con2, "details": con2_details},
                 "ready": True,
+                "message_ids": [],
+                "server_ids": [con1_details["user"]["server"]["id"], con2_details["user"]["server"]["id"]],
+                "channel_ids": [con1_details["user"]["server"]["channel_id"], con2_details["user"]["server"]["channel_id"]]
             }
 
             con1_details_censored = json.loads(json.dumps(con1_details))
@@ -433,8 +442,9 @@ def setup():
         - `{"code": 400, "detail": "not_connected"}`
         - `{"code": 400, "detail": "unprocessable", "message_id": "..."}`
         - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server)
-        - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
+        - `{"code": 400, "detail": "already_connected"}` (channel already connected)
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}`
+        - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}`
         - `1001 - Disconnected`
         - `3008 - No activity on one side for > 120s`
@@ -458,7 +468,9 @@ def setup():
                 "avatar_url": null,
                 "server": {
                     "name": "Codeverse",
+                    "id": "...",
                     "channel": "general",
+                    "channel_id": "...",
                     "icon_url": null,
                     "description": null
                 }
@@ -510,9 +522,20 @@ def setup():
                         await validate_user(msg["user"], authentication=True)
                     )
                     assert tools.userphone_authorize(msg["user"])
-                    # TODO: reject same channel (or server) already in queue
+                    alr_in_use = False
+                    for pair, value in pairings.items().copy():
+                        if msg["user"]["server"]["channel_id"] in value["channel_ids"]:
+                            alr_in_use = True
+                            break
+                    for ws, details in active_connections.items().copy():
+                        if details["user"]["server"]["channel_id"] == msg["user"]["server"]["channel_id"]:
+                            alr_in_use = True
+                            break
+                    if alr_in_use:
+                        await websocket.send_json({"code": 400, "detail": "already_connected"})
+                        await websocket.close(1001)
+                        msg = False
                 except Exception as e:
-                    raise e
                     msg = False
             if not msg:
                 if msg == None:

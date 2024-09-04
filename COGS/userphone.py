@@ -29,6 +29,8 @@ class Userphone(commands.Cog):
             ),
         }
 
+        self.session_tasks: list[asyncio.Task] = []
+
         self.uri = "ws://127.0.0.1:6942/v1/userphone/"
         if not hasattr(self.bot, "active_userphone_sessions"):
             self.bot.active_userphone_sessions = {}
@@ -46,25 +48,32 @@ class Userphone(commands.Cog):
                         return url
         return None
 
+    async def userphone_session(self, session):
+        channel: guilded.ChatChannel = session["channel"]
+        ws = session["ws"]
+        connection_details = json.loads(json.dumps(self.USER_DATA))
+        connection_details["server"] = {
+            "name": channel.server.name,
+            "id": channel.server.id,
+            "channel": channel.name,
+            "channel_id": channel.id if not hasattr(channel, "root_id") else channel.root_id,
+            "icon_url": channel.server.icon.url if channel.server.icon else None,
+            "description": channel.server.description,
+        }
+
+        uuid = session["uuid"]
+        while True:
+            uuid = await self.userphone_client(uuid, channel, connection_details, ws)
+            if not uuid:
+                break
+        await channel.send("Userphone session ended.")
+        self.bot.active_userphone_sessions.pop(channel.id, None)
+
     async def restart_sessions(self):
         # attempt to reconnect every session
         for session in self.bot.active_userphone_sessions:
-            channel = session["channel"]
-            connection_details = json.loads(json.dumps(self.USER_DATA))
-            connection_details["server"] = {
-                "name": channel.server.name,
-                "channel": channel.name,
-                "icon_url": channel.server.icon.url if channel.server.icon else None,
-                "description": channel.server.description,
-            }
-
-            uuid = session["uuid"]
-            while True:
-                uuid = await self.userphone_client(uuid, channel, connection_details)
-                if not uuid:
-                    break
-            await channel.send("Userphone session ended.")
-            self.bot.active_userphone_sessions.pop(channel.id, None)
+            task = asyncio.create_task(self.userphone_session(session))
+            self.session_tasks.append(task)
 
     async def send_message(self, ws, message: guilded.Message, user_data: dict):
         message_obj = {
@@ -190,7 +199,7 @@ class Userphone(commands.Cog):
                     break
 
     async def userphone_client(
-        self, uuid: str | None, channel: guilded.ChatChannel, auth: dict
+        self, uuid: str | None, channel: guilded.ChatChannel, auth: dict, ws = None
     ):
         """
         Client Receives:
@@ -221,12 +230,35 @@ class Userphone(commands.Cog):
         uri = self.uri
         if uuid:
             uri = f"{self.uri}?id={uuid}"
-        async with websockets.connect(uri, ping_timeout=180) as ws:
-            # Send authentication
-            if not uuid:
-                await ws.send(json.dumps({"code": 200, "user": auth, "detail": "auth"}))
+        if not uuid or (ws and not ws.open):
+            ws = None
+        if not ws:
+            async with websockets.connect(uri, ping_timeout=180) as ws:
+                # Send authentication
+                if not uuid:
+                    await ws.send(json.dumps({"code": 200, "user": auth, "detail": "auth"}))
 
-            # Start receiving and sending messages
+                # Start receiving and sending messages
+                self.bot.active_userphone_sessions[channel.id] = {
+                    "ws": ws,
+                    "uuid": uuid,
+                    "channel": channel,
+                }
+                resp = await self.receive_message(ws, channel)
+                if resp == False:
+                    self.bot.active_userphone_sessions.pop(channel.id, 0)
+                    try:
+                        await ws.close(1001)
+                    except:
+                        pass
+                    return None
+                else:
+                    try:
+                        await ws.close(1000)  # unintentional
+                    except:
+                        pass
+                    return self.bot.active_userphone_sessions[channel.id]["uuid"]
+        else:
             self.bot.active_userphone_sessions[channel.id] = {
                 "ws": ws,
                 "uuid": uuid,
@@ -293,19 +325,13 @@ class Userphone(commands.Cog):
         await ctx.reply(
             "Searching for userphone... If no connection is found in 5 minutes this will automatically fail."
         )
-        connection_details = json.loads(json.dumps(self.USER_DATA))
-        connection_details["server"] = {
-            "name": ctx.server.name,
-            "channel": ctx.channel.name,
-            "icon_url": ctx.server.icon.url if ctx.server.icon else None,
-            "description": ctx.server.description,
-        }
 
-        uuid = None
-        while True:
-            uuid = await self.userphone_client(uuid, ctx.channel, connection_details)
-            if not uuid:
-                break
+        await self.userphone_session({
+            "ws": None,
+            "uuid": None,
+            "channel": ctx.channel,
+        })
+
         await ctx.send("Userphone disconnected.")
         self.bot.active_userphone_sessions.pop(ctx.channel.id, None)
 
@@ -329,6 +355,9 @@ class Userphone(commands.Cog):
         else:
             await ctx.send("No active userphone session found in this channel.")
 
+    def cog_unload(self):
+        for task in self.session_tasks:
+            task.cancel()
 
 def setup(bot):
     bot.add_cog(Userphone(bot))
