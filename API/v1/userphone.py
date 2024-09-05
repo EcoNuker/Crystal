@@ -169,6 +169,7 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
             except:
                 pass
             websocket_locks.pop(con, 0)
+            bot.active_userphone_connections.pop(con, 0)
 
         async def send_and_receive(
             cur_con: WebSocket, other_con: WebSocket, con_name: str, other_con_name: str
@@ -599,13 +600,24 @@ def setup():
                         )
                         assert tools.userphone_authorize(msg["user"])
                         channel_id = msg["user"]["server"]["channel_id"]
+                        dupe = False
                         if any(
                             details["user"]["server"]["channel_id"] == channel_id
                             for details in bot.active_userphone_connections.values()
-                        ) or any(
-                            channel_id in value["channel_ids"]
-                            for value in bot.userphone_pairings.values()
                         ):
+                            dupe = True
+                        for value in bot.userphone_pairings.values():
+                            if channel_id in value["channel_ids"] and (
+                                value["con1"]["ws"].application_state
+                                == WebSocketState.CONNECTED
+                                or value["con2"]["ws"].application_state
+                                == WebSocketState.CONNECTED
+                            ):
+                                dupe = True
+                                break
+                            elif channel_id in value["channel_ids"]:
+                                break
+                        if dupe:
                             await websocket.send_json(
                                 {"code": 400, "detail": "already_connected"}
                             )
