@@ -27,7 +27,7 @@ class developer(commands.Cog):
         all_connected = self.bot.userphone_pairings  # pairings, so *2
         all_active_not_connected = self.bot.active_userphone_connections
 
-        total = len(all_active_not_connected) + len(all_connected)
+        total = len(all_active_not_connected) + (len(all_connected) * 2)
 
         em = embeds.Embeds.embed(
             description=f"{len(bot_active)} connections via {self.bot.user.mention}\n\n{len(all_connected)*2} connections currently connected\n\n{len(all_active_not_connected)} waiting to connect globally\n\n{len(all_connected)} current conversations\n\n{total} connections everywhere",
