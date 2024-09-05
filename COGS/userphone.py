@@ -1,4 +1,3 @@
-import datetime
 import asyncio, time
 import json
 import websockets, aiohttp
@@ -297,18 +296,32 @@ class Userphone(commands.Cog):
                         try:
                             message_data = response_data["message"]
                             content = message_data["content"]["text"]
-                            embed = await get_embed(content, message_data)
-                            await self.bot.active_userphone_sessions[
-                                (
-                                    channel.id
-                                    if not hasattr(channel, "root_id")
-                                    else channel.root_id
-                                )
-                            ]["message_id_map"][
-                                response_data["message"]["message_id"]
-                            ].edit(
-                                embed=embed
+                            blocked = await would_be_automodded(
+                                content, channel.server, self.bot
                             )
+                            if blocked:
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "code": 400,
+                                            "message_id": message_data["message_id"],
+                                            "detail": "blocked",
+                                        }
+                                    )
+                                )
+                            else:
+                                embed = await get_embed(content, message_data)
+                                await self.bot.active_userphone_sessions[
+                                    (
+                                        channel.id
+                                        if not hasattr(channel, "root_id")
+                                        else channel.root_id
+                                    )
+                                ]["message_id_map"][
+                                    response_data["message"]["message_id"]
+                                ].edit(
+                                    embed=embed
+                                )
                         except guilded.NotFound:
                             pass  # it's gone.
                     if response_data["detail"] == "Message received.":
