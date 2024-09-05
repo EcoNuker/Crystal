@@ -69,6 +69,7 @@ class Userphone(commands.Cog):
             uuid = await self.userphone_client(uuid, channel, connection_details, ws)
             if type(uuid) != str:
                 break
+            print(uuid)
         if uuid == 1:
             await channel.send(
                 "Already connected!"
@@ -504,6 +505,7 @@ class Userphone(commands.Cog):
                 "user": None,
             }
             resp = await self.receive_message(ws, channel)
+            print(resp)
             if resp == False:
                 self.bot.active_userphone_sessions.pop(
                     channel.id if not hasattr(channel, "root_id") else channel.root_id,
@@ -538,9 +540,11 @@ class Userphone(commands.Cog):
                         json.dumps({"code": 200, "user": auth, "detail": "auth"})
                     )
 
-                return await begin()
+                res = (await begin())
+                return res
         else:
-            return await begin()
+            res = (await begin())
+            return res
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
