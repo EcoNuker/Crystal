@@ -486,7 +486,10 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
             )
 
             # Relay messages between the two users
-            await relay_messages(con1, con2, uuid_str)
+            try:
+                await relay_messages(con1, con2, uuid_str)
+            except:
+                bot.userphone_pairings.pop(uuid_str, 0)
             break
         await asyncio.sleep(0.3)
 

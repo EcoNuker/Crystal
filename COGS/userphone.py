@@ -49,7 +49,7 @@ class Userphone(commands.Cog):
                         return url
         return None
 
-    async def userphone_session(self, session, send_disconnect=False):
+    async def userphone_session(self, session: dict, send_disconnect=False):
         channel: guilded.ChatChannel = session["channel"]
         ws = session["ws"]
         connection_details = json.loads(json.dumps(self.USER_DATA))
@@ -102,7 +102,7 @@ class Userphone(commands.Cog):
 
     async def restart_sessions(self):
         # attempt to reconnect every session
-        for session in self.bot.active_userphone_sessions:
+        for session in self.bot.active_userphone_sessions.values():
             task = asyncio.create_task(
                 self.userphone_session(session, send_disconnect=True)
             )
@@ -745,13 +745,15 @@ class Userphone(commands.Cog):
 
         task = asyncio.create_task(
             self.userphone_session(
-                self.bot.active_userphone_sessions[
-                    (
-                        ctx.channel.id
-                        if not hasattr(ctx.channel, "root_id")
-                        else ctx.channel.root_id
-                    )
-                ],
+                {
+                    "ws": None,
+                    "uuid": None,
+                    "channel": ctx.channel,
+                    "started": time.time(),
+                    "connected": None,
+                    "message_id_map": {},
+                    "user": None,
+                },
                 send_disconnect=True,
             )
         )
