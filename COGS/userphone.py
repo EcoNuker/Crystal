@@ -558,14 +558,14 @@ class Userphone(commands.Cog):
                     return
                 ws = session["ws"]
                 user_data = {
-                    "name": event.after.author.name,
-                    "id": event.after.author.id,
-                    "nickname": None,
-                    "avatar_url": (
-                        event.after.author.avatar.url
-                        if event.after.author.avatar
-                        else None  # event.message.author.default_avatar.url
+                    "name": (
+                        event.after.author.name
+                        if event.after.author_id != "Ann6LewA"
+                        else "SERVER WEBHOOK"
                     ),
+                    "id": event.after.author_id,
+                    "nickname": event.after.author.nick,
+                    "avatar_url": event.after.author.display_avatar.url,
                     "profile_url": event.after.author.profile_url,
                 }
                 await self.send_message(ws, event.after, user_data, type="message_edit")
@@ -590,14 +590,14 @@ class Userphone(commands.Cog):
                     return
                 ws = session["ws"]
                 user_data = {
-                    "name": event.message.author.name,
-                    "id": event.message.author.id,
-                    "nickname": None,
-                    "avatar_url": (
-                        event.message.author.avatar.url
-                        if event.message.author.avatar
-                        else None  # event.message.author.default_avatar.url
+                    "name": (
+                        event.message.author.name
+                        if event.message.author_id != "Ann6LewA"
+                        else "SERVER WEBHOOK"
                     ),
+                    "id": event.message.author_id,
+                    "nickname": event.message.author.nick,
+                    "avatar_url": event.message.author.display_avatar.url,
                     "profile_url": event.message.author.profile_url,
                 }
                 await self.send_message(ws, event.message, user_data, type="message")
