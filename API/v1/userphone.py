@@ -240,9 +240,19 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                             data = json.loads(msg)
                             assert data["code"] in [200, 400] and (
                                 (
-                                    data["message"]
-                                    and data["detail"] == "message"
-                                    and (await validate_message(data["message"]))
+                                    (
+                                        data["detail"] in ["message", "message_edit"]
+                                        and data["message"]
+                                        and (await validate_message(data["message"]))
+                                    )
+                                    or (
+                                        data["detail"] in ["message_delete"]
+                                        and data["message_id"]
+                                    )
+                                    and data["message_id"]
+                                    in bot.userphone_pairings[uuid_str][con_name][
+                                        "message_ids"
+                                    ]
                                 )
                                 if data["code"] == 200
                                 else (
@@ -250,7 +260,6 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                     and data["detail"] in ["blocked", "unprocessable"]
                                 )
                             )
-                            # TODO: check if message id was already sent, and if 400, verify it's a valid message id from opposing side
                             if data["code"] == 200:
                                 operation = data["detail"]
                                 assert operation in [
@@ -326,13 +335,13 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                 else:
                                     message_queue[other_con_name].append(data_to_send)
                             elif data["code"] == 400:
+                                assert (
+                                    data["message_id"]
+                                    in bot.userphone_pairings[uuid_str][other_con_name][
+                                        "message_ids"
+                                    ]
+                                )
                                 if data["detail"] == "unprocessable":
-                                    assert (
-                                        data["message_id"]
-                                        in bot.userphone_pairings[uuid_str][
-                                            other_con_name
-                                        ]["message_ids"]
-                                    )
                                     await other_con.send_json(
                                         {
                                             "code": 400,
@@ -341,12 +350,6 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                         }
                                     )
                                 elif data["detail"] == "blocked":
-                                    assert (
-                                        data["message_id"]
-                                        in bot.userphone_pairings[uuid_str][
-                                            other_con_name
-                                        ]["message_ids"]
-                                    )
                                     await other_con.send_json(
                                         {
                                             "code": 415,
@@ -559,121 +562,179 @@ def setup():
             }
         ```
         """
-        await websocket.accept()
-        user_ip = websocket.headers.get(
-            "X-Forwarded-For",
-            websocket.headers.get(
-                "X-Real-IP", (websocket.client.host if websocket.client else None)
-            ),
-        ).split(",")[0]
-        if user_ip in banned_ips.keys() and banned_ips[user_ip]["until"] > time.time():
-            await websocket.send_json(
-                {
-                    "code": 429,
-                    "detail": "IP Temporarily Banned.",
-                    "retry_after": round(banned_ips[user_ip]["until"] - time.time()),
-                }
-            )
-            raise WebSocketException(code=1008)  # 1008 is a policy violation close code
-
-        if not id:
-            msg = await receive_with_timeout(websocket, timeout=5)
-            if msg == False:
-                msg = None
-            if msg:
-                try:
-                    msg = json.loads(msg)
-                    assert msg["detail"] == "auth" and (
-                        await validate_user(msg["user"], authentication=True)
-                    )
-                    assert tools.userphone_authorize(msg["user"])
-                    channel_id = msg["user"]["server"]["channel_id"]
-                    if any(
-                        details["user"]["server"]["channel_id"] == channel_id
-                        for details in bot.active_userphone_connections.values()
-                    ) or any(
-                        channel_id in value["channel_ids"]
-                        for value in bot.userphone_pairings.values()
-                    ):
-                        await websocket.send_json(
-                            {"code": 400, "detail": "already_connected"}
-                        )
-                        await websocket.close(1001)
-                        msg = False
-                except Exception:
-                    msg = False
-            if not msg:
-                if msg == None:
-                    await websocket.close(
-                        3000, reason="Unauthorized - Missing Validation"
-                    )
-                elif msg == False:
-                    await websocket.close(3003, reason="Forbidden - Bad Validation")
-                if user_ip not in banned_ips.keys():
-                    banned_ips[user_ip] = {
-                        "until": 0,
-                        "violations": 1,
-                        "last_violation": time.time(),
-                        "last_ban": 0,
+        try:
+            await websocket.accept()
+            user_ip = websocket.headers.get(
+                "X-Forwarded-For",
+                websocket.headers.get(
+                    "X-Real-IP", (websocket.client.host if websocket.client else None)
+                ),
+            ).split(",")[0]
+            if (
+                user_ip in banned_ips.keys()
+                and banned_ips[user_ip]["until"] > time.time()
+            ):
+                await websocket.send_json(
+                    {
+                        "code": 429,
+                        "detail": "IP Temporarily Banned.",
+                        "retry_after": round(
+                            banned_ips[user_ip]["until"] - time.time()
+                        ),
                     }
-                else:
-                    violations = banned_ips[user_ip]["violations"]
-                    last_violation = banned_ips[user_ip]["last_violation"]
-                    last_ban = banned_ips[user_ip]["last_ban"]
-                    ban = False
-                    if time.time() - last_violation > 3600:  # 1 hour
+                )
+                raise WebSocketException(
+                    code=1008
+                )  # 1008 is a policy violation close code
+
+            if not id:
+                msg = await receive_with_timeout(websocket, timeout=5)
+                if msg == False:
+                    msg = None
+                if msg:
+                    try:
+                        msg = json.loads(msg)
+                        assert msg["detail"] == "auth" and (
+                            await validate_user(msg["user"], authentication=True)
+                        )
+                        assert tools.userphone_authorize(msg["user"])
+                        channel_id = msg["user"]["server"]["channel_id"]
+                        if any(
+                            details["user"]["server"]["channel_id"] == channel_id
+                            for details in bot.active_userphone_connections.values()
+                        ) or any(
+                            channel_id in value["channel_ids"]
+                            for value in bot.userphone_pairings.values()
+                        ):
+                            await websocket.send_json(
+                                {"code": 400, "detail": "already_connected"}
+                            )
+                            await websocket.close(1001)
+                            msg = False
+                    except Exception:
+                        msg = False
+                if not msg:
+                    if msg == None:
+                        await websocket.close(
+                            3000, reason="Unauthorized - Missing Validation"
+                        )
+                    elif msg == False:
+                        await websocket.close(3003, reason="Forbidden - Bad Validation")
+                    if user_ip not in banned_ips.keys():
                         banned_ips[user_ip] = {
                             "until": 0,
                             "violations": 1,
                             "last_violation": time.time(),
                             "last_ban": 0,
                         }
-                        # reset ip
-                    elif time.time() - last_violation > 600:  # 10 min
-                        banned_ips[user_ip] = {
-                            "until": 0,
-                            "violations": 1,
-                            "last_violation": time.time(),
-                            "last_ban": last_ban,
-                        }
-                        # reset violations and last violation
-                    elif time.time() - last_violation > 180:  # 3 min
-                        if violations > 5 and violations % 4 == 1:
-                            ban = True
-                        banned_ips[user_ip] = {
-                            "until": 0,
-                            "violations": violations + 1,
-                            "last_violation": time.time(),
-                            "last_ban": last_ban,
-                        }
-                        # add one violation
-                    else:  # less than 3 min
-                        if violations > 5 and violations % 4 == 1:
-                            ban = True
-                        banned_ips[user_ip] = {
-                            "until": 0,
-                            "violations": violations + 1,
-                            "last_violation": time.time(),
-                            "last_ban": last_ban,
-                        }
-                    if ban:
-                        ban_time = (violations + 1) * (
-                            last_ban if last_ban != 0 else 1.5
-                        )
-                        # violation count * last ban time
-                        # at 5 violations all within 5 minutes of each other: 7.5s
-                        # at 9 violations all within 5 minutes of each other: 67.5s
-                        # at 13 violations all within 5 minutes of each other: 877.5s
-                        banned_ips[user_ip]["until"] = time.time() + ban_time
-                        banned_ips[user_ip]["last_ban"] = ban_time
-            else:
-                await connect_users(websocket, msg)
+                    else:
+                        violations = banned_ips[user_ip]["violations"]
+                        last_violation = banned_ips[user_ip]["last_violation"]
+                        last_ban = banned_ips[user_ip]["last_ban"]
+                        ban = False
+                        if time.time() - last_violation > 3600:  # 1 hour
+                            banned_ips[user_ip] = {
+                                "until": 0,
+                                "violations": 1,
+                                "last_violation": time.time(),
+                                "last_ban": 0,
+                            }
+                            # reset ip
+                        elif time.time() - last_violation > 600:  # 10 min
+                            banned_ips[user_ip] = {
+                                "until": 0,
+                                "violations": 1,
+                                "last_violation": time.time(),
+                                "last_ban": last_ban,
+                            }
+                            # reset violations and last violation
+                        elif time.time() - last_violation > 180:  # 3 min
+                            if violations > 5 and violations % 4 == 1:
+                                ban = True
+                            banned_ips[user_ip] = {
+                                "until": 0,
+                                "violations": violations + 1,
+                                "last_violation": time.time(),
+                                "last_ban": last_ban,
+                            }
+                            # add one violation
+                        else:  # less than 3 min
+                            if violations > 5 and violations % 4 == 1:
+                                ban = True
+                            banned_ips[user_ip] = {
+                                "until": 0,
+                                "violations": violations + 1,
+                                "last_violation": time.time(),
+                                "last_ban": last_ban,
+                            }
+                        if ban:
+                            ban_time = (violations + 1) * (
+                                last_ban if last_ban != 0 else 1.5
+                            )
+                            # violation count * last ban time
+                            # at 5 violations all within 5 minutes of each other: 7.5s
+                            # at 9 violations all within 5 minutes of each other: 67.5s
+                            # at 13 violations all within 5 minutes of each other: 877.5s
+                            banned_ips[user_ip]["until"] = time.time() + ban_time
+                            banned_ips[user_ip]["last_ban"] = ban_time
+                else:
+                    await connect_users(websocket, msg)
 
-        elif id in bot.userphone_pairings:
-            if not bot.userphone_pairings[id]["con1"]["ws"]:
-                bot.userphone_pairings[id]["con1"]["ws"] = websocket
-            elif not bot.userphone_pairings[id]["con2"]["ws"]:
-                bot.userphone_pairings[id]["con2"]["ws"] = websocket
+            elif id in bot.userphone_pairings:
+                if not bot.userphone_pairings[id]["con1"]["ws"]:
+                    bot.userphone_pairings[id]["con1"]["ws"] = websocket
+                elif not bot.userphone_pairings[id]["con2"]["ws"]:
+                    bot.userphone_pairings[id]["con2"]["ws"] = websocket
+                else:
+                    await websocket.send_json(
+                        {
+                            "code": 400,
+                            "detail": "Invalid UUID to reconnect - has it expired?",
+                        }
+                    )
+                    await websocket.close(code=1001)
+                    return
+
+                con1_details_censored = json.loads(
+                    json.dumps(bot.userphone_pairings[id]["con1"]["details"])
+                )
+                del con1_details_censored["user"]["authentication"]
+                con2_details_censored = json.loads(
+                    json.dumps(bot.userphone_pairings[id]["con2"]["details"])
+                )
+                del con2_details_censored["user"]["authentication"]
+
+                # Notify users they are connected
+                await bot.userphone_pairings[id]["con1"]["ws"].send_json(
+                    {
+                        "code": 202,
+                        "detail": "Connected.",
+                        "user": con2_details_censored["user"],
+                        "uuid": id,
+                    }
+                )
+                await bot.userphone_pairings[id]["con2"]["ws"].send_json(
+                    {
+                        "code": 202,
+                        "detail": "Connected.",
+                        "user": con1_details_censored["user"],
+                        "uuid": id,
+                    }
+                )
+
+                bot.userphone_pairings[id]["ready"] = True
+                try:
+                    while websocket in [
+                        bot.userphone_pairings[id]["con2"]["ws"],
+                        bot.userphone_pairings[id]["con1"]["ws"],
+                    ]:
+                        await asyncio.sleep(
+                            1
+                        )  # Since FastAPI closes WS with 1005 if function ends...
+                except WebSocketDisconnect:
+                    websocket_locks.pop(websocket, 0)
+                except KeyError:
+                    websocket_locks.pop(websocket, 0)
             else:
                 await websocket.send_json(
                     {
@@ -682,50 +743,5 @@ def setup():
                     }
                 )
                 await websocket.close(code=1001)
-                return
-
-            con1_details_censored = json.loads(
-                json.dumps(bot.userphone_pairings[id]["con1"]["details"])
-            )
-            del con1_details_censored["user"]["authentication"]
-            con2_details_censored = json.loads(
-                json.dumps(bot.userphone_pairings[id]["con2"]["details"])
-            )
-            del con2_details_censored["user"]["authentication"]
-
-            # Notify users they are connected
-            await bot.userphone_pairings[id]["con1"]["ws"].send_json(
-                {
-                    "code": 202,
-                    "detail": "Connected.",
-                    "user": con2_details_censored["user"],
-                    "uuid": id,
-                }
-            )
-            await bot.userphone_pairings[id]["con2"]["ws"].send_json(
-                {
-                    "code": 202,
-                    "detail": "Connected.",
-                    "user": con1_details_censored["user"],
-                    "uuid": id,
-                }
-            )
-
-            bot.userphone_pairings[id]["ready"] = True
-            try:
-                while websocket in [
-                    bot.userphone_pairings[id]["con2"]["ws"],
-                    bot.userphone_pairings[id]["con1"]["ws"],
-                ]:
-                    await asyncio.sleep(
-                        1
-                    )  # Since FastAPI closes WS with 1005 if function ends...
-            except WebSocketDisconnect:
-                websocket_locks.pop(websocket, 0)
-            except KeyError:
-                websocket_locks.pop(websocket, 0)
-        else:
-            await websocket.send_json(
-                {"code": 400, "detail": "Invalid UUID to reconnect - has it expired?"}
-            )
-            await websocket.close(code=1001)
+        except RuntimeError:
+            pass

@@ -50,7 +50,7 @@ class Userphone(commands.Cog):
                         return url
         return None
 
-    async def userphone_session(self, session):
+    async def userphone_session(self, session, send_disconnect=False):
         channel: guilded.ChatChannel = session["channel"]
         ws = session["ws"]
         connection_details = json.loads(json.dumps(self.USER_DATA))
@@ -74,21 +74,60 @@ class Userphone(commands.Cog):
             await channel.send(
                 "Already connected!"
             )  # how tf?? lol this shouldn't happen but ok
-        await channel.send("Userphone session ended.")
-        self.bot.active_userphone_sessions.pop(
+        if send_disconnect:
+            try:
+                await channel.send("Userphone hung up.")
+            except guilded.NotFound:
+                pass
+        ws = self.bot.active_userphone_sessions.pop(
             channel.id if not hasattr(channel, "root_id") else channel.root_id, None
         )
+        if ws:
+            ws = ws["ws"]
+        if ws:
+            try:
+                await ws.close(1001)
+            except:
+                pass
+        self.bot.active_userphone_sessions.pop(
+            (channel.id if not hasattr(channel, "root_id") else channel.root_id),
+            None,
+        )
+
+    def remove_session_task(self, task):
+        try:
+            self.session_tasks.remove(task)
+        except ValueError as e:
+            print(e)
+            pass
 
     async def restart_sessions(self):
         # attempt to reconnect every session
         for session in self.bot.active_userphone_sessions:
-            task = asyncio.create_task(self.userphone_session(session))
+            task = asyncio.create_task(
+                self.userphone_session(session, send_disconnect=True)
+            )
+            task.add_done_callback(self.remove_session_task)
             self.session_tasks.append(task)
 
     async def send_message(
         self, ws, message: guilded.Message, user_data: dict, type: str
     ):
         assert type in ["message", "message_edit"]
+        session = self.bot.active_userphone_sessions[
+            (
+                message.channel.id
+                if not hasattr(message.channel, "root_id")
+                else message.channel.root_id
+            )
+        ]["message_id_map"]
+
+        id_map = {msg.id: oid for oid, msg in session.items()}
+
+        converted_replies = [
+            id_map.get(reply, reply) for reply in message.replied_to_ids
+        ]
+
         message_obj = {
             "name": user_data["name"],
             "id": user_data["id"],
@@ -96,9 +135,15 @@ class Userphone(commands.Cog):
             "nickname": user_data["nickname"],
             "avatar_url": user_data["avatar_url"],
             "profile_url": user_data["profile_url"],
+            "reply_ids": converted_replies,
             "content": {"text": message.content},
         }
-        await ws.send(json.dumps({"code": 200, "message": message_obj, "detail": type}))
+        try:
+            await ws.send(
+                json.dumps({"code": 200, "message": message_obj, "detail": type})
+            )
+        except AttributeError:
+            pass  # ws is None
 
     async def receive_message(self, ws, channel: guilded.ChatChannel):
         """
@@ -133,11 +178,11 @@ class Userphone(commands.Cog):
                     print(
                         response_data
                     )  # Print it to let developers know, as this shouldn't ever happen. We comply with all userphone standards.
-                if response_data["code"] == 418:
+                elif response_data["code"] == 418:
                     pass  # The server will send all of our messages anyways. Disconnected user will however not have their messages sent.
-                if response_data["detail"] == "not_connected":
+                elif response_data["detail"] == "not_connected":
                     pass
-                if response_data["detail"] == "Operation sent.":
+                elif response_data["detail"] == "Operation sent.":
                     pass
 
                 elif response_data["code"] == 202 and (
@@ -259,10 +304,12 @@ class Userphone(commands.Cog):
                                     if not hasattr(channel, "root_id")
                                     else channel.root_id
                                 )
-                            ]["message_id_map"].pop(response_data["message_id"]).edit(
+                            ]["message_id_map"][
+                                response_data["message"]["message_id"]
+                            ].edit(
                                 embed=embed
                             )
-                        except:
+                        except guilded.NotFound:
                             pass  # it's gone.
                     if response_data["detail"] == "Message received.":
                         message_data = response_data["message"]
@@ -284,20 +331,23 @@ class Userphone(commands.Cog):
                             message_data = response_data["message"]
                             content = message_data["content"]["text"]
                             embed = await get_embed(content, message_data)
+                            replies = [
+                                self.bot.active_userphone_sessions[
+                                    (
+                                        channel.id
+                                        if not hasattr(channel, "root_id")
+                                        else channel.root_id
+                                    )
+                                ]["message_id_map"].get(msg_id, msg_id)
+                                for msg_id in message_data["reply_ids"]
+                            ]
+                            if replies == []:
+                                replies = guilded.utils.MISSING
                             try:
                                 our_message = await channel.send(
                                     embed=embed,
                                     silent=True,
-                                    reply_to=[
-                                        self.bot.active_userphone_sessions[
-                                            (
-                                                channel.id
-                                                if not hasattr(channel, "root_id")
-                                                else channel.root_id
-                                            )
-                                        ]["message_id_map"].get(msg_id)
-                                        for msg_id in message_data["reply_ids"]
-                                    ],
+                                    reply_to=replies,
                                 )
                             except guilded.NotFound:
                                 return False  # Channel doesnt exist??
@@ -548,7 +598,7 @@ class Userphone(commands.Cog):
                 if not session["connected"]:
                     return
                 if (
-                    event.message.created_at.timestamp() < session["connected"]
+                    event.after.created_at.timestamp() < session["connected"]
                 ):  # message was earlier than connected time, therefore not in userphone
                     return
                 if (
@@ -659,26 +709,38 @@ class Userphone(commands.Cog):
             "Calling userphone... If no connection is found in 5 minutes this will automatically fail."
         )
 
-        await self.userphone_session(
-            {
-                "ws": None,
-                "uuid": None,
-                "channel": ctx.channel,
-            }
-        )
-
-        try:
-            await ctx.send("Userphone disconnected.")
-        except guilded.NotFound:
-            pass
-        self.bot.active_userphone_sessions.pop(
+        self.bot.active_userphone_sessions[
             (
                 ctx.channel.id
                 if not hasattr(ctx.channel, "root_id")
                 else ctx.channel.root_id
-            ),
-            None,
+            )
+        ] = {
+            "ws": None,
+            "uuid": None,
+            "channel": ctx.channel,
+            "started": time.time(),
+            "connected": None,
+            "message_id_map": {},
+            "user": None,
+        }
+
+        await asyncio.sleep(3)
+
+        task = asyncio.create_task(
+            self.userphone_session(
+                self.bot.active_userphone_sessions[
+                    (
+                        ctx.channel.id
+                        if not hasattr(ctx.channel, "root_id")
+                        else ctx.channel.root_id
+                    )
+                ],
+                send_disconnect=True,
+            )
         )
+        task.add_done_callback(self.remove_session_task)
+        self.session_tasks.append(task)
 
     @cmd_ex.document()
     @commands.command(name="disconnect")
