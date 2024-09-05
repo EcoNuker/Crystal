@@ -33,7 +33,7 @@ class developer(commands.Cog):
         )
         await ctx.reply(embed=em, private=ctx.message.private)
 
-    @commands.command(name="reload_config", description="reload da config")
+    @commands.command(name="reload_configs", description="reload da config")
     async def rcfg(self, ctx: commands.Context, user: tools.UserConverter = None):
         if not ctx.author.id in self.bot.owner_ids:
             return
