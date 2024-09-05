@@ -282,10 +282,20 @@ async def relay_messages(con1: WebSocket, con2: WebSocket, uuid_str: str):
                                     data["message"]["reply_ids"] = [
                                         m_id
                                         for m_id in data["message"]["reply_ids"]
-                                        if m_id
-                                        in bot.userphone_pairings[uuid_str][con_name][
-                                            "message_ids"
-                                        ]
+                                        if (
+                                            (
+                                                m_id
+                                                in bot.userphone_pairings[uuid_str][
+                                                    con_name
+                                                ]["message_ids"]
+                                            )
+                                            or (
+                                                m_id
+                                                in bot.userphone_pairings[uuid_str][
+                                                    other_con_name
+                                                ]["message_ids"]
+                                            )
+                                        )
                                     ]
                                 elif operation == "message_delete":
                                     bot.userphone_pairings[uuid_str][con_name][
