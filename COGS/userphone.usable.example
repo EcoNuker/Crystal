@@ -204,7 +204,7 @@ class Userphone(commands.Cog):
                     )  # Print it to let developers know, as this shouldn't ever happen. We comply with all userphone standards.
                 elif response_data["code"] == 418:
                     pass  # The server will send all of our messages anyways. Disconnected user will however not have their messages sent.
-                elif response_data["detail"] == "not_connected":
+                elif response_data["code"] == 400 and response_data["detail"] == "not_connected":
                     pass
                 elif response_data["detail"] == "Operation sent.":
                     pass
