@@ -15,6 +15,7 @@ import documents
 
 from main import CrystalBot
 
+
 async def is_banned(
     server: guilded.Server, member: guilded.Member | guilded.User
 ) -> bool | documents.serverBan | guilded.MemberBan:

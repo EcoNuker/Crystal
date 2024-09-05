@@ -8,6 +8,7 @@ from DATA import tools
 
 from main import CrystalBot
 
+
 class errors(commands.Cog):
     def __init__(self, bot: CrystalBot):
         self.bot = bot

@@ -10,6 +10,7 @@ import documents
 
 from main import CrystalBot
 
+
 class settings(commands.Cog):
     def __init__(self, bot: CrystalBot):
         self.bot = bot

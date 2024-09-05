@@ -15,6 +15,7 @@ import documents
 
 from main import CrystalBot
 
+
 class starboard(commands.Cog):
     def __init__(self, bot: CrystalBot):
         self.bot = bot

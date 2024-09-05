@@ -24,7 +24,7 @@ class developer(commands.Cog):
             return
 
         bot_active = self.bot.active_userphone_sessions
-        all_connected = self.bot.userphone_pairings # pairings, so *2
+        all_connected = self.bot.userphone_pairings  # pairings, so *2
         all_active_not_connected = self.bot.active_userphone_connections
 
         em = embeds.Embeds.embed(
