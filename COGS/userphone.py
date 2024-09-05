@@ -351,7 +351,7 @@ class Userphone(commands.Cog):
                                         if not hasattr(channel, "root_id")
                                         else channel.root_id
                                     )
-                                ]["message_id_map"].get(msg_id, msg_id)
+                                ]["message_id_map"].get(msg_id, guilded.Object(msg_id))
                                 for msg_id in message_data["reply_ids"]
                             ]
                             if replies == []:
