@@ -669,6 +669,7 @@ class Userphone(commands.Cog):
 
     @cmd_ex.document()
     @commands.command(name="userphone")
+    @commands.cooldown(rate=1, per=2, type=commands.BucketType.channel)
     async def start_userphone(self, ctx: commands.Context):
         """
         Command Usage: `{qualified_name}`
@@ -757,6 +758,7 @@ class Userphone(commands.Cog):
 
     @cmd_ex.document()
     @commands.command(name="disconnect")
+    @commands.cooldown(rate=1, per=2, type=commands.BucketType.channel)
     async def disconnect_userphone(self, ctx: commands.Context):
         """
         Command Usage: `{qualified_name}`
