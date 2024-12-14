@@ -964,7 +964,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
@@ -973,7 +973,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if isinstance(event, custom_events.AutomodEvent):
@@ -1030,7 +1030,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
 
             if server_data.logging.allEvents:
@@ -1039,7 +1039,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
         # TODO: cloud event log, make api and update via WS
 
@@ -1149,7 +1149,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
             if server_data.logging.allEvents:
                 for channel_id in server_data.logging.allEvents:
@@ -1157,7 +1157,7 @@ class Logging(commands.Cog):
                         await self.bot.get_partial_messageable(channel_id).send(
                             embed=embed, silent=True
                         )
-                    except guilded.Forbidden as e:
+                    except (guilded.Forbidden, guilded.NotFound) as e:
                         await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if isinstance(event, custom_events.ModeratorAction):
@@ -1262,7 +1262,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
@@ -1271,7 +1271,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1319,7 +1319,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
@@ -1328,7 +1328,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
@@ -1337,7 +1337,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1391,7 +1391,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
@@ -1400,7 +1400,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
@@ -1409,7 +1409,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1447,7 +1447,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         elif server_data.logging.allMemberEvents:
@@ -1456,7 +1456,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         elif server_data.logging.allEvents:
@@ -1465,7 +1465,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1621,7 +1621,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.moderatorAction:
@@ -1630,7 +1630,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allMemberEvents:
@@ -1639,7 +1639,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
@@ -1648,7 +1648,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1703,7 +1703,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.membershipChange:
@@ -1712,7 +1712,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
         if server_data.logging.allEvents:
@@ -1721,7 +1721,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1781,7 +1781,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1789,7 +1789,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1827,7 +1827,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -1835,7 +1835,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1843,7 +1843,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1881,7 +1881,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -1889,7 +1889,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1897,7 +1897,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1932,7 +1932,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -1940,7 +1940,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1948,7 +1948,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -1983,7 +1983,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -1991,7 +1991,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -1999,7 +1999,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2034,7 +2034,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2042,7 +2042,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2050,7 +2050,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2085,7 +2085,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2093,7 +2093,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2101,7 +2101,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2138,7 +2138,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2146,7 +2146,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2154,7 +2154,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2191,7 +2191,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2199,7 +2199,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2207,7 +2207,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2251,7 +2251,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2259,7 +2259,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2267,7 +2267,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2307,7 +2307,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2315,7 +2315,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2323,7 +2323,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2358,7 +2358,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2366,7 +2366,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2374,7 +2374,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2409,7 +2409,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2417,7 +2417,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2425,7 +2425,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2469,7 +2469,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2477,7 +2477,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2485,7 +2485,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2529,7 +2529,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2537,7 +2537,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2545,7 +2545,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2582,7 +2582,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2590,7 +2590,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2598,7 +2598,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2635,7 +2635,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2643,7 +2643,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2651,7 +2651,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2693,7 +2693,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2701,7 +2701,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2709,7 +2709,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2751,7 +2751,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2759,7 +2759,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2767,7 +2767,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2804,7 +2804,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2812,7 +2812,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2820,7 +2820,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2857,7 +2857,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2865,7 +2865,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2873,7 +2873,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2908,7 +2908,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2916,7 +2916,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2924,7 +2924,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -2959,7 +2959,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -2967,7 +2967,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -2975,7 +2975,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3010,7 +3010,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3018,7 +3018,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3026,7 +3026,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3061,7 +3061,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3069,7 +3069,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3077,7 +3077,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3117,7 +3117,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3125,7 +3125,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3133,7 +3133,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3173,7 +3173,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3181,7 +3181,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3189,7 +3189,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()  # confusing ✨
@@ -3281,7 +3281,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3291,7 +3291,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3301,7 +3301,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3336,7 +3336,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3346,7 +3346,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3356,7 +3356,7 @@ class Logging(commands.Cog):
                             await self.bot.get_partial_messageable(channel_id).send(
                                 embed=embed2, silent=True
                             )
-                        except guilded.Forbidden as e:
+                        except (guilded.Forbidden, guilded.NotFound) as e:
                             await delete_log(
                                 self.bot, event.server_id, channel_id, error=e
                             )
@@ -3370,7 +3370,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3378,7 +3378,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3386,7 +3386,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3421,7 +3421,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3429,7 +3429,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3437,7 +3437,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3472,7 +3472,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
     @commands.Cog.listener()
@@ -3520,7 +3520,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allEvents:
             for channel_id in server_data.logging.allEvents:
@@ -3528,7 +3528,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
         if server_data.logging.allChannelEvents:
             for channel_id in server_data.logging.allChannelEvents:
@@ -3536,7 +3536,7 @@ class Logging(commands.Cog):
                     await self.bot.get_partial_messageable(channel_id).send(
                         embed=embed, silent=True
                     )
-                except guilded.Forbidden as e:
+                except (guilded.Forbidden, guilded.NotFound) as e:
                     await delete_log(self.bot, event.server_id, channel_id, error=e)
 
 
