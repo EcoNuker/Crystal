@@ -3,7 +3,14 @@ from beanie import Document
 from typing import Optional, List, Dict
 
 # Import models
-from .models.models import RSSFeed, serverData, serverMember, loggingChannels, Starboard
+from .models.models import (
+    RSSFeed,
+    serverData,
+    serverMember,
+    loggingChannels,
+    Starboard,
+    chaChannel,
+)
 
 # Define afk config
 # class afkConfig(BaseModel):
@@ -43,3 +50,5 @@ class Server(Document):
     eventIds: Dict[str, str] = dict()
 
     data: serverData = serverData()
+
+    channels: List[chaChannel] = list()

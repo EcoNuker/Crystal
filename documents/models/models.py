@@ -1,5 +1,5 @@
 # Import types
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 """
@@ -140,3 +140,18 @@ class loggingChannels(BaseModel):
     listUpdate: List[str] = list()
 
     categoryUpdate: List[str] = list()
+
+
+# Channels
+class chaChannel(BaseModel):
+    """
+    - enabled - `bool` - Whether this channel is enabled
+    - channelId - `str` - The channel's ID
+    - metadata - `Dict[str, Any]` - The channel data
+    - channelType - `str` - The channel type
+    """
+
+    enabled: bool = True
+    channelId: str
+    data: Dict[str, Any]
+    channelType: str
