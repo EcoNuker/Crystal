@@ -62,5 +62,5 @@ class taskscog(commands.Cog):
         self.change_status.cancel()
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(taskscog(bot))

@@ -1276,5 +1276,5 @@ class starboard(commands.Cog):
             await ctx.reply(embed=embed, private=ctx.message.private, silent=True)
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(starboard(bot))

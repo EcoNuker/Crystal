@@ -419,5 +419,5 @@ class RSSFeedCog(commands.Cog):
         await server.save()
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(RSSFeedCog(bot))

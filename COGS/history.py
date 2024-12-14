@@ -535,5 +535,5 @@ class history(commands.Cog):
                 )
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(history(bot))

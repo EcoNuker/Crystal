@@ -233,5 +233,5 @@ class settings(commands.Cog):
         )
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(settings(bot))

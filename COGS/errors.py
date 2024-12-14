@@ -116,5 +116,5 @@ class errors(commands.Cog):
             self.bot.traceback(e)
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(errors(bot))

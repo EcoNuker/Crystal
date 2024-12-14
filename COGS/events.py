@@ -126,5 +126,5 @@ class events(commands.Cog):
                 pass
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(events(bot))

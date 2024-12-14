@@ -2466,5 +2466,5 @@ class AutoModeration(commands.Cog):
         await ctx.reply(embed=em, private=ctx.message.private)
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(AutoModeration(bot))

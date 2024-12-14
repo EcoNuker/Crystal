@@ -281,5 +281,5 @@ class developer(commands.Cog):
         await ctx.message.remove_reaction(90001733)
 
 
-def setup(bot):
+def setup(bot: CrystalBot):
     bot.add_cog(developer(bot))

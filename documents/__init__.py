@@ -2,8 +2,11 @@
 from beanie import Document
 from typing import List
 
-# Import all documents and BaseModels
+# Import all documents
 from .server import *
+
+# Import all models
+from .models.models import *
 
 # Create a list of all the documents
 __documents__: List[Document] = [Server]

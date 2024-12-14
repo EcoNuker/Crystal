@@ -11,5 +11,5 @@ class COGNAME(commands.Cog):
     def __init__(self, bot: CrystalBot):
         self.bot = bot
 
-def setup(bot):
+def setup(bot: CrystalBot):
 	bot.add_cog(COGNAME(bot))
