@@ -2189,6 +2189,8 @@ class AutoModeration(commands.Cog):
             await msg.edit(embed=embed)
             return
 
+        rule = rule.content
+
         for i, r in enumerate(server_data.data.automodRules):
             if r.rule == rule:
                 ruleToDelete = r

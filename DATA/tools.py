@@ -463,7 +463,9 @@ async def get_highest_role_position(
     return c_role
 
 
-async def get_response(ctx: commands.Context, timeout: int = 30) -> guilded.Message:
+async def get_response(
+    ctx: commands.Context, timeout: int = 30
+) -> guilded.Message | bool:
     """
     Gets the response by waiting for a message in the same channel from the same author.
     """

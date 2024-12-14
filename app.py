@@ -5,7 +5,7 @@ from main import CrystalBot, api_debug_mode
 
 from fastapi import FastAPI
 import uvicorn
-from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.cors import CORSMiddleware
 from cardboard import CardboardAsync
 
 
