@@ -1,6 +1,7 @@
 # Import types
 from beanie import Document
 from typing import Optional, List, Dict
+import datetime
 
 # Import models
 from .models.models import (
@@ -52,3 +53,7 @@ class Server(Document):
     data: serverData = serverData()
 
     channels: List[chaChannel] = list()
+
+    class Settings:
+        use_cache = True
+        cache_expiration_time = datetime.timedelta(seconds=10)
