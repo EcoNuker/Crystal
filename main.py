@@ -2,6 +2,8 @@ import sys
 
 debug_mode = ("-d" in sys.argv) or ("--debug" in sys.argv)
 api_debug_mode = ("-ad" in sys.argv) or ("--adebug" in sys.argv)
+timing_debug_mode = ("-td" in sys.argv) or ("--tdebug" in sys.argv)
+disable_cache = ("-nc" in sys.argv) or ("--no_cache" in sys.argv)
 disable_auto_restart_on_crash = ("-nar" in sys.argv) or (
     "--no-auto-restart" in sys.argv
 )
@@ -22,11 +24,15 @@ if (
         "-d": "Short for --debug.",
         "--adebug": "Turn on debugging for the API. Not for production use.",
         "-ad": "Short for --adebug.",
+        "--tdebug": "Turn on debugging for timing. Not for production use.",
+        "-td": "Short for --tdebug.",
         "Settings": None,
         "--no-auto-restart": "Turn off auto-restart if the bot crashes.",
         "-nar": "Short for --no-auto-restart",
         "--no-bypassing": "Disable all developer bypassing.",
         "-nb": "Short for --no-bypassing",
+        "--no-cache": "Disable the database cache.",
+        "-nc": "Short for --no-cache",
         "--file-logs": "Enable file logging.",
     }
     for arg, value in help_args.items():
@@ -39,17 +45,18 @@ file_logging = "--file-logs" in sys.argv
 # Guilded imports
 import guilded
 from guilded.ext import commands
+from guilded.ext.commands import view as commands_view
 
 # gpyConsole imports
 from gpyConsole import console_commands
 
 # Colorama imports
-from colorama import init as coloramainit
+from colorama import init as coloramainit, Fore
 
 coloramainit(autoreset=True)
 
 # Utility imports
-import os, glob, logging, traceback, signal, platform, time, types
+import os, glob, logging, traceback, signal, platform, time, types, inspect
 import logging.handlers
 from datetime import datetime, timezone
 
@@ -69,6 +76,69 @@ from DATA.CONFIGS import CONFIGS
 # Typing
 from typing import Dict, Any
 from fastapi import WebSocket
+
+
+# Timing functions for debug
+def timefunction(func=None):
+    async def async_wrapper(*args, **kwargs):
+        if timing_debug_mode:
+            t1 = time.time()
+            result = await func(*args, **kwargs)
+            t2 = time.time()
+            print(
+                f"{Fore.GREEN}Execution of async function {Fore.CYAN}{func.__name__}{Fore.GREEN} took {Fore.CYAN}{t2 - t1:.4f}{Fore.GREEN} seconds!"
+            )
+        else:
+            result = await func(*args, **kwargs)
+        return result
+
+    def sync_wrapper(*args, **kwargs):
+        if timing_debug_mode:
+            t1 = time.time()
+            result = func(*args, **kwargs)
+            t2 = time.time()
+            print(
+                f"{Fore.GREEN}Execution of sync function {Fore.CYAN}{func.__name__}{Fore.GREEN} took {Fore.CYAN}{t2 - t1:.4f}{Fore.GREEN} seconds!"
+            )
+        else:
+            result = func(*args, **kwargs)
+        return result
+
+    # If called directly (not as a decorator)
+    if func is not None:
+        # Return appropriate wrapper based on function type
+        if inspect.iscoroutinefunction(func):
+            # If the function is async, we return an async wrapper
+            async def wrapper(*args, **kwargs):
+                print("WARN - async direct call not supported - returns 0")
+                return await async_wrapper(*args, **kwargs)
+
+            return wrapper
+        else:
+            return sync_wrapper
+
+    # If used as a decorator
+    def decorator(func):
+        return async_wrapper if inspect.iscoroutinefunction(func) else sync_wrapper
+
+    return decorator
+
+
+if timing_debug_mode and __name__ == "__main__":
+    print("Testing timing accuracy.")
+
+    @timefunction
+    def test():
+        time.sleep(1)
+
+    test()
+
+    def test():
+        timefunction(time.sleep)(1)
+
+    test()
+
+    del test
 
 # Configure directories
 cogspath = os.path.join("COGS", "")
@@ -212,13 +282,15 @@ def _tracebackprint(error: Exception):
     print(separator_line)
 
 
+@timefunction
 async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
     """
     Attempts to grab the bot's prefix, first attempt goes to the database then falls back to config.
     """
     # Pull the server from the database
-    s = await documents.Server.find_one(documents.Server.serverId == message.server_id)
-
+    s = await timefunction(documents.Server.find_one)(
+        documents.Server.serverId == message.server_id
+    )
     # If the document exists continue with the server prefix
     if s:
         # Handle the prefix not being set
@@ -230,27 +302,30 @@ async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
                 CONFIGS.defaultprefix,
             ]
 
-        # Generate Apple compatible versions and combine with spaces first
-        combined_vers = [
-            ver + " " for ver in generate_apple_versions(s.prefix)
-        ] + generate_apple_versions(s.prefix)
+        @timefunction
+        def get_apple():
+            # Generate Apple compatible versions and combine with spaces first
+            combined_vers = [
+                ver + " " for ver in generate_apple_versions(s.prefix)
+            ] + generate_apple_versions(s.prefix)
 
-        deduped_vers = [bot.user.mention + " ", bot.user.mention]
-        seen = set()
-        for ver in combined_vers:
-            if ver not in seen:
-                deduped_vers.append(ver)
-                seen.add(ver)
+            deduped_vers = [bot.user.mention + " ", bot.user.mention]
+            seen = set()
+            for ver in combined_vers:
+                if ver not in seen:
+                    deduped_vers.append(ver)
+                    seen.add(ver)
 
-        if s.prefix in deduped_vers:
-            deduped_vers.remove(s.prefix)
-        deduped_vers.append(s.prefix)
+            if s.prefix in deduped_vers:
+                deduped_vers.remove(s.prefix)
+            deduped_vers.append(s.prefix)
+            return deduped_vers
 
-        return deduped_vers
+        return get_apple()
     else:
         # Create the server's document and provide default args
         s = documents.Server(serverId=message.server_id)
-        await s.insert()
+        await timefunction(s.insert)()
 
         # Return the default
         return [
@@ -268,11 +343,13 @@ class CrystalBot(commands.Bot):
         version: str,
         name: str,
         debug: bool = False,
+        timing_debug: bool = False,
         allow_bypass: bool = True,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.debug: bool = debug
+        self.timing_debug: bool = timing_debug
         self.version: str = version
         self.name: str = name
 
@@ -301,11 +378,27 @@ class CrystalBot(commands.Bot):
         self.userphone_pairings: Dict[str, Dict[str, WebSocket]] = {}
         self.active_userphone_sessions: Dict[str, Dict[str, Any]] = {}
 
+        self.timefunction = timefunction
+
+    # Overwrite in order to check timing on tdebug..
+    @timefunction
+    async def get_context(self, *args, **kwargs):
+        return await super().get_context(*args, **kwargs)
+
+    @timefunction
+    async def invoke(self, *args, **kwargs):
+        return await super().invoke(*args, **kwargs)
+
+    @timefunction
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 
 bot = CrystalBot(
     version=CONFIGS.version,
     name="Crystal",
     debug=debug_mode,
+    timing_debug=timing_debug_mode,
     allow_bypass=not disable_bypassing,
     # Default options
     command_prefix=getprefix,
@@ -317,6 +410,13 @@ bot = CrystalBot(
     owner_ids=CONFIGS.owners,
     help_command=None,
 )
+
+
+@bot.event
+async def on_message(event: guilded.MessageEvent):
+    if timing_debug_mode or debug_mode:
+        print(event.message.content)
+    await bot.process_commands(event.message)
 
 
 @bot.event
@@ -364,8 +464,17 @@ async def start_bot():
         bot.warn(
             f"API debug mode is on. ({bot.COLORS.item_name}{'-ad' if '-ad' in sys.argv else '--adebug'}{bot.COLORS.normal_message})"
         )
+    if timing_debug_mode:
+        bot.warn(
+            f"Timing debug mode is on. ({bot.COLORS.item_name}{'-td' if '-td' in sys.argv else '--tdebug'}{bot.COLORS.normal_message})"
+        )
+    if disable_cache:
+        bot.warn(
+            f"The bot will not cache database queries. ({bot.COLORS.item_name}{'-nc' if '-nc' in sys.argv else '--no-cache'}{bot.COLORS.normal_message})"
+        )
+        documents.Server.Settings.use_cache = False
     if disable_auto_restart_on_crash:
-        bot.info(
+        bot.warn(
             f"The bot will not automatically restart if it crashes. ({bot.COLORS.item_name}{'-nar' if '-nar' in sys.argv else '--no-auto-restart'}{bot.COLORS.normal_message})"
         )
     if disable_bypassing:
