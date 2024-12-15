@@ -45,7 +45,6 @@ file_logging = "--file-logs" in sys.argv
 # Guilded imports
 import guilded
 from guilded.ext import commands
-from guilded.ext.commands import view as commands_view
 
 # gpyConsole imports
 from gpyConsole import console_commands
@@ -56,7 +55,7 @@ from colorama import init as coloramainit, Fore
 coloramainit(autoreset=True)
 
 # Utility imports
-import os, glob, logging, traceback, signal, platform, time, types, inspect
+import os, glob, logging, traceback, signal, platform, time, types, inspect, asyncio
 import logging.handlers
 from datetime import datetime, timezone
 
@@ -79,7 +78,19 @@ from fastapi import WebSocket
 
 
 # Timing functions for debug
-def timefunction(func=None):
+def timefunction(
+    func=None,
+):  # TODO: work on async gens, when a class has "def __await__" with yield
+    """
+    Use as decorator on sync/async functions to time usage.
+
+    Can be used on a sync/async call like so:
+    ```python
+    result = timefunction(sync_func)(*args, **kwargs)
+    result = await timefunction(async_func)(*args, **kwargs)
+    ```
+    """
+
     async def async_wrapper(*args, **kwargs):
         if timing_debug_mode:
             t1 = time.time()
@@ -108,15 +119,7 @@ def timefunction(func=None):
     if func is not None:
         # Return appropriate wrapper based on function type
         if inspect.iscoroutinefunction(func):
-            # If the function is async, we return an async wrapper
-            async def wrapper(*args, **kwargs):
-                if timing_debug_mode:  # Suppress warning if timing isn't on.
-                    print(
-                        "WARN - async direct call not supported - returns 0"
-                    )  # TODO: modify to take COROUTINES and time THOSE, not the FUNCTION
-                return await async_wrapper(*args, **kwargs)
-
-            return wrapper
+            return async_wrapper
         else:
             return sync_wrapper
 
@@ -140,6 +143,17 @@ if timing_debug_mode and __name__ == "__main__":
         timefunction(time.sleep)(1)
 
     test()
+
+    @timefunction
+    async def test():
+        await asyncio.sleep(1)
+
+    asyncio.run(test())
+
+    async def test():
+        await timefunction(asyncio.sleep)(1)
+
+    asyncio.run(test())
 
     del test
 
@@ -286,14 +300,22 @@ def _tracebackprint(error: Exception):
 
 
 @timefunction
-async def getprefix(bot: commands.Bot, message: guilded.Message) -> list | str:
+async def getprefix(bot: "CrystalBot", message: guilded.Message) -> list | str:
     """
     Attempts to grab the bot's prefix, first attempt goes to the database then falls back to config.
     """
+    if debug_mode or timing_debug_mode:
+        print(message.content)
+
     # Pull the server from the database
-    s = await timefunction(documents.Server.find_one)(
-        documents.Server.serverId == message.server_id
-    )
+    async def find_one():
+        s = await documents.Server.find_one(
+            documents.Server.serverId == message.server_id,
+            projection_model=documents.projections.ServerPrefixProjection,
+        )
+        return s
+
+    s = await timefunction(find_one)()
     # If the document exists continue with the server prefix
     if s:
         # Handle the prefix not being set
@@ -364,6 +386,7 @@ class CrystalBot(commands.Bot):
         self.bypassing = allow_bypass
 
         self._motor = motor  # Giving the bot access to the raw motor client
+        self._db = self._motor.crystal
 
         self.print = _print
         self.info = _infoprint
@@ -417,8 +440,6 @@ bot = CrystalBot(
 
 @bot.event
 async def on_message(event: guilded.MessageEvent):
-    if timing_debug_mode or debug_mode:
-        print(event.message.content)
     await bot.process_commands(event.message)
 
 

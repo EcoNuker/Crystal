@@ -55,5 +55,5 @@ class Server(Document):
     channels: List[chaChannel] = list()
 
     class Settings:
-        use_cache = True
+        use_cache = False
         cache_expiration_time = datetime.timedelta(seconds=10)
