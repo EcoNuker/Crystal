@@ -6,7 +6,7 @@ from DATA import tools
 
 from DATA.cmd_examples import cmd_ex
 
-from documents import Server
+import documents
 
 from main import CrystalBot
 
@@ -30,7 +30,7 @@ class prefix(commands.Cog):
             if type(prefix) == list:
                 prefix = prefix[-1]
             embed = embeds.Embeds.embed(
-                title="Server Prefix",
+                title="documents.Server Prefix",
                 description=f"The current prefix for this server is `{prefix}`.",
             )
             embed.add_field(
@@ -74,7 +74,7 @@ class prefix(commands.Cog):
         me = await ctx.server.getch_member(self.bot.user_id)
         if not me.server_permissions.receive_all_events:
             embed = embeds.Embeds.embed(
-                title="WARNING",
+                title="ERROR",
                 description="**Unfortunately, I do not have the 'Receive All Socket Events' permission. Setting the prefix will make me unable to respond to your commands.**",
                 color=guilded.Color.red(),
             )
@@ -113,9 +113,12 @@ class prefix(commands.Cog):
             return  # TODO: bypass
 
         # Grab the server from the database
-        server_data = await Server.find_one(Server.serverId == ctx.server.id)
+        server_data = await documents.Server.find_one(
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerPrefix,
+        )
         if not server_data:
-            server_data = Server(serverId=ctx.server.id)
+            server_data = documents.Server(serverId=ctx.server.id)
             await server_data.save()
         server_data.prefix = prefix
         await server_data.save()

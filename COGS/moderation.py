@@ -58,7 +58,8 @@ async def is_muted(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerDataSettings,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -118,7 +119,8 @@ async def unmute_user(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -249,7 +251,8 @@ async def mute_user(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -346,7 +349,8 @@ async def unban_user(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -416,7 +420,8 @@ async def ban_user(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -468,7 +473,8 @@ class moderation(commands.Cog):
     async def endsAt_check(self):
         for server in self.bot.servers:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == server.id
+                documents.Server.serverId == server.id,
+                projection_model=documents.projections.ServerData,
             )
             if not server_data:
                 server_data = documents.Server(serverId=server.id)
@@ -550,7 +556,8 @@ class moderation(commands.Cog):
     async def on_ready(self):
         for server in self.bot.servers:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == server.id
+                documents.Server.serverId == server.id,
+                projection_model=documents.projections.ServerData,
             )
             if not server_data:
                 server_data = documents.Server(serverId=server.id)
@@ -641,7 +648,8 @@ class moderation(commands.Cog):
     @commands.Cog.listener("on_member_join")
     async def on_member_join(self, event: guilded.MemberJoinEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerData,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1450,7 +1458,8 @@ class moderation(commands.Cog):
                 return
             else:
                 server_data = await documents.Server.find_one(
-                    documents.Server.serverId == ctx.server.id
+                    documents.Server.serverId == ctx.server.id,
+                    projection_model=documents.projections.ServerData,
                 )
                 if not server_data:
                     server_data = documents.Server(serverId=ctx.server.id)
@@ -1658,7 +1667,8 @@ class moderation(commands.Cog):
                 return
 
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerData,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

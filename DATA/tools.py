@@ -272,10 +272,11 @@ def replacements(source: str, rep: dict) -> str:
 
 async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChannel):
     """
-    Checks if channel is in use by either starboards, rss feeds, or logging.
+    Checks if channel is in use by either starboards, rss feeds, channels, or logging.
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.UsesServerChannels,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -286,7 +287,10 @@ async def channel_in_use(server: guilded.Server, channel: guilded.abc.ServerChan
             (f for f in server_data.starboards if f.channelId == channel.id),
             next(
                 (f for f in server_data.rssFeeds if f.channelId == channel.id),
-                channel.id in list(server_data.logging.setChannels.values()),
+                next(
+                    (f for f in server_data.channels if f.channelId == channel.id),
+                    channel.id in list(server_data.logging.setChannels.values()),
+                ),
             ),
         )
         else False

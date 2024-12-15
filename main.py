@@ -311,7 +311,7 @@ async def getprefix(bot: "CrystalBot", message: guilded.Message) -> list | str:
     async def find_one():
         s = await documents.Server.find_one(
             documents.Server.serverId == message.server_id,
-            projection_model=documents.projections.ServerPrefixProjection,
+            projection_model=documents.projections.ServerPrefix,
         )
         return s
 

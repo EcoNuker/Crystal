@@ -35,12 +35,6 @@ class RSSFeedCog(commands.Cog):
         `{prefix}{qualified_name}` - Get a list of all RSS commands.
         """
         if ctx.invoked_subcommand is None:
-            server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
-            )
-            if not server_data:
-                server_data = documents.Server(serverId=ctx.server.id)
-                await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if isinstance(prefix, list):
                 prefix = prefix[-1]
@@ -133,7 +127,8 @@ class RSSFeedCog(commands.Cog):
             channelId=channel.id, feedURL=feed_url, last_checked=time.localtime()
         )
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerRSSFeeds,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -239,7 +234,8 @@ class RSSFeedCog(commands.Cog):
             return
 
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerRSSFeeds,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -303,7 +299,8 @@ class RSSFeedCog(commands.Cog):
                 return
 
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerRSSFeeds,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

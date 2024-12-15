@@ -33,25 +33,14 @@ class settings(commands.Cog):
                 title="Server Settings",
                 description=f"View and modify server settings.",
             )
-            server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
-            )
-            if not server_data:
-                server_data = documents.Server(serverId=ctx.server.id)
-                await server_data.save()
             embed.add_field(
                 name="No Current Settings",
-                value=f"There are no configuarable settings at this point. If you wish to toggle a module such as logging or automod, please use their respective settings.",
+                value=f"There are no configuarable server settings at this point. If you wish to toggle a module such as logging or automod, please use their respective settings.",
                 inline=False,
             )
-            # embed.add_field(
-            #     name="Mute Role",
-            #     value=f"The current mute role is {mute_role.mention if mute_role else '`None`'}.\nLeave blank to set to None.\n`{prefix}role mute [role | optional]`",
-            #     inline=False,
-            # )
             await ctx.reply(embed=embed, private=ctx.message.private)
         else:
-            return
+            return  # maybe if there are settings to use
             await ctx.server.fill_roles()
 
     @cmd_ex.document()
@@ -73,7 +62,8 @@ class settings(commands.Cog):
                 description=f"Set relevant roles for the server.",
             )
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataSettings,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -208,7 +198,8 @@ class settings(commands.Cog):
 
         # Grab the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerDataSettings,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

@@ -265,7 +265,8 @@ async def toggle_module(
     Returns None if no changes were made, else returns the current module state.
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
+        documents.Server.serverId == server_id,
+        projection_model=documents.projections.ServerDataAutomod,
     )
     assert server_data != None
     modules = {
@@ -331,7 +332,8 @@ async def toggle_setting(
     Returns None if no changes were made, else returns the current setting state.
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
+        documents.Server.serverId == server_id,
+        projection_model=documents.projections.ServerDataAutomod,
     )
     assert server_data != None
     settings = {
@@ -975,7 +977,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1193,7 +1196,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1234,7 +1238,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1283,12 +1288,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -1347,7 +1346,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1396,12 +1396,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -1460,7 +1454,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1509,12 +1504,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -1575,7 +1564,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1616,7 +1606,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1665,12 +1656,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -1731,7 +1716,8 @@ class AutoModeration(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerDataAutomod,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -1780,12 +1766,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -1864,12 +1844,6 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()

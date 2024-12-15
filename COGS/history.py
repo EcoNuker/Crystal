@@ -1,3 +1,5 @@
+# TODO: projections? this uses cases/eventIds/members
+
 import time
 
 import guilded
@@ -35,12 +37,6 @@ class history(commands.Cog):
         `{prefix}{qualified_name}` - Get a list of all user history commands.
         """
         if ctx.invoked_subcommand is None:
-            server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
-            )
-            if not server_data:
-                server_data = documents.Server(serverId=ctx.server.id)
-                await server_data.save()
             prefix = await self.bot.get_prefix(ctx.message)
             if type(prefix) == list:
                 prefix = prefix[-1]

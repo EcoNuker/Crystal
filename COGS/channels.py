@@ -20,7 +20,8 @@ class Channels(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, event: guilded.MessageEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerChannels,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)

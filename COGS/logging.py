@@ -46,7 +46,8 @@ async def delete_log(
     error: Exception = None,
 ) -> bool:
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
+        documents.Server.serverId == server_id,
+        projection_model=documents.projections.ServerLogging,
     )
     if server_data.logging.setChannels.get(channel_id):
         event_type = server_data.logging.setChannels.get(channel_id)
@@ -109,7 +110,8 @@ async def delete_log(
 
 async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
+        documents.Server.serverId == server_id,
+        projection_model=documents.projections.ServerLogging,
     )
     server_data.logging.setChannels[channel_id] = event_type
     if event_type == "allEvents":
@@ -155,7 +157,8 @@ async def toggle_setting(
     Returns None if no changes were made, else returns the current setting state.
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id
+        documents.Server.serverId == server_id,
+        projection_model=documents.projections.ServerLogging,
     )
     settings = {
         "enabled": ["Logging was automatically `{STATUS}` on this server.", True],
@@ -225,7 +228,8 @@ class Logging(commands.Cog):
                         not data["eventData"].event_id
                     ):
                         server_data = await documents.Server.find_one(
-                            documents.Server.serverId == data["eventData"].server_id
+                            documents.Server.serverId == data["eventData"].server_id,
+                            projection_model=documents.projections.ServerLogging,
                         )
                         if not server_data:
                             server_data = documents.Server(
@@ -279,7 +283,8 @@ class Logging(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerLogging,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -345,7 +350,8 @@ class Logging(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerLogging,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -381,7 +387,8 @@ class Logging(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             server_data = await documents.Server.find_one(
-                documents.Server.serverId == ctx.server.id
+                documents.Server.serverId == ctx.server.id,
+                projection_model=documents.projections.ServerLogging,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -431,7 +438,8 @@ class Logging(commands.Cog):
             if not bypass:
                 return
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -515,7 +523,8 @@ class Logging(commands.Cog):
             if not bypass:
                 return
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -635,7 +644,8 @@ class Logging(commands.Cog):
             if not bypass:
                 return
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -725,7 +735,8 @@ class Logging(commands.Cog):
             return await ctx.reply(embed=embed, private=ctx.message.private)
 
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -835,7 +846,8 @@ class Logging(commands.Cog):
             return
 
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id
+            documents.Server.serverId == ctx.server.id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -869,7 +881,8 @@ class Logging(commands.Cog):
     ):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -999,7 +1012,8 @@ class Logging(commands.Cog):
     async def on_bot_setting_change(self, event: custom_events.BotSettingChanged):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1048,7 +1062,8 @@ class Logging(commands.Cog):
     ):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1211,7 +1226,8 @@ class Logging(commands.Cog):
     async def on_message_update(self, event: guilded.MessageUpdateEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1278,7 +1294,8 @@ class Logging(commands.Cog):
     async def on_member_join(self, event: guilded.MemberJoinEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1344,7 +1361,8 @@ class Logging(commands.Cog):
     async def on_member_remove(self, event: guilded.MemberRemoveEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1416,7 +1434,8 @@ class Logging(commands.Cog):
     async def on_member_update(self, event: guilded.MemberUpdateEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1474,7 +1493,8 @@ class Logging(commands.Cog):
     ):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1558,7 +1578,8 @@ class Logging(commands.Cog):
     async def on_ban_create(self, event: guilded.BanCreateEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1655,7 +1676,8 @@ class Logging(commands.Cog):
     async def on_ban_delete(self, event: guilded.BanDeleteEvent):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1733,7 +1755,8 @@ class Logging(commands.Cog):
         ):
             return
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1749,7 +1772,10 @@ class Logging(commands.Cog):
                     await self.bot.getch_server(event.server_id)
                 ).getch_member(event.message.author_id)
             except:
-                user = await self.bot.getch_user(event.message.author_id)
+                try:
+                    user = await self.bot.getch_user(event.message.author_id)
+                except:
+                    user = None
         else:
             user = event.message.author
 
@@ -1763,8 +1789,9 @@ class Logging(commands.Cog):
             url=event.message.share_url,
             colour=guilded.Colour.red(),
         )
-        embed.set_thumbnail(url=user.display_avatar.url)
-        embed.add_field(name="User ID", value=user.id)
+        if user:
+            embed.set_thumbnail(url=user.display_avatar.url)
+        embed.add_field(name="User ID", value=event.message.author_id)
         embed.add_field(name="Message ID", value=event.message.id)
         embed.add_field(
             name="Contents",
@@ -1795,7 +1822,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_update(self, event: guilded.ForumTopicUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1849,7 +1877,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_delete(self, event: guilded.ForumTopicDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1903,7 +1932,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_pin(self, event: guilded.ForumTopicPinEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1954,7 +1984,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_unpin(self, event: guilded.ForumTopicUnpinEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2005,7 +2036,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_lock(self, event: guilded.ForumTopicLockEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2056,7 +2088,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_forum_topic_unlock(self, event: guilded.ForumTopicUnlockEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2109,7 +2142,8 @@ class Logging(commands.Cog):
         self, event: guilded.ForumTopicReplyUpdateEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2162,7 +2196,8 @@ class Logging(commands.Cog):
         self, event: guilded.ForumTopicReplyDeleteEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2213,7 +2248,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_doc_update(self, event: guilded.DocUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2273,7 +2309,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_doc_delete(self, event: guilded.DocDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2329,7 +2366,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_doc_reply_update(self, event: guilded.DocReplyUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2380,7 +2418,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_doc_reply_delete(self, event: guilded.DocReplyDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2431,7 +2470,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_announcement_update(self, event: guilded.AnnouncementUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2491,7 +2531,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_announcement_delete(self, event: guilded.AnnouncementDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2553,7 +2594,8 @@ class Logging(commands.Cog):
         self, event: guilded.AnnouncementReplyUpdateEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2606,7 +2648,8 @@ class Logging(commands.Cog):
         self, event: guilded.AnnouncementReplyDeleteEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2657,7 +2700,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_calendar_event_update(self, event: guilded.CalendarEventUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2715,7 +2759,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_calendar_event_delete(self, event: guilded.CalendarEventDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2775,7 +2820,8 @@ class Logging(commands.Cog):
         self, event: guilded.CalendarEventReplyUpdateEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2828,7 +2874,8 @@ class Logging(commands.Cog):
         self, event: guilded.CalendarEventReplyDeleteEvent
     ):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2879,7 +2926,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_list_item_update(self, event: guilded.ListItemUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2930,7 +2978,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_list_item_delete(self, event: guilded.ListItemDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -2981,7 +3030,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_list_item_complete(self, event: guilded.ListItemCompleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3032,7 +3082,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_list_item_uncomplete(self, event: guilded.ListItemUncompleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3083,7 +3134,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_server_channel_create(self, event: guilded.ServerChannelCreateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3139,7 +3191,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_server_channel_delete(self, event: guilded.ServerChannelDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3195,7 +3248,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()  # confusing ✨
     async def on_server_channel_update(self, event: guilded.ServerChannelUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3392,7 +3446,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_category_create(self, event: guilded.CategoryCreateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3443,7 +3498,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_category_delete(self, event: guilded.CategoryDeleteEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -3478,7 +3534,8 @@ class Logging(commands.Cog):
     @commands.Cog.listener()
     async def on_category_update(self, event: guilded.CategoryUpdateEvent):
         server_data = await documents.Server.find_one(
-            documents.Server.serverId == event.server_id
+            documents.Server.serverId == event.server_id,
+            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
