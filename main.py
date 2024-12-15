@@ -110,7 +110,10 @@ def timefunction(func=None):
         if inspect.iscoroutinefunction(func):
             # If the function is async, we return an async wrapper
             async def wrapper(*args, **kwargs):
-                print("WARN - async direct call not supported - returns 0")
+                if timing_debug_mode:  # Suppress warning if timing isn't on.
+                    print(
+                        "WARN - async direct call not supported - returns 0"
+                    )  # TODO: modify to take COROUTINES and time THOSE, not the FUNCTION
                 return await async_wrapper(*args, **kwargs)
 
             return wrapper
@@ -428,15 +431,69 @@ async def on_ready():
         assert bot.db_on == True
     except:
         # Initializing beanie in the "crystal" database
-        bot.print(
-            f"{COLORS.info_logs}[INFO] {COLORS.normal_message}Connecting to database..."
-        )
+        bot.info(f"Connecting to database...")
+        db = motor.crystal
         await init_beanie(
-            motor.crystal,
+            db,
             document_models=documents.__documents__,
             multiprocessing_mode=True,
         )
+
+        """
+        Code to process duplicate serverIds. Keep in mind THIS SHOULD NOT HAPPEN, as it is now INDEXED UNIQUELY.
+        """
+
+        # # Aggregate to find duplicate serverId values
+        # cursor = db.Server.aggregate([
+        #     {"$group": {
+        #         "_id": "$serverId",
+        #         "count": {"$sum": 1},
+        #         "ds": {"$push": "$$ROOT"}  # Collect the full documents with duplicate serverId
+        #     }},
+        #     {"$match": {"count": {"$gt": 1}}}  # Only keep those with more than one occurrence
+        # ])
+
+        # # Iterate through the results to process duplicate serverIds
+        # async for doc in cursor:
+        #     server_id = doc['_id']
+        #     ds = doc['ds']
+
+        #     print(f"Duplicate serverId: {server_id} appears {len(ds)} times.")
+
+        #     # Use find_one to get the first document for the current serverId
+        #     # find_one will return the first matching document as per the collection order, no sorting.
+        #     most_recent = await db.Server.find_one({"serverId": server_id})
+
+        #     if most_recent:
+        #         print(f"Most recent document for serverId {server_id} is {most_recent['_id']}")
+
+        #         # Now delete all the duplicates except the one found by find_one
+        #         for server in ds:
+        #             if server["_id"] != most_recent["_id"]:  # If the document is not the one found by find_one
+        #                 print(f"Removing duplicate with serverId: {server['_id']}")
+        #                 await db.Server.delete_one({"_id": server["_id"]})
+
+        #         print(f"Kept the most recent document for serverId: {server_id}")
+        #     else:
+        #         print(f"No document found for serverId: {server_id}")
+
+        #     print("---------------")
+        # Find duplicate serverIds
+        cursor = db.Server.aggregate(
+            [
+                {"$group": {"_id": "$serverId", "count": {"$sum": 1}}},
+                {"$match": {"count": {"$gt": 1}}},
+            ]
+        )
+        async for doc in cursor:
+            bot.warn(f"Duplicate serverId: {doc['_id']} appears {doc['count']} times.")
+
+        """
+        End code to process duplicate serverIds.
+        """
+
         bot.db_on = True
+        bot.success(f"Connected to database.")
 
     for cog in cogs:
         try:

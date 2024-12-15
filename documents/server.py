@@ -1,6 +1,6 @@
 # Import types
-from beanie import Document
-from typing import Optional, List, Dict
+from beanie import Document, Indexed
+from typing import Optional, List, Dict, Annotated
 import datetime
 
 # Import models
@@ -24,7 +24,7 @@ from .models.models import (
 # Define the server document
 class Server(Document):
     """
-    - serverId - `str` - The server's Id.
+    - serverId - `Indexed(str, unique=True)` - The server's id.
     - prefix - `Optional[str]` - The server's prefix.
     - logging - `LoggingChannels` - Logging channels for events.
     - rssFeeds - `List[RSSFeed]` - Server RSS feed channels.
@@ -34,7 +34,7 @@ class Server(Document):
     - data - `serverData` - Server data and configs.
     """
 
-    serverId: str
+    serverId: Annotated[str, Indexed(unique=True)]
 
     prefix: Optional[str] = None
 
