@@ -32,7 +32,7 @@ class ServerRSSFeeds(BaseModel):
 
 
 class ServerLogging(BaseModel):
-    severId: str
+    serverId: str
     logging: models.loggingChannels = models.loggingChannels()
     eventIds: Dict[str, str] = dict()
 

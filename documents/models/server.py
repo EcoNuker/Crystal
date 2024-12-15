@@ -13,7 +13,7 @@ class serverRoles(BaseModel):
 
 class serverSettings(BaseModel):
     """
-    - roles - `serverRoles` - The sever's roles settings.
+    - roles - `serverRoles` - The server's roles settings.
     """
 
     roles: serverRoles = serverRoles()
