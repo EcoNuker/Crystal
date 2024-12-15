@@ -50,7 +50,6 @@ class starboard(commands.Cog):
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
@@ -218,7 +217,6 @@ class starboard(commands.Cog):
             return
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
@@ -328,7 +326,6 @@ class starboard(commands.Cog):
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
@@ -523,7 +520,6 @@ class starboard(commands.Cog):
             event.server = await self.bot.getch_server(event.server_id)
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
@@ -609,7 +605,6 @@ class starboard(commands.Cog):
             event.server = await self.bot.getch_server(event.server_id)
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server.id)
@@ -934,7 +929,6 @@ class starboard(commands.Cog):
         )
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -1043,7 +1037,6 @@ class starboard(commands.Cog):
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerStarboard,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

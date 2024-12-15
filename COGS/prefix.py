@@ -115,7 +115,6 @@ class prefix(commands.Cog):
         # Grab the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerPrefix,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

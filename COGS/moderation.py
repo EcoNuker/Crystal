@@ -27,7 +27,8 @@ async def is_banned(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id
+        documents.Server.serverId == server.id,
+        projection_model=documents.projections.ServerDataSettings,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -58,8 +59,7 @@ async def is_muted(
     Can raise Forbidden
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerDataSettings,
+        documents.Server.serverId == server.id
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -120,7 +120,6 @@ async def unmute_user(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -252,7 +251,6 @@ async def mute_user(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -350,7 +348,6 @@ async def unban_user(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -421,7 +418,6 @@ async def ban_user(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
@@ -474,7 +470,6 @@ class moderation(commands.Cog):
         for server in self.bot.servers:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == server.id,
-                projection_model=documents.projections.ServerData,
             )
             if not server_data:
                 server_data = documents.Server(serverId=server.id)
@@ -557,7 +552,6 @@ class moderation(commands.Cog):
         for server in self.bot.servers:
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == server.id,
-                projection_model=documents.projections.ServerData,
             )
             if not server_data:
                 server_data = documents.Server(serverId=server.id)
@@ -649,7 +643,6 @@ class moderation(commands.Cog):
     async def on_member_join(self, event: guilded.MemberJoinEvent):
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id,
-            projection_model=documents.projections.ServerData,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1459,7 +1452,6 @@ class moderation(commands.Cog):
             else:
                 server_data = await documents.Server.find_one(
                     documents.Server.serverId == ctx.server.id,
-                    projection_model=documents.projections.ServerData,
                 )
                 if not server_data:
                     server_data = documents.Server(serverId=ctx.server.id)
@@ -1668,7 +1660,6 @@ class moderation(commands.Cog):
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerData,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

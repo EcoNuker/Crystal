@@ -46,8 +46,7 @@ async def delete_log(
     error: Exception = None,
 ) -> bool:
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id,
-        projection_model=documents.projections.ServerLogging,
+        documents.Server.serverId == server_id
     )
     if server_data.logging.setChannels.get(channel_id):
         event_type = server_data.logging.setChannels.get(channel_id)
@@ -110,8 +109,7 @@ async def delete_log(
 
 async def set_log(server_id: str, channel_id: str, event_type: str) -> bool:
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id,
-        projection_model=documents.projections.ServerLogging,
+        documents.Server.serverId == server_id
     )
     server_data.logging.setChannels[channel_id] = event_type
     if event_type == "allEvents":
@@ -157,8 +155,7 @@ async def toggle_setting(
     Returns None if no changes were made, else returns the current setting state.
     """
     server_data = await documents.Server.find_one(
-        documents.Server.serverId == server_id,
-        projection_model=documents.projections.ServerLogging,
+        documents.Server.serverId == server_id
     )
     settings = {
         "enabled": ["Logging was automatically `{STATUS}` on this server.", True],
@@ -228,8 +225,7 @@ class Logging(commands.Cog):
                         not data["eventData"].event_id
                     ):
                         server_data = await documents.Server.find_one(
-                            documents.Server.serverId == data["eventData"].server_id,
-                            projection_model=documents.projections.ServerLogging,
+                            documents.Server.serverId == data["eventData"].server_id
                         )
                         if not server_data:
                             server_data = documents.Server(
@@ -437,13 +433,6 @@ class Logging(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerLogging,
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -522,13 +511,6 @@ class Logging(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await documents.Server.find_one(
-            documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerLogging,
-        )
-        if not server_data:
-            server_data = documents.Server(serverId=ctx.server.id)
-            await server_data.save()
 
         if status:
             status = status.lower().strip()
@@ -882,7 +864,6 @@ class Logging(commands.Cog):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id,
-            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)
@@ -1063,7 +1044,6 @@ class Logging(commands.Cog):
         # Fetch the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == event.server_id,
-            projection_model=documents.projections.ServerLogging,
         )
         if not server_data:
             server_data = documents.Server(serverId=event.server_id)

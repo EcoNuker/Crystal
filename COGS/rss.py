@@ -128,7 +128,6 @@ class RSSFeedCog(commands.Cog):
         )
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerRSSFeeds,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -235,7 +234,6 @@ class RSSFeedCog(commands.Cog):
 
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerRSSFeeds,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)
@@ -353,7 +351,7 @@ class RSSFeedCog(commands.Cog):
 
         await ctx.reply(embed=embed, private=ctx.message.private)
 
-    @tasks.loop(minutes=10)
+    @tasks.loop(minutes=15)
     async def check_feeds(self):
         servers = await documents.Server.find_all().to_list()
         tasks = []

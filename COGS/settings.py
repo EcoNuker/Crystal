@@ -63,7 +63,6 @@ class settings(commands.Cog):
             )
             server_data = await documents.Server.find_one(
                 documents.Server.serverId == ctx.server.id,
-                projection_model=documents.projections.ServerDataSettings,
             )
             if not server_data:
                 server_data = documents.Server(serverId=ctx.server.id)
@@ -199,7 +198,6 @@ class settings(commands.Cog):
         # Grab the server from the database
         server_data = await documents.Server.find_one(
             documents.Server.serverId == ctx.server.id,
-            projection_model=documents.projections.ServerDataSettings,
         )
         if not server_data:
             server_data = documents.Server(serverId=ctx.server.id)

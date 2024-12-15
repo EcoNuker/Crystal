@@ -266,7 +266,6 @@ async def toggle_module(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id,
-        projection_model=documents.projections.ServerDataAutomod,
     )
     assert server_data != None
     modules = {
@@ -333,7 +332,6 @@ async def toggle_setting(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server_id,
-        projection_model=documents.projections.ServerDataAutomod,
     )
     assert server_data != None
     settings = {
@@ -1972,7 +1970,9 @@ class AutoModeration(commands.Cog):
             bypass = await tools.check_bypass(ctx, msg)
             if not bypass:
                 return
-        server_data = await Server.find_one(Server.serverId == ctx.server.id)
+        server_data = await Server.find_one(
+            Server.serverId == ctx.server.id,
+        )
         if not server_data:
             server_data = Server(serverId=ctx.server.id)
             await server_data.save()
