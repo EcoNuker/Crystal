@@ -3131,13 +3131,16 @@ class Logging(commands.Cog):
             url=event.channel.share_url,
             colour=guilded.Colour.green(),
         )
-        embed.set_thumbnail(
-            url=(
-                event.channel.group.display_avatar.url
-                if event.channel.group
-                else event.channel.server.icon.url
+        if event.channel.server.icon or (
+            event.channel.group and event.channel.group.display_avatar
+        ):
+            embed.set_thumbnail(
+                url=(
+                    event.channel.group.display_avatar.url
+                    if event.channel.group
+                    else event.channel.server.icon.url
+                )
             )
-        )
         embed.add_field(
             name="Channel", value=tools.channel_mention(event.channel), inline=False
         )
@@ -3188,13 +3191,16 @@ class Logging(commands.Cog):
             url=event.channel.share_url,
             colour=guilded.Colour.red(),
         )
-        embed.set_thumbnail(
-            url=(
-                event.channel.group.display_avatar.url
-                if event.channel.group
-                else event.channel.server.icon.url
+        if event.channel.server.icon or (
+            event.channel.group and event.channel.group.display_avatar
+        ):
+            embed.set_thumbnail(
+                url=(
+                    event.channel.group.display_avatar.url
+                    if event.channel.group
+                    else event.channel.server.icon.url
+                )
             )
-        )
         embed.add_field(
             name="Channel", value=tools.channel_mention(event.channel), inline=False
         )
@@ -3245,13 +3251,16 @@ class Logging(commands.Cog):
             url=event.channel.share_url,
             colour=guilded.Colour.dark_purple(),
         )
-        embed.set_thumbnail(
-            url=(
-                event.channel.group.display_avatar.url
-                if event.channel.group
-                else event.channel.server.icon.url
+        if event.channel.server.icon or (
+            event.channel.group and event.channel.group.display_avatar
+        ):
+            embed.set_thumbnail(
+                url=(
+                    event.channel.group.display_avatar.url
+                    if event.channel.group
+                    else event.channel.server.icon.url
+                )
             )
-        )
         embed.add_field(
             name="Channel", value=tools.channel_mention(event.channel), inline=False
         )
@@ -3294,13 +3303,16 @@ class Logging(commands.Cog):
                     url=event.channel.share_url,
                     colour=guilded.Colour.red(),
                 )
-                embed2.set_thumbnail(
-                    url=(
-                        event.channel.group.display_avatar.url
-                        if event.channel.group
-                        else event.channel.server.icon.url
+                if event.channel.server.icon or (
+                    event.channel.group and event.channel.group.display_avatar
+                ):
+                    embed2.set_thumbnail(
+                        url=(
+                            event.channel.group.display_avatar.url
+                            if event.channel.group
+                            else event.channel.server.icon.url
+                        )
                     )
-                )
                 embed2.add_field(
                     name="Channel",
                     value=tools.channel_mention(event.channel),
@@ -3349,13 +3361,16 @@ class Logging(commands.Cog):
                     url=event.channel.share_url,
                     colour=guilded.Colour.green(),
                 )
-                embed2.set_thumbnail(
-                    url=(
-                        event.channel.group.display_avatar.url
-                        if event.channel.group
-                        else event.channel.server.icon.url
+                if event.channel.server.icon or (
+                    event.channel.group and event.channel.group.display_avatar
+                ):
+                    embed2.set_thumbnail(
+                        url=(
+                            event.channel.group.display_avatar.url
+                            if event.channel.group
+                            else event.channel.server.icon.url
+                        )
                     )
-                )
                 embed2.add_field(
                     name="Channel",
                     value=tools.channel_mention(event.channel),
