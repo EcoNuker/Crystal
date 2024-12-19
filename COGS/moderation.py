@@ -378,6 +378,14 @@ async def unban_user(
         try:
             ban = await server.fetch_ban(user)
         except guilded.NotFound:
+            try:
+                new_bans
+            except (
+                UnboundLocalError
+            ):  # TODO: remove this patch and figure out how to fix smh
+                new_bans = [
+                    ban for ban in server_data.data.bans if bans.user != user.id
+                ]
             server_data.data.bans = new_bans
             await server_data.save()
             return unbanned
