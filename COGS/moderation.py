@@ -28,7 +28,7 @@ async def is_banned(
     """
     server_data = await documents.Server.find_one(
         documents.Server.serverId == server.id,
-        projection_model=documents.projections.ServerDataSettings,
+        projection_model=documents.projections.ServerData,
     )
     if not server_data:
         server_data = documents.Server(serverId=server.id)
