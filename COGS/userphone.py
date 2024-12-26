@@ -566,6 +566,7 @@ class Userphone(commands.Cog):
                 "type": us_type,
             }
             resp = await self.receive_message(ws, channel)
+            print(resp)
             if resp == False:
                 self.bot.active_userphone_sessions.pop(
                     channel.id if not hasattr(channel, "root_id") else channel.root_id,
