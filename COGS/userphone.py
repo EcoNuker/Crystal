@@ -165,9 +165,11 @@ class Userphone(commands.Cog):
             "reply_ids": converted_replies,
             "content": {
                 "text": (
-                    tools.owoify(message.content, link=True, level=1)
+                    tools.owoify(
+                        tools.sign_all_content_attachments(message), link=True, level=1
+                    )
                     if us_type == "owo"
-                    else message.content
+                    else tools.sign_all_content_attachments(message)
                 )
             },
         }

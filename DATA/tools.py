@@ -236,6 +236,18 @@ def owoify(source: str, link: bool = False, level: int = 1):
         return _owoify(source, level)
 
 
+def sign_all_content_attachments(message: guilded.Message) -> str:
+    # Replace image links
+    message_content = message.content
+    matches = image_regex.findall(message_content)
+    replacement_counter = 1
+    for url in matches:
+        replacement = f"![]({guilded.Asset(message._state, url=url, key=guilded.asset.strip_cdn_url(url)).url})"
+        message_content = message_content.replace(f"![]({url})", replacement, 1)
+        replacement_counter += 1
+    return message_content
+
+
 async def format_for_embed(
     message: guilded.Message = None,
     message_content: str = None,
@@ -250,7 +262,7 @@ async def format_for_embed(
     matches = image_regex.findall(message_content)
     replacement_counter = 1
     for url in matches:
-        replacement = f"[ATTACHMENT_{replacement_counter}]({url})"
+        replacement = f"[ATTACHMENT_{replacement_counter}]({url or (message.attachments[replacement_counter-1].url if message else None)})"
         message_content = message_content.replace(f"![]({url})", replacement, 1)
         replacement_counter += 1
 
