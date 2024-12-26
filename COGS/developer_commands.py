@@ -255,8 +255,7 @@ class developer(commands.Cog):
             modified_globals["__builtins__"] = {
                 k: __builtins__[k]
                 for k in __builtins__
-                if k
-                not in ("quit", "exit", "eval", "exec", "open", "input")
+                if k not in ("quit", "exit", "eval", "exec", "open", "input")
             }
             exec(
                 f"async def __ex(message, bot):\n    "

@@ -33,6 +33,7 @@ async def get_websocket_lock(websocket: WebSocket):
 
 banned_ips = {}
 reconnect_time = 10  # time limit
+max_waiting_time = 300  # if no connection found in this long, disconnect (300s aka 5m)
 
 
 async def receive_with_timeout(
@@ -441,7 +442,9 @@ async def keep_alive(ws: WebSocket):
         websocket_locks.pop(ws, 0)
 
 
-async def connect_users(websocket: WebSocket, websocket_details: dict):
+async def connect_users(
+    websocket: WebSocket, websocket_details: dict, time_started: float
+):
     """Automatically link users who are waiting."""
     bot.active_userphone_connections[websocket] = websocket_details
     asyncio.create_task(keep_alive(websocket))
@@ -501,6 +504,16 @@ async def connect_users(websocket: WebSocket, websocket_details: dict):
             except:
                 bot.userphone_pairings.pop(uuid_str, 0)
             break
+        elif time.time() > time_started + max_waiting_time:
+            bot.active_userphone_connections.pop(websocket, 0)
+            await websocket.send_json(
+                {
+                    "code": 408,
+                    "detail": "Max waiting time exceeded.",
+                }
+            )
+            await websocket.close(code=1001)
+            break
         await asyncio.sleep(0.3)
 
 
@@ -513,20 +526,21 @@ def setup():
         Additionally, all message_ids are validated when they are receieved - you will only get a message_edit or message_delete of a previous message. Additionally, you may only send and receive 400s for existing message_ids, and cannot send a 400 for a message_delete.
 
         Client Receives:
-        - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}`
+        - `{"code": 429, "detail": "IP Temporarily Banned.", "retry_after": ...}` - 1001 disconnect sent
         - `{"code": 200, "detail": "not_connected"}` - while waiting
         - `{"code": 202, "detail": "Connected.", "user": {...}, "uuid": "..."}` - also on reconnect
         - `{"code": 201, "detail": "Operation sent.", "operation": "...", "message_id": "..."}` - operation one of "message_edit", "message", "message_delete"
         - `{"code": 200, "detail": "Message received.", "message": {...}}`
         - `{"code": 200, "detail": "Message edited.", "message": {...}}`
         - `{"code": 200, "detail": "Message deleted.", "message_id": "..."}`
-        - `{"code": 400, "detail": "not_connected"}`
+        - `{"code": 400, "detail": "not_connected"}` - if you sent a message through the websocket while not connected
         - `{"code": 400, "detail": "unprocessable", "message_id": "..."}`
         - `{"code": 400, "detail": "invalid_content"}` (invalid content was given to the server)
-        - `{"code": 400, "detail": "already_connected"}` (channel already connected)
+        - `{"code": 400, "detail": "already_connected"}` (channel already connected) - 1001 disconnect
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}`
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}`
+        - `{"code": 408, "detail": "Max waiting time exceeded."}` - 1001 disconnect
         - `1001 - Disconnected`
         - `3008 - No activity on one side for > 120s`
         - `3000 - Unauthorized`
@@ -703,7 +717,7 @@ def setup():
                             banned_ips[user_ip]["until"] = time.time() + ban_time
                             banned_ips[user_ip]["last_ban"] = ban_time
                 else:
-                    await connect_users(websocket, msg)
+                    await connect_users(websocket, msg, time.time())
 
             elif id in bot.userphone_pairings:
                 if not bot.userphone_pairings[id]["con1"]["ws"]:

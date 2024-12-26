@@ -484,7 +484,7 @@ class moderation(commands.Cog):
                 if not server_data:
                     server_data = documents.Server(serverId=server.id)
                     await server_data.save()
-    
+
                 mutes = server_data.data.mutes
                 bans = server_data.data.bans
                 for mute in mutes:
@@ -498,7 +498,9 @@ class moderation(commands.Cog):
                                 except guilded.NotFound:
                                     member = mute.user  # Deleted user?
                             await unmute_user(
-                                server, member, in_server=isinstance(member, guilded.Member)
+                                server,
+                                member,
+                                in_server=isinstance(member, guilded.Member),
                             )
                             if isinstance(
                                 member, guilded.User
