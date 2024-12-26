@@ -216,18 +216,20 @@ def owoify(source: str, link: bool = False, level: int = 1):
             last_end = end
 
         # Handle whitespace, since owoify does strip and do weird things to it.
-        b = source[last_end:].split(source[last_end:].strip())
-        a = b[1]
-        b = b[0]
-        # Append the remainder of the text after the last link
-        new_content_parts.append(b)
-        new_content_parts.append(
-            _owoify(source[last_end:].strip(), level, symbols=False)
-        )
-        new_content_parts.append(a)
+        try:
+            b = source[last_end:].split(source[last_end:].strip())
+            a = b[1]
+            b = b[0]
+            # Append the remainder of the text after the last link
+            new_content_parts.append(b)
+            new_content_parts.append(
+                _owoify(source[last_end:].strip(), level, symbols=False)
+            )
+            new_content_parts.append(a)
+        except ValueError:
+            new_content_parts.append(source[last_end:])
 
         # Join all parts back into a single string
-        print(new_content_parts)
         source = "".join(new_content_parts)
         return source
     else:
