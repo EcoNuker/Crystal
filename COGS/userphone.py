@@ -68,7 +68,9 @@ class Userphone(commands.Cog):
 
         uuid = session["uuid"]
         while True:
-            uuid = await self.userphone_client(uuid, channel, connection_details, ws)
+            uuid = await self.userphone_client(
+                uuid, channel, connection_details, ws, session["type"]
+            )
             if type(uuid) != str:
                 break
         if uuid == 1:
@@ -141,6 +143,14 @@ class Userphone(commands.Cog):
             id_map.get(reply, reply) for reply in message.replied_to_ids
         ]
 
+        us_type = self.bot.active_userphone_sessions[
+            (
+                message.channel.id
+                if not hasattr(message.channel, "root_id")
+                else message.channel.root_id
+            )
+        ]["type"]
+
         message_obj = {
             "name": user_data["name"],
             "id": user_data["id"],
@@ -149,7 +159,13 @@ class Userphone(commands.Cog):
             "avatar_url": user_data["avatar_url"],
             "profile_url": user_data["profile_url"],
             "reply_ids": converted_replies,
-            "content": {"text": message.content},
+            "content": {
+                "text": (
+                    tools.owoify(message.content, link=True, level=1)
+                    if us_type == "owo"
+                    else message.content
+                )
+            },
         }
         try:
             await ws.send(
@@ -276,12 +292,34 @@ class Userphone(commands.Cog):
                         )
                     await channel.send(embed=embed)
 
+                    us_type = self.bot.active_userphone_sessions[
+                        (
+                            channel.id
+                            if not hasattr(channel, "root_id")
+                            else channel.root_id
+                        )
+                    ]["type"]
+                    if us_type == "owo":
+                        await channel.send(
+                            "!! NOTICE - This side's userphone is in `OwO` mode."
+                        )
+
                 elif response_data["code"] == 200:
+
+                    us_type = self.bot.active_userphone_sessions[
+                        (
+                            channel.id
+                            if not hasattr(channel, "root_id")
+                            else channel.root_id
+                        )
+                    ]["type"]
 
                     async def get_embed(content, message_data):
                         image = await self.find_first_image_or_gif(content)
                         content = await tools.format_for_embed(
-                            message_content=content, bot=self.bot
+                            message_content=content,
+                            bot=self.bot,
+                            owo=-1 if us_type != "owo" else 1,
                         )
                         embed = guilded.Embed(
                             description=content,
@@ -426,7 +464,12 @@ class Userphone(commands.Cog):
                     break
 
     async def userphone_client(
-        self, uuid: str | None, channel: guilded.ChatChannel, auth: dict, ws=None
+        self,
+        uuid: str | None,
+        channel: guilded.ChatChannel,
+        auth: dict,
+        ws=None,
+        us_type="normal",
     ):
         """
         You can assume all keys exist and that they are of the correct type as specified. URLs are validated server side before being sent again.
@@ -510,6 +553,7 @@ class Userphone(commands.Cog):
                 "connected": None,
                 "message_id_map": {},
                 "user": None,
+                "type": us_type,
             }
             resp = await self.receive_message(ws, channel)
             if resp == False:
@@ -660,13 +704,23 @@ class Userphone(commands.Cog):
                     event.message.content == ""
                     or event.message.author.id == self.bot.user_id
                 ):
-                    return
+                    if (
+                        event.message.content.startswith("!! ")
+                        and event.message.author_id == self.bot.user_id
+                    ):
+                        pass
+                    else:
+                        return
                 ws = session["ws"]
                 user_data = {
                     "name": (
                         event.message.author.name
-                        if event.message.author_id != "Ann6LewA"
-                        else "SERVER WEBHOOK"
+                        if event.message.author_id not in ["Ann6LewA", self.bot.user_id]
+                        else (
+                            "SERVER WEBHOOK"
+                            if event.message.author_id == "Ann6LewA"
+                            else self.bot.name + " [BOT]"
+                        )
                     ),
                     "id": event.message.author_id,
                     "nickname": event.message.author.nick,
@@ -747,6 +801,7 @@ class Userphone(commands.Cog):
             "connected": None,
             "message_id_map": {},
             "user": None,
+            "type": "normal",
         }
 
         await asyncio.sleep(3)
@@ -761,6 +816,101 @@ class Userphone(commands.Cog):
                     "connected": None,
                     "message_id_map": {},
                     "user": None,
+                    "type": "normal",
+                },
+                send_disconnect=True,
+                msg_edit=msg,
+            )
+        )
+        task.add_done_callback(self.remove_session_task)
+        self.session_tasks.append(task)
+
+    @cmd_ex.document()
+    @commands.command(name="owophone")
+    @commands.cooldown(rate=1, per=2, type=commands.BucketType.channel)
+    async def start_owophone(self, ctx: commands.Context):
+        """
+        Command Usage: `{qualified_name}`
+
+        -----------
+
+        `{prefix}{qualified_name}` - Start a OwO userphone in the current channel.
+        """
+        if ctx.message.private:
+            return await ctx.reply("Cannot be private.", private=ctx.message.private)
+
+        if ctx.channel.id in self.bot.active_userphone_sessions:
+            if (
+                self.bot.active_userphone_sessions[
+                    (
+                        ctx.channel.id
+                        if not hasattr(ctx.channel, "root_id")
+                        else ctx.channel.root_id
+                    )
+                ]["user"]
+                == None
+            ):
+                return await ctx.reply(
+                    "Userphone is already ringing.", private=ctx.message.private
+                )
+            else:
+                user = self.bot.active_userphone_sessions[
+                    (
+                        ctx.channel.id
+                        if not hasattr(ctx.channel, "root_id")
+                        else ctx.channel.root_id
+                    )
+                ]["user"]
+                server_name = user["server"]["name"]
+                channel_name = user["server"]["channel"]
+
+                embed = guilded.Embed(
+                    title="Already Connected!",
+                    description=f"Currently connected to **{server_name} - (#{channel_name})**",
+                    color=guilded.Color.purple(),
+                )
+                embed.set_author(
+                    name=user["name"],
+                    icon_url=(user["avatar_url"] if user["avatar_url"] else EmptyEmbed),
+                )
+                if user["server"]["icon_url"]:
+                    embed.set_thumbnail(url=user["server"]["icon_url"])
+                return await ctx.reply(embed=embed, private=ctx.message.private)
+
+        msg = await ctx.reply(
+            "Calling userphone... If no connection is found in 5 minutes this will automatically fail."
+        )
+
+        self.bot.active_userphone_sessions[
+            (
+                ctx.channel.id
+                if not hasattr(ctx.channel, "root_id")
+                else ctx.channel.root_id
+            )
+        ] = {
+            "ws": None,
+            "uuid": None,
+            "channel": ctx.channel,
+            "started": time.time(),
+            "connected": None,
+            "message_id_map": {},
+            "user": None,
+            "type": "owo",
+        }
+
+        await asyncio.sleep(3)
+
+        task = asyncio.create_task(
+            self.userphone_session(
+                {
+                    "ws": None,
+                    "uuid": None,
+                    "channel": ctx.channel,
+                    "started": time.time(),
+                    "connected": None,
+                    "message_id_map": {},
+                    "user": None,
+                    "type": "owo",
                 },
                 send_disconnect=True,
                 msg_edit=msg,

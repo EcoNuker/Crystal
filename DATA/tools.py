@@ -17,6 +17,7 @@ from typing import List, Union, Optional
 
 from DATA import custom_events
 from DATA.CONFIGS import CONFIGS
+from DATA.owoify import owoify as _owoify
 
 import documents
 
@@ -184,10 +185,60 @@ def channel_is_messageable(channel: guilded.abc.ServerChannel):
     )
 
 
+def owoify(source: str, link: bool = False, level: int = 1):
+    if link:
+        # Store positions of links to avoid owoifying them later
+        links = []
+
+        def find_links():
+            for match in re2.finditer(r"(http[s]?://\S+)", source):
+                links.append((match.start(), match.end()))
+
+        find_links()
+
+        # Owoify the message content without affecting links
+        new_content_parts = []
+        last_end = 0
+
+        for start, end in links:
+            # Append text before the link
+            # Handle whitespace, since owoify does strip and do weird things to it.
+            b = source[last_end:start].split(source[last_end:start].strip())
+            a = b[1]
+            b = b[0]
+            new_content_parts.append(b)
+            new_content_parts.append(
+                _owoify(source[last_end:start].strip(), level, symbols=False)
+            )
+            new_content_parts.append(a)
+            # Append the link itself
+            new_content_parts.append(source[start:end])
+            last_end = end
+
+        # Handle whitespace, since owoify does strip and do weird things to it.
+        b = source[last_end:].split(source[last_end:].strip())
+        a = b[1]
+        b = b[0]
+        # Append the remainder of the text after the last link
+        new_content_parts.append(b)
+        new_content_parts.append(
+            _owoify(source[last_end:].strip(), level, symbols=False)
+        )
+        new_content_parts.append(a)
+
+        # Join all parts back into a single string
+        print(new_content_parts)
+        source = "".join(new_content_parts)
+        return source
+    else:
+        return _owoify(source, level)
+
+
 async def format_for_embed(
     message: guilded.Message = None,
     message_content: str = None,
     bot: commands.Bot = None,
+    owo: int = -1,
 ):
     assert bot is not None
     assert message or message_content
@@ -198,7 +249,7 @@ async def format_for_embed(
     replacement_counter = 1
     for url in matches:
         replacement = f"[ATTACHMENT_{replacement_counter}]({url})"
-        message_content = message_content.replace(f"![]({url})", replacement)
+        message_content = message_content.replace(f"![]({url})", replacement, 1)
         replacement_counter += 1
 
     # Replace custom emojis
@@ -236,9 +287,11 @@ async def format_for_embed(
         result.append(message_content[pos:])
         return "".join(result)
 
+    if owo in [0, 1, 2]:
+        message_content = owoify(message_content, link=True, level=owo)
+
     # Apply replacements
     message_content = await replace_channel_mentions(message_content)
-
     return message_content
 
 
