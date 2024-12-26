@@ -475,81 +475,85 @@ class moderation(commands.Cog):
     # Check endsAt for bans and mutes.
     @tasks.loop(seconds=10)
     async def endsAt_check(self):
-        for server in self.bot.servers:
-            server_data = await documents.Server.find_one(
-                documents.Server.serverId == server.id,
-            )
-            if not server_data:
-                server_data = documents.Server(serverId=server.id)
-                await server_data.save()
-
-            mutes = server_data.data.mutes
-            bans = server_data.data.bans
-            for mute in mutes:
-                if mute.endsAt and mute.endsAt <= time.time():
-                    try:
+        servers = await self.bot.fetch_servers()
+        for server in servers:
+            try:
+                server_data = await documents.Server.find_one(
+                    documents.Server.serverId == server.id,
+                )
+                if not server_data:
+                    server_data = documents.Server(serverId=server.id)
+                    await server_data.save()
+    
+                mutes = server_data.data.mutes
+                bans = server_data.data.bans
+                for mute in mutes:
+                    if mute.endsAt and mute.endsAt <= time.time():
                         try:
-                            member = await server.getch_member(mute.user)
-                        except guilded.NotFound:
                             try:
-                                member = await self.bot.getch_user(mute.user)
+                                member = await server.getch_member(mute.user)
                             except guilded.NotFound:
-                                member = mute.user  # Deleted user?
-                        await unmute_user(
-                            server, member, in_server=isinstance(member, guilded.Member)
-                        )
-                        if isinstance(
-                            member, guilded.User
-                        ):  # guilded.Member is a inheritor of guilded.User, therefore it will be caught here
-                            # This will filter out the ID only
-                            me = await server.getch_member(self.bot.user_id)
+                                try:
+                                    member = await self.bot.getch_user(mute.user)
+                                except guilded.NotFound:
+                                    member = mute.user  # Deleted user?
+                            await unmute_user(
+                                server, member, in_server=isinstance(member, guilded.Member)
+                            )
+                            if isinstance(
+                                member, guilded.User
+                            ):  # guilded.Member is a inheritor of guilded.User, therefore it will be caught here
+                                # This will filter out the ID only
+                                me = await server.getch_member(self.bot.user_id)
+                                custom_events.eventqueue.add_event(
+                                    custom_events.ModeratorAction(
+                                        action="unmute",
+                                        moderator=me,
+                                        member=member,
+                                        reason=f"The duration of their tempmute has ended.",
+                                    )
+                                )
+                        except guilded.Forbidden as e:
                             custom_events.eventqueue.add_event(
-                                custom_events.ModeratorAction(
-                                    action="unmute",
-                                    moderator=me,
-                                    member=member,
-                                    reason=f"The duration of their tempmute has ended.",
+                                custom_events.BotForbidden(
+                                    ["ModeratorAction"],
+                                    e,
+                                    server,
+                                    action="Remove Mute Role",
+                                    note="Are my roles above the mute role? Please put my role at the top.",
                                 )
                             )
-                    except guilded.Forbidden as e:
-                        custom_events.eventqueue.add_event(
-                            custom_events.BotForbidden(
-                                ["ModeratorAction"],
-                                e,
-                                server,
-                                action="Remove Mute Role",
-                                note="Are my roles above the mute role? Please put my role at the top.",
-                            )
-                        )
-            for ban in bans:
-                if ban.endsAt and ban.endsAt <= time.time():
-                    try:
+                for ban in bans:
+                    if ban.endsAt and ban.endsAt <= time.time():
                         try:
-                            member = await self.bot.getch_user(ban.user)
-                        except guilded.NotFound:
-                            member = ban.user  # Deleted user?
-                        await unban_user(server, member)
-                        if isinstance(member, guilded.User):
-                            # This will filter out the ID only
-                            me = await server.getch_member(self.bot.user_id)
+                            try:
+                                member = await self.bot.getch_user(ban.user)
+                            except guilded.NotFound:
+                                member = ban.user  # Deleted user?
+                            await unban_user(server, member)
+                            if isinstance(member, guilded.User):
+                                # This will filter out the ID only
+                                me = await server.getch_member(self.bot.user_id)
+                                custom_events.eventqueue.add_event(
+                                    custom_events.ModeratorAction(
+                                        action="unban",
+                                        moderator=me,
+                                        member=member,
+                                        reason=f"The duration of their tempban has ended.",
+                                    )
+                                )
+                        except guilded.Forbidden as e:
                             custom_events.eventqueue.add_event(
-                                custom_events.ModeratorAction(
-                                    action="unban",
-                                    moderator=me,
-                                    member=member,
-                                    reason=f"The duration of their tempban has ended.",
+                                custom_events.BotForbidden(
+                                    ["ModeratorAction"],
+                                    e,
+                                    server,
+                                    action="Unban User",
+                                    note="Could not unban user.",
                                 )
                             )
-                    except guilded.Forbidden as e:
-                        custom_events.eventqueue.add_event(
-                            custom_events.BotForbidden(
-                                ["ModeratorAction"],
-                                e,
-                                server,
-                                action="Unban User",
-                                note="Could not unban user.",
-                            )
-                        )
+            except Exception as e:
+                self.bot.warn(f"Exception in Moderation tempmute/tempban: {e}")
 
     def cog_unload(self):
         self.endsAt_check.cancel()
