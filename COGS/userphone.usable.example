@@ -34,13 +34,12 @@ from guilded.embed import EmptyEmbed
 
 image_regex = re.compile(r"!\[\]\((https:\/\/[^\s]+)\)")
 
-
 class Userphone(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
         self.USER_DATA = {
-            "authentication": ...,  # Your auth here
+            "authentication": ..., # Your auth here
             "name": bot.user.name,
             "id": bot.user_id,
             "description": None,
@@ -74,7 +73,9 @@ class Userphone(commands.Cog):
                         return url
         return None
 
-    async def userphone_session(self, session, send_disconnect=False):
+    async def userphone_session(
+        self, session: dict, send_disconnect=False, msg_edit: guilded.Message = None
+    ):
         channel: guilded.ChatChannel = session["channel"]
         ws = session["ws"]
         connection_details = json.loads(json.dumps(self.USER_DATA))
@@ -95,9 +96,21 @@ class Userphone(commands.Cog):
             if type(uuid) != str:
                 break
         if uuid == 1:
-            await channel.send(
-                "Already connected!"
-            )  # how tf?? lol this shouldn't happen but ok
+            if msg_edit:
+                try:
+                    await msg_edit.edit("Already connected!")
+                except:
+                    msg_edit = None
+            if not msg_edit:
+                await channel.send("Already connected!")
+        elif uuid == 2:
+            if msg_edit:
+                try:
+                    await msg_edit.edit("No connection found! Disconnected.")
+                except:
+                    msg_edit = None
+            if not msg_edit:
+                await channel.send("No connection found! Disconnected.")
         if send_disconnect:
             try:
                 await channel.send("Userphone hung up.")
@@ -127,7 +140,7 @@ class Userphone(commands.Cog):
 
     async def restart_sessions(self):
         # attempt to reconnect every session
-        for session in self.bot.active_userphone_sessions:
+        for session in self.bot.active_userphone_sessions.values():
             task = asyncio.create_task(
                 self.userphone_session(session, send_disconnect=True)
             )
@@ -186,6 +199,12 @@ class Userphone(commands.Cog):
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}` ✅
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}` ✅
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}` ✅
+        - `{"code": 408, "detail": "Max waiting time exceeded."}` ✅
+
+        # Returns
+        - `1` - already connected
+        - `2` - waited too long
+        - `False` - any type of error, shouldn't try to reconnect
         """
         while True:
             try:
@@ -196,15 +215,20 @@ class Userphone(commands.Cog):
                     return False  # This shouldn't ever happen as we comply with authentication.
                 if response_data["code"] == 404:
                     return False  # Reconnect failure.
+                if response_data["code"] == 408:
+                    return 2  # Reconnect failure.
                 if response_data["detail"] == "already_connected":
-                    return 1  # Already connected. Shouldn't ever happen as we keep a list of active sessions.
+                    return 1  # Already connected.
                 if response_data["detail"] == "invalid_content":
                     print(
                         response_data
                     )  # Print it to let developers know, as this shouldn't ever happen. We comply with all userphone standards.
                 elif response_data["code"] == 418:
                     pass  # The server will send all of our messages anyways. Disconnected user will however not have their messages sent.
-                elif response_data["code"] == 400 and response_data["detail"] == "not_connected":
+                elif (
+                    response_data["code"] == 400
+                    and response_data["detail"] == "not_connected"
+                ):
                     pass
                 elif response_data["detail"] == "Operation sent.":
                     pass
@@ -412,25 +436,7 @@ class Userphone(commands.Cog):
                     response_data["code"] == 200
                     and response_data["detail"] == "not_connected"
                 ):
-                    if (
-                        self.bot.active_userphone_sessions[
-                            (
-                                channel.id
-                                if not hasattr(channel, "root_id")
-                                else channel.root_id
-                            )
-                        ]["started"]
-                        is not True
-                    ) and time.time() - self.bot.active_userphone_sessions[
-                        (
-                            channel.id
-                            if not hasattr(channel, "root_id")
-                            else channel.root_id
-                        )
-                    ][
-                        "started"
-                    ] > 300:  # 5 min no connection.
-                        return False
+                    pass
                 else:  # We don't handle anything else yet
                     print(f"Server response: {response_data}")
 
@@ -463,6 +469,7 @@ class Userphone(commands.Cog):
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}`
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}`
+        - `{"code": 408, "detail": "Max waiting time exceeded."}` - 1001 disconnect
         - `1001 - Disconnected`
         - `3008 - No activity on one side for > 120s`
         - `3000 - Unauthorized`
@@ -536,8 +543,8 @@ class Userphone(commands.Cog):
                 except:
                     pass
                 return None
-            elif resp == 1:
-                return 1  # 1 is already connected.
+            elif type(resp) == int:
+                return resp  # 1 is already connected, 2 is waited too long
             else:
                 try:
                     await ws.close(1000)  # unintentional
@@ -560,9 +567,11 @@ class Userphone(commands.Cog):
                         json.dumps({"code": 200, "user": auth, "detail": "auth"})
                     )
 
-                return await begin()
+                res = await begin()
+                return res
         else:
-            return await begin()
+            res = await begin()
+            return res
 
     @commands.Cog.listener()
     async def on_message_delete(self, event: guilded.MessageDeleteEvent):
@@ -690,6 +699,7 @@ class Userphone(commands.Cog):
                 pass
 
     @commands.command(name="userphone")
+    @commands.cooldown(rate=1, per=2, type=commands.BucketType.channel)
     async def start_userphone(self, ctx: commands.Context):
         """
         Command Usage: `{qualified_name}`
@@ -739,7 +749,7 @@ class Userphone(commands.Cog):
                     embed.set_thumbnail(url=user["server"]["icon_url"])
                 return await ctx.reply(embed=embed, private=ctx.message.private)
 
-        await ctx.reply(
+        msg = await ctx.reply(
             "Calling userphone... If no connection is found in 5 minutes this will automatically fail."
         )
 
@@ -763,20 +773,24 @@ class Userphone(commands.Cog):
 
         task = asyncio.create_task(
             self.userphone_session(
-                self.bot.active_userphone_sessions[
-                    (
-                        ctx.channel.id
-                        if not hasattr(ctx.channel, "root_id")
-                        else ctx.channel.root_id
-                    )
-                ],
+                {
+                    "ws": None,
+                    "uuid": None,
+                    "channel": ctx.channel,
+                    "started": time.time(),
+                    "connected": None,
+                    "message_id_map": {},
+                    "user": None,
+                },
                 send_disconnect=True,
+                msg_edit=msg,
             )
         )
         task.add_done_callback(self.remove_session_task)
         self.session_tasks.append(task)
 
     @commands.command(name="disconnect")
+    @commands.cooldown(rate=1, per=2, type=commands.BucketType.channel)
     async def disconnect_userphone(self, ctx: commands.Context):
         """
         Command Usage: `{qualified_name}`
