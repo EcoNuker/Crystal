@@ -91,7 +91,11 @@ class Userphone(commands.Cog):
                 await channel.send("No connection found! Disconnected.")
         if send_disconnect:
             try:
-                await channel.send("Userphone hung up.")
+                await channel.send(
+                    "Userphone hung up."
+                    if uuid != False
+                    else "Userphone disconnected due to inactivity."
+                )
             except guilded.NotFound:
                 pass
         ws = self.bot.active_userphone_sessions.pop(
@@ -458,8 +462,10 @@ class Userphone(commands.Cog):
                     print(f"Server response: {response_data}")
 
             except websockets.exceptions.ConnectionClosed as e:
-                if e.code in [1001, 3008, 3000, 3003]:
+                if e.code in [1001, 3000, 3003]:
                     return False
+                if e.code in [3008]:
+                    return None
                 else:
                     break
             except Exception as e:
@@ -568,6 +574,16 @@ class Userphone(commands.Cog):
                 except:
                     pass
                 return None
+            elif resp == None:
+                self.bot.active_userphone_sessions.pop(
+                    channel.id if not hasattr(channel, "root_id") else channel.root_id,
+                    0,
+                )
+                try:
+                    await ws.close(1001)
+                except:
+                    pass
+                return False
             elif type(resp) == int:
                 return resp  # 1 is already connected, 2 is waited too long
             else:
