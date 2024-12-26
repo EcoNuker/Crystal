@@ -49,7 +49,9 @@ class Userphone(commands.Cog):
                         return url
         return None
 
-    async def userphone_session(self, session: dict, send_disconnect=False):
+    async def userphone_session(
+        self, session: dict, send_disconnect=False, msg_edit: guilded.Message = None
+    ):
         channel: guilded.ChatChannel = session["channel"]
         ws = session["ws"]
         connection_details = json.loads(json.dumps(self.USER_DATA))
@@ -70,9 +72,21 @@ class Userphone(commands.Cog):
             if type(uuid) != str:
                 break
         if uuid == 1:
-            await channel.send(
-                "Already connected!"
-            )  # how tf?? lol this shouldn't happen but ok
+            if msg_edit:
+                try:
+                    await msg_edit.edit("Already connected!")
+                except:
+                    msg_edit = None
+            if not msg_edit:
+                await channel.send("Already connected!")
+        elif uuid == 2:
+            if msg_edit:
+                try:
+                    await msg_edit.edit("No connection found! Disconnected.")
+                except:
+                    msg_edit = None
+            if not msg_edit:
+                await channel.send("No connection found! Disconnected.")
         if send_disconnect:
             try:
                 await channel.send("Userphone hung up.")
@@ -161,6 +175,12 @@ class Userphone(commands.Cog):
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}` ✅
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}` ✅
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}` ✅
+        - `{"code": 408, "detail": "Max waiting time exceeded."}` ✅
+
+        # Returns
+        - `1` - already connected
+        - `2` - waited too long
+        - `False` - any type of error, shouldn't try to reconnect
         """
         while True:
             try:
@@ -171,8 +191,10 @@ class Userphone(commands.Cog):
                     return False  # This shouldn't ever happen as we comply with authentication.
                 if response_data["code"] == 404:
                     return False  # Reconnect failure.
+                if response_data["code"] == 408:
+                    return 2  # Reconnect failure.
                 if response_data["detail"] == "already_connected":
-                    return 1  # Already connected. Shouldn't ever happen as we keep a list of active sessions.
+                    return 1  # Already connected.
                 if response_data["detail"] == "invalid_content":
                     print(
                         response_data
@@ -393,25 +415,7 @@ class Userphone(commands.Cog):
                     response_data["code"] == 200
                     and response_data["detail"] == "not_connected"
                 ):
-                    if (
-                        self.bot.active_userphone_sessions[
-                            (
-                                channel.id
-                                if not hasattr(channel, "root_id")
-                                else channel.root_id
-                            )
-                        ]["started"]
-                        is not True
-                    ) and time.time() - self.bot.active_userphone_sessions[
-                        (
-                            channel.id
-                            if not hasattr(channel, "root_id")
-                            else channel.root_id
-                        )
-                    ][
-                        "started"
-                    ] > 300:  # 5 min no connection.
-                        return False
+                    pass
                 else:  # We don't handle anything else yet
                     print(f"Server response: {response_data}")
 
@@ -444,6 +448,7 @@ class Userphone(commands.Cog):
         - `{"code": 404, "detail": "Invalid UUID to reconnect - has it expired?"}`
         - `{"code": 415, "detail": "Message contains content blocked by other user.", "message_id": "..."}`
         - `{"code": 418, "detail": "Other user disconnected unintentionally. Wait for possible reconnect.", "time": ...}`
+        - `{"code": 408, "detail": "Max waiting time exceeded."}` - 1001 disconnect
         - `1001 - Disconnected`
         - `3008 - No activity on one side for > 120s`
         - `3000 - Unauthorized`
@@ -517,8 +522,8 @@ class Userphone(commands.Cog):
                 except:
                     pass
                 return None
-            elif resp == 1:
-                return 1  # 1 is already connected.
+            elif type(resp) == int:
+                return resp  # 1 is already connected, 2 is waited too long
             else:
                 try:
                     await ws.close(1000)  # unintentional
@@ -724,7 +729,7 @@ class Userphone(commands.Cog):
                     embed.set_thumbnail(url=user["server"]["icon_url"])
                 return await ctx.reply(embed=embed, private=ctx.message.private)
 
-        await ctx.reply(
+        msg = await ctx.reply(
             "Calling userphone... If no connection is found in 5 minutes this will automatically fail."
         )
 
@@ -758,6 +763,7 @@ class Userphone(commands.Cog):
                     "user": None,
                 },
                 send_disconnect=True,
+                msg_edit=msg,
             )
         )
         task.add_done_callback(self.remove_session_task)
