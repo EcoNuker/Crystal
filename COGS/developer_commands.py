@@ -256,7 +256,7 @@ class developer(commands.Cog):
                 k: __builtins__[k]
                 for k in __builtins__
                 if k
-                not in ("quit", "exit", "eval", "exec", "open", "input", "__import__")
+                not in ("quit", "exit", "eval", "exec", "open", "input")
             }
             exec(
                 f"async def __ex(message, bot):\n    "
