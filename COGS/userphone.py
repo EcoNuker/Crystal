@@ -462,6 +462,8 @@ class Userphone(commands.Cog):
                     return False
                 else:
                     break
+            except Exception as e:
+                self.bot.warn(f"Exception in Userphone receive: {e}")
 
     async def userphone_client(
         self,
