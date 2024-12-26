@@ -492,10 +492,10 @@ class moderation(commands.Cog):
                         try:
                             try:
                                 member = await server.getch_member(mute.user)
-                            except guilded.NotFound:
+                            except (guilded.NotFound, guilded.Forbidden):
                                 try:
                                     member = await self.bot.getch_user(mute.user)
-                                except guilded.NotFound:
+                                except (guilded.NotFound, guilded.Forbidden):
                                     member = mute.user  # Deleted user?
                             await unmute_user(
                                 server,
@@ -530,7 +530,7 @@ class moderation(commands.Cog):
                         try:
                             try:
                                 member = await self.bot.getch_user(ban.user)
-                            except guilded.NotFound:
+                            except (guilded.NotFound, guilded.Forbidden):
                                 member = ban.user  # Deleted user?
                             await unban_user(server, member)
                             if isinstance(member, guilded.User):
